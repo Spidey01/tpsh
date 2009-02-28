@@ -118,43 +118,43 @@ my %Aliases = ();
 # Each handler should be named command_bin for consistency. For 
 # security reasons, you should never modify this hash at runtime.
 #
-my %Builtins = ( '['            => sub { print STDERR "Not implemented\n" },
+my %Builtins = ( '['            => sub { warn "Not implemented\n" },
                  'alias'        => \&alias_bin,
-                 'bg'           => sub { print STDERR "Not implemented\n" },
-                 'bind'         => sub { print STDERR "Not implemented\n" },
+                 'bg'           => sub { warn "Not implemented\n" },
+                 'bind'         => sub { warn "Not implemented\n" },
                  'builtin'      => \&builtin_bin,
                  'cd'           => \&cd_bin,
                  'chdir'        => \&cd_bin,
-                 'command'      => sub { print STDERR "Not implemented\n" }, 
+                 'command'      => sub { warn "Not implemented\n" }, 
                  'echo'         => \&echo_bin,
                  'eval'         => \&eval_bin,
                  'exit'         => \&exit_bin,
                  'export'       => \&export_bin,
-                 'false'        => sub { print STDERR "Not implemented\n" },
-                 'fc'           => sub { print STDERR "Not implemented\n" },
-                 'fg'           => sub { print STDERR "Not implemented\n" },
-                 'getopts'      => sub { print STDERR "Not implemented\n" },
-                 'hash'         => sub { print STDERR "Not implemented\n" },
-                 'jobs'         => sub { print STDERR "Not implemented\n" },
-                 'local'        => sub { print STDERR "Not implemented\n" },
+                 'false'        => sub { warn "Not implemented\n" },
+                 'fc'           => sub { warn "Not implemented\n" },
+                 'fg'           => sub { warn "Not implemented\n" },
+                 'getopts'      => sub { warn "Not implemented\n" },
+                 'hash'         => sub { warn "Not implemented\n" },
+                 'jobs'         => sub { warn "Not implemented\n" },
+                 'local'        => sub { warn "Not implemented\n" },
                  'read'         => \&read_bin,
-                 'readonly'     => sub { print STDERR "Not implemented\n" },
+                 'readonly'     => sub { warn "Not implemented\n" },
                  'rehash'       => \&rehash_bin,
-                 'return'       => sub { print STDERR "Not implemented\n" }, 
+                 'return'       => sub { warn "Not implemented\n" }, 
                  'set'          => \&set_bin,
                  'setenv'       => \&setenv_bin,
                  'setvar'       => \&setvar_bin,
-                 'shift'        => sub { print STDERR "Not implemented\n" },
+                 'shift'        => sub { warn "Not implemented\n" },
                  'test'         => \&test_bin,
                  'times'        => \&times_bin,
                  'trap'         => \&trap_bin,
-                 'true'         => sub { print STDERR "Not implemented\n" },
+                 'true'         => sub { warn "Not implemented\n" },
                  'type'         => \&type_bin,
-                 'ulimit'       => sub { print STDERR "Not implemented\n" },
-                 'umask'        => sub { print STDERR "Not implemented\n" },
+                 'ulimit'       => sub { warn "Not implemented\n" },
+                 'umask'        => sub { warn "Not implemented\n" },
                  'unalias'      => \&unalias_bin,
                  'unset'        => \&unset_bin,
-                 'wait'         => sub { print STDERR "Not implemented\n" },
+                 'wait'         => sub { warn "Not implemented\n" },
 );
 
 
@@ -232,7 +232,7 @@ sub init_sh {
                              : "Fix me for Windows";
     }
 
-    $ENV{TERM}      || print STDERR "UNDEFINED TERMINAL TYPE $ENV{TERM}\n";
+    $ENV{TERM}      || warn "UNDEFINED TERMINAL TYPE $ENV{TERM}\n";
 
     # initialize the readline library
     #
@@ -306,7 +306,7 @@ sub rehash {
     for my $dir (reverse hsplit $ENV{PATH}) {
         print "hashing $dir\n";
         opendir my $dh, $dir 
-            or print STDERR "Unable to access $dir; skipping in \$PATH\n";
+            or warn "Unable to access $dir; skipping in \$PATH\n";
         for my $prog (readdir $dh) {
             $Path{$prog} = "${dir}/${prog}";
         }
@@ -350,9 +350,9 @@ sub sh_eval {
     }
 
     # handle tilde expansions
-    while ($ln =~ m%~/%) {
-        unless ($ln =~ m%\\~/%) {
-            $ln =~ s%~/%$ENV{HOME}/%;
+    while ($ln =~ m%~%) {
+        unless ($ln =~ m%\\~%) {
+            $ln =~ s%~%$ENV{HOME}/%;
         }
     }
     return wantarray ? split /$ENV{IFS}/, $ln  : $ln;
@@ -362,7 +362,7 @@ sub update_env {
     my ($var, $val) = @_;
     $val = sh_eval($val);
 
-    return print STDERR "$0: Bad syntax, '$var'\n" 
+    return warn "$0: Bad syntax, '$var'\n" 
         if $var =~ /=/; # IEEE Std 1003.1-2004 forbirds = in env-var names
 
     $ENV{$var} = "$val";
