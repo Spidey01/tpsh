@@ -164,9 +164,10 @@ my %Builtins = ( '['            => sub { print STDERR "Not implemented\n" },
 
 sub init_sh {
     # handle default initializations for the environment
+    # XXX this is a _huge_ ass sub
 
     if (grep { $^O eq $_ } qw(VMS MacOS NetWare beos vos)) {
-        print STDERR "$0: Unsupported OS $^O -- YMMV\n";
+        warn "$0: Unsupported OS $^O -- YMMV\n";
     }
 
     # if none of the accepted UNIX / NT login names are found in the
@@ -193,14 +194,21 @@ sub init_sh {
     $Dumper = new Dumpvalue;
 
     # These are defaults for our own internal variables
-    $ENV{CDPATH}    ||= "";
-    $ENV{EDITOR}    ||= '/bin/ed';
+    #
+    unless ($ENV{EDITOR}) {
+        if ($isUnix) {
+            $ENV{EDITOR} = '/bin/ed';
+        } elsif ($isWin) {
+            $ENV{EDITOR} = 'edit';
+        }
+    }
     $ENV{FCEDIT}    ||= $ENV{EDITOR};
     $ENV{HISTSIZE}  ||= 512;
     $ENV{IFS}       ||= " \t\n";
     $ENV{PS1}       ||= $pw->uid != 1 ? '$ ' : '# ';
     $ENV{PS2}       ||= '> ';
     $ENV{PS4}       ||= '+ ';
+    $ENV{CDPATH}    ||= "";
 
     # inheritied from the system, normally...
     $ENV{SHELL}     ||= $0;             #  don't use $pw->shell.
@@ -222,6 +230,7 @@ sub init_sh {
     unless (defined $ENV{PATH}) {
         $ENV{PATH} = $isUnix ? "/usr/bin:/bin" 
                              : "Fix me for Windows";
+"C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;"
     }
 
     $ENV{TERM}      || print STDERR "UNDEFINED TERMINAL TYPE $ENV{TERM}\n";
