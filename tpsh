@@ -230,7 +230,6 @@ sub init_sh {
     unless (defined $ENV{PATH}) {
         $ENV{PATH} = $isUnix ? "/usr/bin:/bin" 
                              : "Fix me for Windows";
-"C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;"
     }
 
     $ENV{TERM}      || print STDERR "UNDEFINED TERMINAL TYPE $ENV{TERM}\n";
@@ -334,6 +333,8 @@ sub hsplit {
 }
 
 sub sh_eval { 
+    # XXX none of this understands the shells quoting rules
+
     # expand environment variables
     # XXX todo: use a global symbol table or a function to check between 
     # %ENV and %VARS or something like that
@@ -345,6 +346,13 @@ sub sh_eval {
             $ln =~ s/\$$var/$ENV{$var}/;
         } else {
             $ln =~ s/\$$var//;
+        }
+    }
+
+    # handle tilde expansions
+    while ($ln =~ m%~/%) {
+        unless ($ln =~ m%\\~/%) {
+            $ln =~ s%~/%$ENV{HOME}/%;
         }
     }
     return wantarray ? split /$ENV{IFS}/, $ln  : $ln;
