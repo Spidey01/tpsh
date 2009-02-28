@@ -1,0 +1,509 @@
+#!/usr/bin/env perl
+#
+
+#
+# TODO:
+
+#
+#   actually write sh_eval() and plug it into main_loop(), etc so we can do
+#   things like echo $VAR, and hand off echo {expansion of $VAR} to#
+#   echo_bin().
+#
+#   do simple conf file parsing; but first write %Options
+#
+#   create a symbol table hash of var => value, so we can do
+#   setvar VAR value; export VAR
+#
+#  make sh_eval convert VAR=value into $`the symbol table`{VAR}=value
+#
+# add default aliases like cls, dir, del, ren after we have got completion 
+# working.
+#
+#--------------------------------------------------------------------
+
+use warnings;
+use strict;
+
+use User::pwent;
+use Dumpvalue;
+use Term::ReadLine;
+
+
+#----------------------------------------------------------
+#                Subroutine Prototypes
+#----------------------------------------------------------
+
+#
+# Internal subroutines
+#
+sub init_sh;
+sub main_loop;
+sub pexec;
+sub resolve_cmd;
+sub handle_prompt;
+sub rehash;
+sub update_env;
+sub sh_eval;
+sub binerr;
+sub hsplit;
+#
+# These subs implement built in commands
+#
+sub alias_bin;
+sub builtin_bin;
+sub cd_bin;
+sub echo_bin;
+sub eval_bin;
+sub exit_bin;
+sub export_bin;
+sub read_bin;
+sub rehash_bin;
+sub set_bin;
+sub setenv_bin;
+sub setvar_bin;
+sub test_bin;
+sub times_bin;
+sub trap_bin;
+sub type_bin;
+sub unalias_bin;
+sub unset_bin;
+
+#----------------------------------------------------------
+#                Global Data Structures
+#----------------------------------------------------------
+
+#
+# Used whenever split /sep/, "foosepbar" is needed. I.e. $PATH, $CDPATH.
+# You should use hsplit(LIST) instead of split in such situations
+#
+my $HashSep = '[:;]';
+
+#
+# Introspector / debugging aid -- will be initialized ....
+#
+my $Dumper = undef;
+
+#
+# Holds the last executed command, usually built in.
+#
+my $Last_Cmd = '';
+
+#
+# Holds the last parsed line of input
+#
+my @Last_Line = ();
+
+
+#
+# Reference to our ReadLine interface
+#
+my $Term;
+
+#
+# A hash containing a cache of all known commands, in the format
+# of command => /path/to/command. Only the rehash() sub should
+# ever modify this cache directly!
+#
+my %Path = ();
+
+#
+# A hash of the users aliases in alias => expression format.
+# The aliases are kept separate from %Builtins, so the user
+# can _not_ clobber builtin commands; only mask them.
+#
+my %Aliases = ();
+
+#
+# A hash of built in commands in the format of command => sub.
+# Each handler should be named command_bin for consistency. For 
+# security reasons, you should never modify this hash at runtime.
+#
+my %Builtins = ( '['            => sub { print STDERR "Not implemented\n" },
+                 'alias'        => \&alias_bin,
+                 'bg'           => sub { print STDERR "Not implemented\n" },
+                 'bind'         => sub { print STDERR "Not implemented\n" },
+                 'builtin'      => \&builtin_bin,
+                 'cd'           => \&cd_bin,
+                 'chdir'        => \&cd_bin,
+                 'command'      => sub { print STDERR "Not implemented\n" }, 
+                 'echo'         => \&echo_bin,
+                 'eval'         => \&eval_bin,
+                 'exit'         => \&exit_bin,
+                 'export'       => \&export_bin,
+                 'false'        => sub { print STDERR "Not implemented\n" },
+                 'fc'           => sub { print STDERR "Not implemented\n" },
+                 'fg'           => sub { print STDERR "Not implemented\n" },
+                 'getopts'      => sub { print STDERR "Not implemented\n" },
+                 'hash'         => sub { print STDERR "Not implemented\n" },
+                 'jobs'         => sub { print STDERR "Not implemented\n" },
+                 'local'        => sub { print STDERR "Not implemented\n" },
+                 'read'         => \&read_bin,
+                 'readonly'     => sub { print STDERR "Not implemented\n" },
+                 'rehash'       => \&rehash_bin,
+                 'return'       => sub { print STDERR "Not implemented\n" }, 
+                 'set'          => \&set_bin,
+                 'setenv'       => \&setenv_bin,
+                 'setvar'       => \&setvar_bin,
+                 'shift'        => sub { print STDERR "Not implemented\n" },
+                 'test'         => \&test_bin,
+                 'times'        => \&times_bin,
+                 'trap'         => \&trap_bin,
+                 'true'         => sub { print STDERR "Not implemented\n" },
+                 'type'         => \&type_bin,
+                 'ulimit'       => sub { print STDERR "Not implemented\n" },
+                 'umask'        => sub { print STDERR "Not implemented\n" },
+                 'unalias'      => \&unalias_bin,
+                 'unset'        => \&unset_bin,
+                 'wait'         => sub { print STDERR "Not implemented\n" },
+);
+
+
+#----------------------------------------------------------
+#                Subroutine Implementations
+#----------------------------------------------------------
+
+sub init_sh {
+    # handle default initializations for the environment
+
+    if (grep { $^O eq $_ } qw(VMS MacOS NetWare beos vos)) {
+        print STDERR "$0: Unsupported OS $^O -- YMMV\n";
+    }
+
+    # if none of the accepted UNIX / NT login names are found in the
+    # users environment, treat this as a massively fatal error NOW.
+    do {
+        my $tried = 0;
+        my @names = qw( USER LOGNAME USERNAME );
+        for my $try (@names) {
+            $tried++ unless defined $ENV{$try};
+        }
+        die "$0: Unable to find your username" if $tried == @names; 
+    };
+
+    my ($isWin, $isUnix);
+    if (grep { $^O eq $_ } qw(MSWin32 os2 dos)) {
+        ($isWin, $isUnix) = (1, 0);
+    } else {
+        ($isUnix, $isWin) = (1, 0);
+    }
+
+
+    # XXX test this on Windows
+    my $pw = getpwnam($ENV{LOGNAME}) or die "No username specified";
+    $Dumper = new Dumpvalue;
+
+    # These are defaults for our own internal variables
+    $ENV{CDPATH}    ||= "";
+    $ENV{EDITOR}    ||= '/bin/ed';
+    $ENV{FCEDIT}    ||= $ENV{EDITOR};
+    $ENV{HISTSIZE}  ||= 512;
+    $ENV{IFS}       ||= " \t\n";
+    $ENV{PS1}       ||= $pw->uid != 1 ? '$ ' : '# ';
+    $ENV{PS2}       ||= '> ';
+    $ENV{PS4}       ||= '+ ';
+
+    # inheritied from the system, normally...
+    $ENV{SHELL}     ||= $0;             #  don't use $pw->shell.
+    $ENV{HOME}      ||= $pw->dir;
+    $ENV{USER}      ||= $pw->name;
+    $ENV{USERNAME}  ||= $pw->name;
+
+    # We consider LOGNAME to be the authoritve form of the users name as
+    # specified in our starting environment. This should never fail, but I'm to
+    # sleepy to think clearly... so figure it out later.
+    #
+    if ($ENV{LOGNAME} ne $pw->name) {
+        die 'The $USER, $LOGNAME, and $USERNAME variables must match!';
+    }
+
+    $ENV{MAIL}      ||= "/var/mail/${ENV{USER}}";
+    #$ENV{MAILPATH}  ||= 'unused';
+
+    unless (defined $ENV{PATH}) {
+        $ENV{PATH} = $isUnix ? "/usr/bin:/bin" 
+                             : "Fix me for Windows";
+    }
+
+    $ENV{TERM}      || print STDERR "UNDEFINED TERMINAL TYPE $ENV{TERM}\n";
+
+    # initialize the readline library
+    #
+    $Term = Term::ReadLine->new($ENV{SHELL});
+    $ENV{TPSH_READLINE} = $Term->ReadLine();
+
+    rehash();
+}
+
+=pod
+
+main_loop()
+
+Program main loop
+
+=cut
+sub main_loop {
+    while (defined(my $cmdln = handle_prompt())) {
+        exit if $cmdln =~ /^\s*exit\b/;
+
+        my @argv = split /\s/, sh_eval($cmdln);
+        resolve_cmd(@argv) || pexec(@argv);
+    }
+}
+
+sub handle_prompt {
+    my $ln = "";
+
+    $ln = $Term->readline($ENV{PS1});
+    $Term->addhistory($ln) 
+        if defined $ln and $ln =~ /\S/;
+
+    return $ln;
+}
+
+sub resolve_cmd {
+    local $!;
+    my @argv = @_;
+    my $cmd = shift @argv || return 0;
+    if (defined $Builtins{$cmd}) {
+        $Last_Cmd = $cmd;
+        $Builtins{$cmd}->(@argv);
+    } 
+}
+
+=pod 
+
+pexec LIST
+
+Executes it's arguments in a child process and waits.
+
+=cut
+sub pexec {
+    my @cmds = @_;
+    local $!;
+    my $pid = fork();
+    die "Unable to fork for pexec(\@): $!" 
+        unless defined $pid;
+
+    if ($pid) {
+        wait();
+    } else {
+        if (defined $cmds[0]) {
+            exec { $cmds[0] } @cmds or die "$0: $cmds[0] command not found\n";
+        }
+        exit 0; # then there wasn't any command given.
+    }
+}
+
+sub rehash {
+    for my $dir (reverse hsplit $ENV{PATH}) {
+        print "hashing $dir\n";
+        opendir my $dh, $dir 
+            or print STDERR "Unable to access $dir; skipping in \$PATH\n";
+        for my $prog (readdir $dh) {
+            $Path{$prog} = "${dir}/${prog}";
+        }
+    }
+}
+
+=pod
+
+binerr EXPR
+binerr()
+
+Display a built in error message for the last built in command. If EXPR is
+given, it is used as the error message, other wise the $! special variable is
+used.
+
+=cut
+
+sub binerr {
+    print STDERR "${Last_Cmd}: ", @_ ? shift : $!;
+}
+
+sub hsplit {
+    return split /$HashSep/, $_ for @_;
+}
+
+sub sh_eval { 
+    # expand environment variables
+    # XXX todo: use a global symbol table or a function to check between 
+    # %ENV and %VARS or something like that
+    #
+    my $ln = join $ENV{IFS}, @_;
+    while ($ln =~ /\$(\w*)\b.*/) {
+        my $var = $1;
+        if (exists $ENV{$var}) {
+            $ln =~ s/\$$var/$ENV{$var}/;
+        } else {
+            $ln =~ s/\$$var//;
+        }
+    }
+    return wantarray ? split /$ENV{IFS}/, $ln  : $ln;
+}
+
+sub update_env {
+    my ($var, $val) = @_;
+    $val = sh_eval($val);
+
+    return print STDERR "$0: Bad syntax, '$var'\n" 
+        if $var =~ /=/; # IEEE Std 1003.1-2004 forbirds = in env-var names
+
+    $ENV{$var} = "$val";
+}
+
+
+=pod
+
+alias_bin
+alias_bin EXPR
+alias_bin LIST
+
+When given a scalar expression, it will be split on '=' and create an alias for
+the left hand side, to the right hand side: this supports the Bourne Shell
+style of 'alias command=value'. When given a list, it will inspect a C-Shell
+style alias, in the form of 'alias command value'. If no argument list is specified, all known aliases are displayed.
+
+=cut
+sub alias_bin {
+    if (!@_) {
+        $Dumper->dumpValue(\%Aliases);
+        return;
+    }
+    my ($lvalue, $rvalue) = @_;
+
+    # split Bourne style into C-Shell for easier assignment
+    if (!defined $rvalue) {
+        ($lvalue, $rvalue) = split /=/, $lvalue, 2;
+    } 
+
+    $Aliases{$lvalue} = $rvalue;
+}
+
+sub builtin_bin {
+    my $bin = shift;
+
+    if (exists $Builtins{$bin}) {
+        $Builtins{$bin}->(@_) 
+    } else {
+        binerr "not found\n";
+    }
+}
+
+=pod
+
+cd_bin
+cd_bin PATH
+
+When no argument is given, use perls 'chdir()' behavor to mimic bournes 'cd'.
+Other wise attempt to change directory to PATH. If the environment variable
+$CDPATH is set, search $CDPATH before giving up.
+
+=cut
+
+sub cd_bin {
+    my $target = shift;
+    my $rv     = 0;
+
+    $target    ? ($rv = chdir $target)
+               : ($rv = chdir);
+
+    unless ($rv) {
+        if (defined $ENV{CDPATH}) {
+            for my $d (hsplit $ENV{CDPATH}) {
+                $rv = chdir "${d}/$target" and last;
+            }
+        }
+    }
+
+    binerr unless $rv;
+    return $rv;
+}
+
+sub echo_bin {
+    print map { sh_eval($_ ), " " } @_;
+    print "\n";
+}
+
+sub eval_bin {
+
+}
+
+sub exit_bin {
+
+}
+
+sub export_bin {
+    
+}
+
+sub read_bin {
+
+}
+
+sub rehash_bin {
+    rehash;
+}
+
+sub set_bin {
+    my @argv = @_;
+
+    #if (@argv) {
+    #   warn "set [opts] [args] is not implemented yet\n";
+    #} else {
+    {
+        # pretty print everything like sh
+        while (my ($var, $val) = each %{%ENV}) {
+            if ($val =~ /\s/) {
+                $val = "'$val'";
+            }
+            print $var, "=", $val, "\n";
+        }
+    }
+}
+
+sub setenv_bin {
+    my ($var, $val) = @_;
+
+    update_env($var, $val);
+}
+
+sub setvar_bin {
+
+}
+
+sub test_bin {
+
+}
+
+sub times_bin {
+
+}
+
+sub trap_bin {
+
+}
+
+sub type_bin {
+
+}
+
+sub unalias_bin {
+    for my $alias (@_) {
+        delete $Aliases{$alias};
+        # XXX make this print an error if user asked for such things
+    }
+}
+
+sub unset_bin {
+
+}
+
+
+#
+#----------------------------------------------------------
+#                begin program execution 
+#----------------------------------------------------------
+if (__PACKAGE__ eq 'main') {
+    init_sh();
+    exit main_loop();
+}
