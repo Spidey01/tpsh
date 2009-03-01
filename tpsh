@@ -213,6 +213,7 @@ sub init_sh {
     $ENV{CDPATH}    ||= "";
 
     # inheritied from the system, normally...
+    $ENV{OSTYPE}    ||= $^O;
     $ENV{SHELL}     ||= $0;             #  don't use $pw->shell.
     $ENV{HOME}      ||= $pw->dir;
     $ENV{USER}      ||= $pw->name;
