@@ -44,6 +44,7 @@ sub handle_prompt;
 sub rehash;
 sub update_env;
 sub sh_eval;
+sub exec_pipe;
 sub binerr;
 sub hsplit;
 #
@@ -271,11 +272,16 @@ sub handle_prompt {
 
 sub resolve_cmd {
     local $!;
-    my @argv = @_;
-    my $cmd = shift @argv || return 0;
+    my @argv  = @_;
+    my $cmdln = join ' ', @argv;
+    my $cmd   = shift @argv || return 0;
+    $Last_Cmd = $cmdln;
+
+    if ($cmdln =~ /([^|]*) \| ([^|]*)/) {
+        return exec_pipe $1, $2 || warn "bad pipe: $!\n";
+    }
     if (defined $Builtins{$cmd}) {
-        $Last_Cmd = $cmd;
-        $Builtins{$cmd}->(@argv);
+        return $Builtins{$cmd}->(@argv);
     } 
 }
 
@@ -312,6 +318,57 @@ sub rehash {
             $Path{$prog} = "${dir}/${prog}";
         }
     }
+}
+
+sub exec_pipe {
+    # e.g.   ls     |    head 
+    my     ($lhs    ,   $rhs)     = @_;
+    my     ($lcmd   ,   $rcmd,    $cmd);
+
+    # sanity check the commands, delegating reporting
+    # any error to our caller.
+    #
+    for my $side (($lhs, $rhs)) {
+        my @arg = split /[$ENV{IFS}]/, $side; $cmd = shift @arg;
+        next if -x $cmd;
+        goto notfound unless defined $Path{$cmd} and -x $Path{$cmd};
+    }
+
+    pipe my ($lfd, $rfd) or goto fail;
+
+    unless (my $kid = fork) {
+        defined $kid or goto fail;
+
+        # child    -> print to $rfd
+        close $lfd;
+        open $rcmd, '-|', $lhs;
+        while (my $ln = <$rcmd>) {
+            print $rfd $ln;
+        }
+        close $rcmd;
+        exit $?;
+    } elsif ($kid) {
+        # parant   -> read from $lfd
+        local $SIG{CHLD} = sub { waitpid($kid, 0); };
+        close $rfd;
+        open $lcmd, '|-', $rhs;
+        while (<$lfd>) {
+            print $lcmd $_;
+        }
+        close $lfd;
+        close $lcmd;
+        return 1;
+    }
+    return 255; # NOTREACHED
+
+    fail: do {
+        binerr "can't create pipeline or fork: $!";
+        return 255;
+    };
+    notfound: do {
+        binerr "not found: $!";
+        return 255;
+    };
 }
 
 =pod
