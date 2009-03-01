@@ -128,6 +128,7 @@ my %Builtins = ( '['            => sub { warn "Not implemented\n" },
                  'command'      => sub { warn "Not implemented\n" }, 
                  'echo'         => \&echo_bin,
                  'eval'         => \&eval_bin,
+                 'exec',        => \&exec_bin,
                  'exit'         => \&exit_bin,
                  'export'       => \&export_bin,
                  'false'        => sub { warn "Not implemented\n" },
@@ -443,6 +444,11 @@ sub echo_bin {
 
 sub eval_bin {
 
+}
+
+sub exec_bin {
+    my ($prog, @argv) = @_;
+    exec { $prog } ($prog, @argv);
 }
 
 sub exit_bin {
