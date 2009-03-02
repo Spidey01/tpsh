@@ -77,7 +77,7 @@ sub unset_bin;
 # Used whenever split /sep/, "foosepbar" is needed. I.e. $PATH, $CDPATH.
 # You should use hsplit(LIST) instead of split in such situations
 #
-my $HashSep = '[:;]';
+my $HashSep = qr'[:;]';
 
 #
 # Introspector / debugging aid -- will be initialized ....
