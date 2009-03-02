@@ -278,9 +278,30 @@ sub resolve_cmd {
     my $cmd   = shift @argv || return 0;
     $Last_Cmd = $cmdln;
 
+    # test if it's a pipe
+    #
     if ($cmdln =~ /([^|]*) \| ([^|]*)/) {
         return exec_pipe $1, $2 || warn "bad pipe: $!\n";
     }
+
+    # I/O redirection
+    #
+    if ($cmdln =~ /([^><]*) > (.*)/) {
+        open my $cmd, '-|', $1;
+        open my $fp, '>', $2 or binerr "Can't open $2: $!\n";
+        if ( -x $2) {
+            # the noclobber option is not implemented yet, so always warn
+            print STDERR "File already exists, overwriting it\n";
+        }
+        while (<$cmd>) {
+            print $fp $_;
+        }
+        close $cmd; close $fp; 
+        return 1;
+    }
+
+    # built in command
+    #
     if (defined $Builtins{$cmd}) {
         return $Builtins{$cmd}->(@argv);
     } 
