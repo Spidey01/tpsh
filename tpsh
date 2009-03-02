@@ -24,6 +24,7 @@
 use warnings;
 use strict;
 
+use Cwd;
 use Dumpvalue;
 use Getopt::Long;
 use Pod::Usage;
@@ -268,6 +269,7 @@ sub init_sh {
     $ENV{TPSH_READLINE} = $Term->ReadLine();
 
     rehash();
+    $ENV{PWD} = cwd();
 }
 
 sub do_getopt {
@@ -598,6 +600,7 @@ sub cd_bin {
     }
 
     binerr unless $rv;
+    $ENV{PWD} = cwd();
     return $rv;
 }
 
