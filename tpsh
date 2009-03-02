@@ -24,9 +24,11 @@
 use warnings;
 use strict;
 
-use User::pwent;
 use Dumpvalue;
+use Getopt::Long;
+use Pod::Usage;
 use Term::ReadLine;
+use User::pwent;
 
 
 #----------------------------------------------------------
@@ -37,6 +39,7 @@ use Term::ReadLine;
 # Internal subroutines
 #
 sub init_sh;
+sub do_getop;
 sub main_loop;
 sub pexec;
 sub resolve_cmd;
@@ -72,6 +75,28 @@ sub unset_bin;
 #----------------------------------------------------------
 #                Global Data Structures
 #----------------------------------------------------------
+
+#
+# Represents command line flags and set -options
+#
+my %Options = ( 
+    allexport       =>  0,
+    notify          =>  0,
+    noclobber       =>  0,
+    emacs           =>  1,
+    errexit         =>  0,
+    noglob          =>  0,
+    ignoreeof       =>  0,
+    interactive     =>  0, 
+    monitor         =>  0,
+    noexec          =>  0,
+    physical        =>  0,  # this will be removed unless POSIX requires it
+    privileged      =>  0,
+    stdin           =>  0,
+    vi              =>  0,
+    verbose         =>  0,
+    xtrace          =>  0,
+);
 
 #
 # Used whenever split /sep/, "foosepbar" is needed. I.e. $PATH, $CDPATH.
@@ -243,6 +268,31 @@ sub init_sh {
     $ENV{TPSH_READLINE} = $Term->ReadLine();
 
     rehash();
+}
+
+sub do_getopt {
+	Getopt::Long::Configure('gnu_getopt', 'auto_version', 'auto_help');
+	GetOptions(
+               'a|allexport'    =>  \$Options{allexport},
+               'b|notify'       =>  \$Options{notify},
+               'C|noclobber'    =>  \$Options{noclobber},
+               'E|emacs'        =>  \$Options{emacs},
+               'e|errexit'      =>  \$Options{errexit},
+               'f|noglob'       =>  \$Options{noglob},
+               'I|ignoreeof'    =>  \$Options{ignoreeof},
+               'i|interactive'  =>  \$Options{interactive},
+               'm|monitor'      =>  \$Options{monitor},
+               'P|physical'     =>  \$Options{physical},
+               'p|privileged'   =>  \$Options{privileged},
+               's|stdin'        =>  \$Options{stdin},
+               'V|vi'           =>  \$Options{vi},
+               'v|verbose'      =>  \$Options{verbose},
+               'x|xtrace'       =>  \$Options{xtrace},
+               #---
+               'h'              =>   \&pod2usage(-verbose => 0, -exitval => 1),
+               'help'           =>   \&pod2usage(-verbose => 1, -exitval => 1),
+               'm|man'          =>   \&pod2usage(-verbose => 3, -exitval => 0),
+              );
 }
 
 =pod
@@ -644,5 +694,6 @@ sub unset_bin {
 #----------------------------------------------------------
 if (__PACKAGE__ eq 'main') {
     init_sh();
+    do_getopt();
     exit main_loop();
 }
