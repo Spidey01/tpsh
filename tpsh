@@ -430,11 +430,26 @@ sub hsplit {
 sub sh_eval { 
     # XXX none of this understands the shells quoting rules
 
+    my @argv = @_;
+
+    # code that uses @argv will update it in place or when done.
+    # code that uses $ln will rejoin it after any @argv changes
+
+
+    # expand aliases
+    # 
+    for my $arg (@argv) {
+        if (defined $Aliases{$arg}) {
+            $arg = $Aliases{$arg};
+        }
+    }
+
+    my $ln   = join $ENV{IFS}, @argv;
+
     # expand environment variables
     # XXX todo: use a global symbol table or a function to check between 
     # %ENV and %VARS or something like that
     #
-    my $ln = join $ENV{IFS}, @_;
     while ($ln =~ /\$(\w*)\b.*/) {
         my $var = $1;
         if (exists $ENV{$var}) {
@@ -450,6 +465,8 @@ sub sh_eval {
             $ln =~ s%~%$ENV{HOME}/%;
         }
     }
+
+
     return wantarray ? split /$ENV{IFS}/, $ln  : $ln;
 }
 
@@ -477,18 +494,23 @@ style alias, in the form of 'alias command value'. If no argument list is specif
 
 =cut
 sub alias_bin {
-    if (!@_) {
+    unless (@_) {
         $Dumper->dumpValue(\%Aliases);
         return;
     }
-    my ($lvalue, $rvalue) = @_;
+    my @argv = @_;
+    my ($lvalue, $rvalue);
 
-    # split Bourne style into C-Shell for easier assignment
-    if (!defined $rvalue) {
-        ($lvalue, $rvalue) = split /=/, $lvalue, 2;
-    } 
+    if (grep /=/, @argv) {
+        # split Bourne style into C-Shell for easier assignment
+        ($lvalue, $rvalue) = split /=/, join(' ', @argv), 2;
+    } else {
+        # join C-Shell style rhs into a scalar for assignment
+        ($lvalue, $rvalue) = (shift @argv, join ' ', @argv);
+    }
 
     $Aliases{$lvalue} = $rvalue;
+    return 1;
 }
 
 sub builtin_bin {
