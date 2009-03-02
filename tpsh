@@ -674,6 +674,15 @@ sub trap_bin {
 
 sub type_bin {
 
+    for (@_) {
+        # check aliases, builtins, path, current directory.
+        print "$_ is an alias for $Aliases{$_}\n"   if defined $Aliases{$_};
+        # XXX functions are not implemented yet
+        print "$_ is a shell builtin\n"             if defined $Builtins{$_};
+        print "$_ is $Path{$_}\n"                   if defined $Path{$_};
+        print "$_ is $ENV{PWD}/$_\n"                if -x "./$_";
+    }
+    return 1;
 }
 
 sub unalias_bin {
