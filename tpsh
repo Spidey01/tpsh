@@ -286,23 +286,31 @@ sub resolve_cmd {
 
     # I/O redirection
     #
-    if ($cmdln =~ /([^><]*) (>|>>|<) (.*)/) {
+    # command   >    write stdout to file
+    # command   >>   append stdout to file
+    # command   <    read stdout from file
+    #
+    if ($cmdln =~ /([^><]*) (>|>>|<) (.*)/x) {
         return binerr "Bad syntax: $cmdln\n"
             unless defined $1 and defined $2 and defined $3;
+        my ($ch, $commd, $op, $file) = (undef, $1, $2, $3);
 
-        open my $cmd, '-|', $1;
-        open my $fp, $2, $3 or binerr "Can't open $3: $!\n";
+        open my $fp, $op, $file or return binerr "Can't open $file: $!\n";
         if ($2 eq '<') {
-            print STDERR "The < redirect is not implemented yet!\n";
+            open $ch, '|-', $commd;
+            while (<$fp>) {
+                print $ch $_;
+            }
         } else {
-            if ( $2 eq '>' and -x $3) {
+            open $ch, '-|', $commd;
+            if ( $op eq '>' and -x $file) {
                 # the noclobber option is not implemented yet, so always warn
                 print STDERR "File already exists, overwriting it\n";
             }
-            while (<$cmd>) {
+            while (<$ch>) {
                 print $fp $_;
             }
-            close $cmd; close $fp; 
+            close $ch; close $fp; 
         }
         return 1;
     }
