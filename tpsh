@@ -289,9 +289,9 @@ sub do_getopt {
                'v|verbose'      =>  \$Options{verbose},
                'x|xtrace'       =>  \$Options{xtrace},
                #---
-               'h'              =>   \&pod2usage(-verbose => 0, -exitval => 1),
-               'help'           =>   \&pod2usage(-verbose => 1, -exitval => 1),
-               'm|man'          =>   \&pod2usage(-verbose => 3, -exitval => 0),
+               #'h'              =>   \&pod2usage(-verbose => 0, -exitval => 1),
+               #'help'           =>   \&pod2usage(-verbose => 1, -exitval => 1),
+               #'m|man'          =>   \&pod2usage(-verbose => 3, -exitval => 0),
               );
 }
 
@@ -304,8 +304,6 @@ Program main loop
 =cut
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
-        exit if $cmdln =~ /^\s*exit\b/;
-
         my @argv = split /\s/, sh_eval($cmdln);
         resolve_cmd(@argv) || pexec(@argv);
     }
@@ -618,7 +616,9 @@ sub exec_bin {
 }
 
 sub exit_bin {
+    my $ev = shift;
 
+    defined $ev ? exit $ev : exit 0;
 }
 
 sub export_bin {
