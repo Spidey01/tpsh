@@ -48,6 +48,7 @@ sub handle_prompt;
 sub rehash;
 sub update_env;
 sub sh_eval;
+sub expand_quotes;
 sub exec_pipe;
 sub binerr;
 sub hsplit;
@@ -405,6 +406,100 @@ sub rehash {
             $Path{$prog} = "${dir}/${prog}";
         }
     }
+}
+
+sub expand_quotes {
+
+    my ($quote, $cmdln)     = @_;
+    my ($start, $mid, $end) = (0, 1, 2);
+
+    # these subs do the actual expansion work, and will be passed the string
+    # found within the quotes as it's sole arugment.
+    #
+    my %evals = ('"' => sub {
+                       chomp (my $s = sh_eval(@_));
+                       return $s;
+                 },
+                 "'" => sub {
+                       return join ' ', @_;
+                 },
+                 '`' => sub {
+                       return "output of: sh -c '", sh_eval(@_), "'",
+                              " -- not implemented yet!";
+                 }
+    );
+
+    #
+    # The stack will be returned as an argument vector, containing
+    # the expanded elements of "command line"
+    #
+    my @stack;
+
+    #
+    # $push->(0, sh_eval it)
+    # $push->(1, expand the quotes)
+    #
+    # pushes data onto the stack after expansion.
+    # Don't push onto @stack outside this helper.
+    #
+    my $push = sub {
+
+        my ($wanteval, @data) = @_;
+
+
+        if ($wanteval) {
+            push @stack, $evals{$quote}->(@data);
+        } else {
+            push @stack, split /\s+/, sh_eval(@data);
+        }
+    };
+
+    #
+    # offsets into @argv will be equal to:
+    #
+    # start:     null or words
+    # middle:    quoted words
+    # end:       null or words
+    #
+    # Only the '$mid' offset will ever contain the quoted words. 
+    # the others contain unquoted words before or after the quoted ones, or are
+    # null values ('' or undef).
+    #
+    my @argv = split /$quote/, $cmdln, 3;
+
+
+    #
+    # process the argument vector, pushing onto return stack
+    #
+
+    if (defined $argv[$start]) {
+        # words before any quotes
+        $push->(0, $argv[$start]);
+    }
+
+    if (defined $argv[$mid]) { 
+        # expand the quotes
+
+        if (exists $evals{$quote}) {
+            print "expansion: ";
+            print $quote, $evals{"$quote"}->($argv[$mid]), $quote, "\n";
+            $push->(1, $argv[$mid]);
+        } else {
+            print "no expansion";
+            warn "this line should never be reached!";
+            $push->(0, $argv[$mid]);
+        }
+    }
+
+    if (defined $argv[$end] and $argv[$end] ne '') {
+        # there are words after the quotes
+        $push->(0, $argv[$end]);
+    }
+
+    # make sure no null elements have been pushed, other wise
+    # things like tpsh> ls "foo bar" ham spam eggs will not work
+    #
+    return grep { $_ !~ /^$/ } @stack;
 }
 
 sub exec_pipe {
