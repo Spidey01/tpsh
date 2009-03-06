@@ -335,6 +335,8 @@ sub resolve_cmd {
     local $!;
     my @argv  = @_;
     my $cmdln = join ' ', @argv;
+    #my $cmdln = '';
+    #$#argv ?  $cmdln = join ' ', @argv : $cmdln = @_;
     my $cmd   = shift @argv || return 0;
     $Last_Cmd = $cmdln;
 
@@ -350,13 +352,15 @@ sub resolve_cmd {
     # command   >>   append stdout to file
     # command   <    read stdout from file
     #
-    if ($cmdln =~ /([^><]*) (>|>>|<) (.*)/x) {
+    # Note: >> must come before > in order for append mode to work.
+    #
+    if ($cmdln =~ /([^><]*) \s* (>>|>|<) \s* (.*)/x) {
         return binerr "Bad syntax: $cmdln\n"
             unless defined $1 and defined $2 and defined $3;
         my ($ch, $commd, $op, $file) = (undef, $1, $2, $3);
 
-        open my $fp, $op, $file or return binerr "Can't open $file: $!\n";
-        if ($2 eq '<') {
+        open my $fp, $op, $file or return binerr "XXCan't open $file: $!\n";
+        if ($op eq '<') {
             open $ch, '|-', $commd;
             while (<$fp>) {
                 print $ch $_;
