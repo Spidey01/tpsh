@@ -49,6 +49,9 @@ sub rehash;
 sub update_env;
 sub sh_eval;
 sub expand_quotes;
+sub expand_tilde;
+sub expand_parameter;
+sub expand_aliases;
 sub exec_pipe;
 sub binerr;
 sub hsplit;
@@ -307,6 +310,7 @@ Program main loop
 =cut
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
+        # replace with this with my @argv = sh_eval($cmdln);
         my @argv = split /\s/, sh_eval($cmdln);
         resolve_cmd(@argv) || pexec(@argv);
     }
@@ -502,6 +506,27 @@ sub expand_quotes {
     return grep { $_ !~ /^$/ } @stack;
 }
 
+# handle tilde expansions
+sub expand_tilde {
+
+    my $ln = shift;
+
+    while ($ln =~ m%~%) {
+        unless ($ln =~ m%\\~%) {
+            $ln =~ s%~%$ENV{HOME}/%;
+        }
+    }
+    return $ln;
+}
+
+sub expand_parameter {
+
+}
+
+sub expand_aliases {
+
+}
+
 sub exec_pipe {
     # e.g.   ls     |    head 
     my     ($lhs    ,   $rhs)     = @_;
@@ -604,13 +629,7 @@ sub sh_eval {
         }
     }
 
-    # handle tilde expansions
-    while ($ln =~ m%~%) {
-        unless ($ln =~ m%\\~%) {
-            $ln =~ s%~%$ENV{HOME}/%;
-        }
-    }
-
+    $ln = expand_tilde($ln);
 
     return wantarray ? split /$ENV{IFS}/, $ln  : $ln;
 }
