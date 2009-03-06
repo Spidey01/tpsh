@@ -779,6 +779,7 @@ sub set_bin {
             }
             print $var, "=", $val, "\n";
         }
+        return 1;
     }
 }
 
