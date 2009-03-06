@@ -539,8 +539,18 @@ sub expand_parameters {
     return $ln;
 }
 
+# expand aliases
 sub expand_aliases {
 
+    my @argv = @_;
+
+    for my $arg (@argv) {
+        if (defined $Aliases{$arg}) {
+            $arg = $Aliases{$arg};
+        }
+    }
+
+    return join $ENV{IFS}, @argv;
 }
 
 sub exec_pipe {
@@ -616,23 +626,14 @@ sub hsplit {
 sub sh_eval { 
     # XXX none of this understands the shells quoting rules
 
+    my $ln   = '';
     my @argv = @_;
 
     # code that uses @argv will update it in place or when done.
     # code that uses $ln will rejoin it after any @argv changes
 
-
-    # expand aliases
-    # 
-    for my $arg (@argv) {
-        if (defined $Aliases{$arg}) {
-            $arg = $Aliases{$arg};
-        }
-    }
-
-    my $ln   = join $ENV{IFS}, @argv;
-
-    $ln = expand_parameter($ln);
+    $ln = expand_aliases(@argv);
+    $ln = expand_parameters($ln);
     $ln = expand_tilde($ln);
 
     return wantarray ? split /$ENV{IFS}/, $ln  : $ln;
