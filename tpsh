@@ -50,7 +50,7 @@ sub update_env;
 sub sh_eval;
 sub expand_quotes;
 sub expand_tilde;
-sub expand_parameter;
+sub expand_parameters;
 sub expand_aliases;
 sub exec_pipe;
 sub binerr;
@@ -519,8 +519,24 @@ sub expand_tilde {
     return $ln;
 }
 
-sub expand_parameter {
+# expand environment variables
+sub expand_parameters {
 
+    my $ln = shift;
+
+    # XXX todo: use a global symbol table or a function to check between 
+    # %ENV and %VARS or something like that
+    #
+    while ($ln =~ /\$(\w*)\b.*/) {
+        my $var = $1;
+        if (exists $ENV{$var}) {
+            $ln =~ s/\$$var/$ENV{$var}/;
+        } else {
+            $ln =~ s/\$$var//;
+        }
+    }
+
+    return $ln;
 }
 
 sub expand_aliases {
@@ -616,19 +632,7 @@ sub sh_eval {
 
     my $ln   = join $ENV{IFS}, @argv;
 
-    # expand environment variables
-    # XXX todo: use a global symbol table or a function to check between 
-    # %ENV and %VARS or something like that
-    #
-    while ($ln =~ /\$(\w*)\b.*/) {
-        my $var = $1;
-        if (exists $ENV{$var}) {
-            $ln =~ s/\$$var/$ENV{$var}/;
-        } else {
-            $ln =~ s/\$$var//;
-        }
-    }
-
+    $ln = expand_parameter($ln);
     $ln = expand_tilde($ln);
 
     return wantarray ? split /$ENV{IFS}/, $ln  : $ln;
