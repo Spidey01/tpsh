@@ -310,8 +310,13 @@ Program main loop
 =cut
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
-        # replace with this with my @argv = sh_eval($cmdln);
-        my @argv = split /\s/, sh_eval($cmdln);
+        my @argv;
+        if ($cmdln =~ /([\'\"\`])/) {
+            @argv = expand_quotes($1, $cmdln)
+        } else {
+            @argv = sh_eval($cmdln);
+        }
+
         resolve_cmd(@argv) || pexec(@argv);
     }
 }
@@ -449,7 +454,6 @@ sub expand_quotes {
     my $push = sub {
 
         my ($wanteval, @data) = @_;
-
 
         if ($wanteval) {
             push @stack, $evals{$quote}->(@data);
@@ -626,8 +630,8 @@ sub hsplit {
 sub sh_eval { 
     # XXX none of this understands the shells quoting rules
 
-    my $ln   = '';
-    my @argv = @_;
+    my @argv = split /\s+/, shift;
+    my $ln   = $argv[0] || '';
 
     # code that uses @argv will update it in place or when done.
     # code that uses $ln will rejoin it after any @argv changes
@@ -724,7 +728,8 @@ sub cd_bin {
 }
 
 sub echo_bin {
-    print map { sh_eval($_ ), " " } @_;
+
+    print map { "$_ " } @_;
     print "\n";
 }
 
