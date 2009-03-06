@@ -265,6 +265,7 @@ sub init_sh {
                              : "Fix me for Windows";
     }
 
+    $ENV{'$'} = $$;
     $ENV{TERM}      || warn "UNDEFINED TERMINAL TYPE $ENV{TERM}\n";
 
     # initialize the readline library
