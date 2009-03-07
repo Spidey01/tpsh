@@ -718,7 +718,8 @@ sub cd_bin {
     }
 
     binerr unless $rv;
-    $ENV{PWD} = cwd();
+    $ENV{OLDPWD} = $ENV{PWD};
+    $ENV{PWD}    = cwd();
     return $rv;
 }
 
