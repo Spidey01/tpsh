@@ -48,6 +48,7 @@ sub echo_bin;
 sub eval_bin;
 sub exit_bin;
 sub export_bin;
+sub hash_bin;
 sub read_bin;
 sub rehash_bin;
 sub set_bin;
@@ -93,7 +94,7 @@ my %Options = (
 my $HashSep = qr'[:;]';
 
 #
-# Introspector / debugging aid -- will be initialized ....
+# Introspector / debugging aid -- will be initialized in init_sh()
 #
 my $Dumper = undef;
 
@@ -149,7 +150,7 @@ my %Builtins = ( '['            => sub { warn "Not implemented\n" },
                  'fc'           => sub { warn "Not implemented\n" },
                  'fg'           => sub { warn "Not implemented\n" },
                  'getopts'      => sub { warn "Not implemented\n" },
-                 'hash'         => sub { warn "Not implemented\n" },
+                 'hash'         => \&hash_bin,
                  'jobs'         => sub { warn "Not implemented\n" },
                  'local'        => sub { warn "Not implemented\n" },
                  'read'         => \&read_bin,
@@ -744,6 +745,15 @@ sub exit_bin {
 
 sub export_bin {
     
+}
+
+sub hash_bin {
+
+    while (my ($k, $v) = each %Path) {
+        print "$k=$v\n";
+    }
+
+    return 1;
 }
 
 sub read_bin {
