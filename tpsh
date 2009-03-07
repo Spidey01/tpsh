@@ -305,6 +305,7 @@ sub main_loop {
         } else {
             @argv = sh_eval($cmdln);
         }
+        next unless @argv;
 
         resolve_cmd(@argv);
     }
