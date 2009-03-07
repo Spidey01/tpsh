@@ -306,10 +306,7 @@ sub main_loop {
             @argv = sh_eval($cmdln);
         }
 
-        print "About to resolve this command: ";
-        map { print "$_ |X| " } @argv; print "\n\n";
-
-        resolve_cmd(@argv) || pexec(@argv);
+        resolve_cmd(@argv);
     }
 }
 
@@ -325,12 +322,11 @@ sub handle_prompt {
 
 sub resolve_cmd {
     local $!;
-    my @argv  = @_;
-    my $cmdln = join ' ', @argv;
-    #my $cmdln = '';
-    #$#argv ?  $cmdln = join ' ', @argv : $cmdln = @_;
-    my $cmd   = shift @argv || return 0;
+    my ($cmd, @buf)   = (split ' ', shift @_);
+    my @argv;  push @argv, @buf, @_;
+    my $cmdln = join ' ', $cmd, @argv;
     $Last_Cmd = $cmdln;
+
 
     # test if it's a pipe
     #
@@ -371,11 +367,11 @@ sub resolve_cmd {
         return 1;
     }
 
+
     # built in command
     #
-    if (defined $Builtins{$cmd}) {
-        return $Builtins{$cmd}->(@argv);
-    } 
+    defined $Builtins{$cmd} ?  return $Builtins{$cmd}->(@argv)
+                            :  return pexec($cmd, @argv);
 }
 
 =pod 
