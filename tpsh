@@ -1,23 +1,6 @@
 #!/usr/bin/env perl
 #
-
-#
-# TODO:
-
-#
-#   actually write sh_eval() and plug it into main_loop(), etc so we can do
-#   things like echo $VAR, and hand off echo {expansion of $VAR} to#
-#   echo_bin().
-#
-#   do simple conf file parsing; but first write %Options
-#
-#   create a symbol table hash of var => value, so we can do
-#   setvar VAR value; export VAR
-#
-#  make sh_eval convert VAR=value into $`the symbol table`{VAR}=value
-#
-# add default aliases like cls, dir, del, ren after we have got completion 
-# working.
+# Terry's Portable SHell
 #
 #--------------------------------------------------------------------
 
