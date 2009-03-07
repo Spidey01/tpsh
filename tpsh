@@ -258,7 +258,11 @@ sub init_sh {
     $ENV{TPSH_READLINE} = $Term->ReadLine();
 
     rehash();
-    $ENV{PWD} = cwd();
+
+    # change to the users home directory by default.
+    # this will also take care of the OLDPWD/PWD variables.
+    #
+    $Builtins{chdir}->($ENV{HOME});
 }
 
 sub do_getopt {
