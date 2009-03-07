@@ -508,7 +508,7 @@ sub expand_quotes {
 # handle tilde expansions
 sub expand_tilde {
 
-    my $ln = shift;
+    my $ln = wantarray ? join ' ', @_ : shift;
 
     while ($ln =~ m%~%) {
         unless ($ln =~ m%\\~%) {
@@ -626,16 +626,19 @@ sub sh_eval {
     # XXX none of this understands the shells quoting rules
 
     my @argv = split /\s+/, shift;
-    my $ln   = $argv[0] || '';
+    my $ln   = join ' ', @argv;
+    #my $ln   = $argv[0] || '';
 
-    # code that uses @argv will update it in place or when done.
-    # code that uses $ln will rejoin it after any @argv changes
-
-    $ln = expand_aliases(@argv);
+    # dirty fix: turn off alias expansions for unalias
+    #
+    if ($ln !~ m/(unalias [^;|><]*)/) { 
+        $ln = expand_aliases(@argv);
+    }
+                     
     $ln = expand_parameters($ln);
     $ln = expand_tilde($ln);
 
-    return wantarray ? split /$ENV{IFS}/, $ln  : $ln;
+    return wantarray ? split /[$ENV{IFS}]/, $ln  : $ln;
 }
 
 sub update_env {
@@ -824,9 +827,7 @@ sub type_bin {
 
 sub unalias_bin {
 
-    for my $alias (@_) {
-        delete $Aliases{$alias};
-    }
+    delete @Aliases{@_};
 }
 
 sub unset_bin {
