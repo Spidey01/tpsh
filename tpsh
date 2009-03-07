@@ -318,6 +318,9 @@ sub main_loop {
             @argv = sh_eval($cmdln);
         }
 
+        print "About to resolve this command: ";
+        map { print "$_ |X| " } @argv; print "\n\n";
+
         resolve_cmd(@argv) || pexec(@argv);
     }
 }
@@ -438,8 +441,13 @@ sub expand_quotes {
                        return join ' ', @_;
                  },
                  '`' => sub {
-                       return "output of: sh -c '", sh_eval(@_), "'",
-                              " -- not implemented yet!";
+                     #return "output of: sh -c '", sh_eval(@_), "'",
+                     #         " -- not implemented yet!";
+                       open my $cmd, '-|', @_ or warn $!;
+                       my $buf;
+                       $buf .= $_ while readline $cmd;
+                       close $cmd;
+                       return $buf;
                  }
     );
 
