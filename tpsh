@@ -739,7 +739,8 @@ sub eval_bin {
 
 sub exec_bin {
     my ($prog, @argv) = @_;
-    exec { $prog } ($prog, @argv);
+
+    exec { $prog } ($prog, @argv) or binerr $!;
 }
 
 sub exit_bin {
@@ -817,15 +818,18 @@ sub type_bin {
         # XXX functions are not implemented yet
         print "$_ is a shell builtin\n"             if defined $Builtins{$_};
         print "$_ is $Path{$_}\n"                   if defined $Path{$_};
-        print "$_ is $ENV{PWD}/$_\n"                if -x "./$_";
+        #
+        # this is a custom exstension
+        #
+        print "$_ may be $ENV{PWD}/$_\n"            if -x "./$_";
     }
     return 1;
 }
 
 sub unalias_bin {
+
     for my $alias (@_) {
         delete $Aliases{$alias};
-        # XXX make this print an error if user asked for such things
     }
 }
 
