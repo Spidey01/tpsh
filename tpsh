@@ -441,8 +441,6 @@ sub expand_quotes {
                        return join ' ', @_;
                  },
                  '`' => sub {
-                     #return "output of: sh -c '", sh_eval(@_), "'",
-                     #         " -- not implemented yet!";
                        open my $cmd, '-|', @_ or warn $!;
                        my $buf;
                        $buf .= $_ while readline $cmd;
