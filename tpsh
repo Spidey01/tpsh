@@ -559,7 +559,7 @@ sub expand_aliases {
         }
     }
 
-    return join $ENV{IFS}, @argv;
+    return wantarray ? @argv : join ' ', @argv;
 }
 
 sub exec_pipe {
