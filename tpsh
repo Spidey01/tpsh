@@ -12,7 +12,6 @@ use Dumpvalue;
 use Getopt::Long;
 use Pod::Usage;
 use Term::ReadLine;
-use User::pwent;
 
 
 #----------------------------------------------------------
@@ -89,9 +88,12 @@ my %Options = (
 
 #
 # Used whenever split /sep/, "foosepbar" is needed. I.e. $PATH, $CDPATH.
-# You should use hsplit(LIST) instead of split in such situations
+# init_sh will initialize and compile this as a regular expression appropirate
+# for the users operating system, i.e. ':' or ':'.
 #
-my $HashSep = qr'[:;]';
+# You should use hsplit(LIST) instead of directly using split 
+#
+my $HashSep;
 
 #
 # Introspector / debugging aid -- will be initialized in init_sh()
@@ -197,16 +199,24 @@ sub init_sh {
         die "$0: Unable to find your username" if $tried == @names; 
     };
 
-    my ($isWin, $isUnix);
+    my ($isWin, $isUnix, %pw);
     if (grep { $^O eq $_ } qw(MSWin32 os2 dos)) {
         ($isWin, $isUnix) = (1, 0);
+        require Win32API::Net;
+        Win32API::Net::UserGetInfo('', $ENV{USERNAME}, 3, my $href={}) || die $!;
+        %pw = ( name => $href->{name}, 
+                homedir => $href->{homeDir} || $ENV{USERPROFILE},
+                uid => $href->{userId} );
+        $ENV{LOGNAME} = $pw{name};
     } else {
         ($isUnix, $isWin) = (1, 0);
+        require User::pwent;
+        my $pw = getpwnam($ENV{LOGNAME}) or die "No username specified";
+        %pw = ( name => $pw->name, homedir => $pw->dir, uid => $pw->uid, );
     }
 
 
     # XXX test this on Windows
-    my $pw = getpwnam($ENV{LOGNAME}) or die "No username specified";
     $Dumper = new Dumpvalue;
 
     # These are defaults for our own internal variables
@@ -221,7 +231,7 @@ sub init_sh {
     $ENV{FCEDIT}    ||= $ENV{EDITOR};
     $ENV{HISTSIZE}  ||= 512;
     $ENV{IFS}       ||= " \t\n";
-    $ENV{PS1}       ||= $pw->uid != 1 ? '$ ' : '# ';
+    $ENV{PS1}       ||= $pw{uid} != 1 ? '$ ' : '# ';
     $ENV{PS2}       ||= '> ';
     $ENV{PS4}       ||= '+ ';
     $ENV{CDPATH}    ||= "";
@@ -229,15 +239,15 @@ sub init_sh {
     # inheritied from the system, normally...
     $ENV{OSTYPE}    ||= $^O;
     $ENV{SHELL}     ||= $0;             #  don't use $pw->shell.
-    $ENV{HOME}      ||= $pw->dir;
-    $ENV{USER}      ||= $pw->name;
-    $ENV{USERNAME}  ||= $pw->name;
+    $ENV{HOME}      ||= $pw{homedir};
+    $ENV{USER}      ||= $pw{name};
+    $ENV{USERNAME}  ||= $pw{name};
 
     # We consider LOGNAME to be the authoritve form of the users name as
     # specified in our starting environment. This should never fail, but I'm to
     # sleepy to think clearly... so figure it out later.
     #
-    if ($ENV{LOGNAME} ne $pw->name) {
+    if ($ENV{LOGNAME} ne $pw{name}) {
         die 'The $USER, $LOGNAME, and $USERNAME variables must match!';
     }
 
@@ -246,17 +256,22 @@ sub init_sh {
 
     unless (defined $ENV{PATH}) {
         $ENV{PATH} = $isUnix ? "/usr/bin:/bin" 
-                             : "Fix me for Windows";
+                             : "C:/Windows/system32;C:/Windows;" .
+                               "C:/Windows/System32/WBem;";
     }
 
     $ENV{'$'} = $$;
-    $ENV{TERM}      || warn "UNDEFINED TERMINAL TYPE $ENV{TERM}\n";
+    unless (defined $ENV{TERM}) {
+        warn "UNDEFINED TERMINAL TYPE\n";
+    }
 
     # initialize the readline library
     #
     $Term = Term::ReadLine->new($ENV{SHELL});
     $ENV{TPSH_READLINE} = $Term->ReadLine();
 
+    $isUnix ? $HashSep = qr':' 
+            : $HashSep = qr';';
     rehash();
 
     # change to the users home directory by default.
