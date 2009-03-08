@@ -239,7 +239,7 @@ sub init_sh {
 
     # inheritied from the system, normally...
     $ENV{OSTYPE}    ||= $^O;
-    $ENV{SHELL}     ||= $0;             #  don't use $pw->shell.
+    $ENV{SHELL}     ||= $0;             #  don't use $pw to get shell.
     $ENV{HOME}      ||= $pw{homedir};
     $ENV{USER}      ||= $pw{name};
     $ENV{USERNAME}  ||= $pw{name};
