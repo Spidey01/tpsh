@@ -37,6 +37,8 @@ sub expand_aliases;
 sub exec_pipe;
 sub binerr;
 sub hsplit;
+sub err_handler;
+sub death_handler;
 #
 # These subs implement built in commands
 #
@@ -183,6 +185,11 @@ my %Builtins = ( '['            => sub { warn "Not implemented\n" },
 sub init_sh {
     # handle default initializations for the environment
     # XXX this is a _huge_ ass sub
+
+    # override warn/die behaviour with the desired output
+    #
+    $SIG{__WARN__} = \&err_handler;
+    $SIG{__DIE__} = \&death_handler;
 
     if (grep { $^O eq $_ } qw(VMS MacOS NetWare beos vos)) {
         warn "$0: Unsupported OS $^O -- YMMV\n";
@@ -642,6 +649,21 @@ sub binerr {
 sub hsplit {
     return split /$HashSep/, $_ for @_;
 }
+
+
+sub err_handler {
+
+    print STDERR "$0: ", join(' ', @_), "\n";
+}
+
+sub death_handler {
+
+    my $msg = join( ' ', @_);
+
+    $msg =~ s/ at $0 line .*\n//;
+    die "$0: ${msg}, stopping tpsh\n";
+}
+
 
 sub sh_eval { 
     # XXX none of this understands the shells quoting rules
