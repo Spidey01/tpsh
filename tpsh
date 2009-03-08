@@ -371,11 +371,11 @@ sub resolve_cmd {
     # Note: >> must come before > in order for append mode to work.
     #
     if ($cmdln =~ /([^><]*) \s* (>>|>|<) \s* (.*)/x) {
-        return binerr "Bad syntax: $cmdln\n"
+        return warn "Bad syntax: $cmdln"
             unless defined $1 and defined $2 and defined $3;
         my ($ch, $commd, $op, $file) = (undef, $1, $2, $3);
 
-        open my $fp, $op, $file or return binerr "XXCan't open $file: $!\n";
+        open my $fp, $op, $file or return binerr "Can't open $file: $!";
         if ($op eq '<') {
             open $ch, '|-', $commd;
             while (<$fp>) {
@@ -420,7 +420,8 @@ sub pexec {
         wait();
     } else {
         if (defined $cmds[0]) {
-            exec { $cmds[0] } @cmds or die "$0: $cmds[0] command not found\n";
+            exec { $cmds[0] } @cmds or warn "$cmds[0] command not found";
+            exit $?;
         }
         exit 0; # then there wasn't any command given.
     }
@@ -622,11 +623,11 @@ sub exec_pipe {
     return 255; # NOTREACHED
 
     fail: do {
-        binerr "can't create pipeline or fork: $!";
+        warn "can't create pipeline or fork: $!";
         return 255;
     };
     notfound: do {
-        binerr "not found: $!";
+        warn "not found: $!";
         return 255;
     };
 }
@@ -653,7 +654,10 @@ sub hsplit {
 
 sub err_handler {
 
-    print STDERR "$0: ", join(' ', @_), "\n";
+    my $msg = join( ' ', @_);
+
+    $msg =~ s/ at $0 line .*\n//;
+    print STDERR "$0: $msg\n";
 }
 
 sub death_handler {
@@ -733,7 +737,7 @@ sub builtin_bin {
     if (exists $Builtins{$bin}) {
         $Builtins{$bin}->(@_) 
     } else {
-        binerr "not found\n";
+        warn "not found";
     }
 }
 
@@ -763,7 +767,7 @@ sub cd_bin {
         }
     }
 
-    binerr unless $rv;
+    warn $! unless $rv;
     $ENV{OLDPWD} = $ENV{PWD};
     $ENV{PWD}    = cwd();
     return $rv;
@@ -782,7 +786,7 @@ sub eval_bin {
 sub exec_bin {
     my ($prog, @argv) = @_;
 
-    exec { $prog } ($prog, @argv) or binerr $!;
+    exec { $prog } ($prog, @argv) or warn $!;
 }
 
 sub exit_bin {
