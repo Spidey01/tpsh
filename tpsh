@@ -533,7 +533,7 @@ sub expand_tilde {
 
     while ($ln =~ m%~%) {
         unless ($ln =~ m%\\~%) {
-            $ln =~ s%~%$ENV{HOME}/%;
+            $ln =~ s%~%$ENV{HOME}%;
         }
     }
     return $ln;
