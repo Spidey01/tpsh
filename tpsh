@@ -623,11 +623,11 @@ sub exec_pipe {
     return 255; # NOTREACHED
 
     fail: do {
-        warn "can't create pipeline or fork: $!";
+        warn "can't create pipeline or fork for ${cmd}: $!";
         return 255;
     };
     notfound: do {
-        warn "not found: $!";
+        warn "command not found: $cmd";
         return 255;
     };
 }
