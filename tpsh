@@ -211,7 +211,8 @@ sub init_sh {
     } else {
         ($isUnix, $isWin) = (1, 0);
         require User::pwent;
-        my $pw = getpwnam($ENV{LOGNAME}) or die "No username specified";
+        my $pw = User::pwent::getpwnam($ENV{LOGNAME}) 
+            or die "No username specified";
         %pw = ( name => $pw->name, homedir => $pw->dir, uid => $pw->uid, );
     }
 
@@ -260,6 +261,14 @@ sub init_sh {
                                "C:/Windows/System32/WBem;";
     }
 
+    if ($isUnix) {
+        $HashSep = qr':';
+    } else {
+        $HashSep = qr';';
+    }
+
+    rehash();
+
     $ENV{'$'} = $$;
     unless (defined $ENV{TERM}) {
         warn "UNDEFINED TERMINAL TYPE\n";
@@ -269,10 +278,6 @@ sub init_sh {
     #
     $Term = Term::ReadLine->new($ENV{SHELL});
     $ENV{TPSH_READLINE} = $Term->ReadLine();
-
-    $isUnix ? $HashSep = qr':' 
-            : $HashSep = qr';';
-    rehash();
 
     # change to the users home directory by default.
     # this will also take care of the OLDPWD/PWD variables.
