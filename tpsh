@@ -672,9 +672,8 @@ sub death_handler {
 sub sh_eval { 
     # XXX none of this understands the shells quoting rules
 
-    my @argv = split /\s+/, shift;
-    my $ln   = join ' ', @argv;
-    #my $ln   = $argv[0] || '';
+    my $ln   = join ' ', map { $Options{noglob} ? $_ : glob $_ } @_;
+    my @argv = split /[$ENV{IFS}]/, $ln;
 
     # dirty fix: turn off alias expansions for unalias
     #
