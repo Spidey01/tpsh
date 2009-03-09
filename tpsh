@@ -819,12 +819,11 @@ sub rehash_bin {
 sub set_bin {
     my @argv = @_;
 
-    #if (@argv) {
-    #   warn "set [opts] [args] is not implemented yet\n";
-    #} else {
-    {
+    if (@argv) {
+       warn "set [opts] [args] is not implemented yet\n";
+    } else {
         # pretty print everything like sh
-        while (my ($var, $val) = each %{%ENV}) {
+        while (my ($var, $val) = each %ENV) {
             if ($val =~ /\s/) {
                 $val = "'$val'";
             }
