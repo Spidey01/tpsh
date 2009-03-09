@@ -37,6 +37,7 @@ sub expand_aliases;
 sub exec_pipe;
 sub binerr;
 sub hsplit;
+sub ifsplit;
 sub err_handler;
 sub death_handler;
 #
@@ -350,7 +351,7 @@ sub handle_prompt {
 
 sub resolve_cmd {
     local $!;
-    my ($cmd, @buf)   = (split ' ', shift @_);
+    my ($cmd, @buf)   = (ifsplit shift @_);
     my @argv;  push @argv, @buf, @_;
     my $cmdln = join ' ', $cmd, @argv;
     $Last_Cmd = $cmdln;
@@ -482,7 +483,7 @@ sub expand_quotes {
         if ($wanteval) {
             push @stack, $evals{$quote}->(@data);
         } else {
-            push @stack, split /\s+/, sh_eval(@data);
+            push @stack, ifsplit sh_eval(@data);
         }
     };
 
@@ -590,7 +591,7 @@ sub exec_pipe {
     # any error to our caller.
     #
     for my $side (($lhs, $rhs)) {
-        my @arg = split /[$ENV{IFS}]/, $side; $cmd = shift @arg;
+        my @arg = ifsplit $side; $cmd = shift @arg;
         next if -x $cmd;
         goto notfound unless defined $Path{$cmd} and -x $Path{$cmd};
     }
@@ -651,6 +652,17 @@ sub hsplit {
     return split /$HashSep/, $_ for @_;
 }
 
+sub ifsplit {
+
+    # if the $IFS environment varable is unset, fall back on 
+    # whitespace; this is not strictly bourne compatible, but
+    # is desirable none the less
+    #
+    my $ifs = defined $ENV{IFS} ? qr/[$ENV{IFS}]/ : qr/\s/;
+
+    return grep !/^$/, split $ifs, join ' ', @_;
+}
+
 
 sub err_handler {
 
@@ -673,7 +685,7 @@ sub sh_eval {
     # XXX none of this understands the shells quoting rules
 
     my $ln   = join ' ', map { $Options{noglob} ? $_ : glob $_ } @_;
-    my @argv = split /[$ENV{IFS}]/, $ln;
+    my @argv = ifsplit $ln;
 
     # dirty fix: turn off alias expansions for unalias
     #
@@ -684,7 +696,7 @@ sub sh_eval {
     $ln = expand_parameters($ln);
     $ln = expand_tilde($ln);
 
-    return wantarray ? split /[$ENV{IFS}]/, $ln  : $ln;
+    return wantarray ? ifsplit $ln  : $ln;
 }
 
 sub update_env {
