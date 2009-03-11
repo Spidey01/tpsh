@@ -34,6 +34,7 @@ sub expand_quotes;
 sub expand_tilde;
 sub expand_parameters;
 sub expand_aliases;
+sub expand_glob;
 sub exec_pipe;
 sub binerr;
 sub hsplit;
@@ -582,6 +583,11 @@ sub expand_aliases {
     return wantarray ? @argv : join ' ', @argv;
 }
 
+sub expand_glob {
+
+    return map { $Options{noglob} ? $_ : glob $_ } @_;
+}
+
 sub exec_pipe {
     # e.g.   ls     |    head 
     my     ($lhs    ,   $rhs)     = @_;
@@ -684,7 +690,8 @@ sub death_handler {
 sub sh_eval { 
     # XXX none of this understands the shells quoting rules
 
-    my $ln   = join ' ', map { $Options{noglob} ? $_ : glob $_ } @_;
+    my $ln   = join ' ', expand_glob(@_);
+    print "GLOB: $ln\n";
     my @argv = ifsplit $ln;
 
     # dirty fix: turn off alias expansions for unalias
