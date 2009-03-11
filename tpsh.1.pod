@@ -1,0 +1,143 @@
+=pod
+
+=head1 NAME
+
+tpsh -- Terry's Portable SHell
+
+=head1 SYNOPSIS
+
+tpsh [-abCEefIimPpsuVvx] [-c string] [arg ...]
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+=head2 Invocation
+
+=head2 Argument List Processing
+
+=head2 Lexical Structure
+
+=head2 Quoting Rules
+
+=head2 Command Macros
+
+Several features of other shells are considered by tpsh, to be a form of command "Macro" for logical reasons (read: Terry's brain works this way). There are 4 kinds of command macro, aliases, functions, and groups.
+
+=head3 Anonymous Macros
+
+An anonymous macro may be defined with the following syntax:
+
+	{ commands }
+
+Note that anonymous macros have access to the shells positional parameters, unlike named macros which instead have localized positional parameters. The content within the curly braces may contain anything that a named macro may /* except things like local varname */
+
+=head3 Named Macros
+
+There are several ways to record a command macro for later use, a declaratory syntax and an imperative syntax: often referred to as aliases and user defined functions respectively.
+
+=head4 Aliases
+
+Command aliases provide a simple form of macro expansion at run time. An alias is is defined with either of the following syntaxes:
+
+	alias la='ls -a'
+	alias ll 'ls -l'
+
+The former is the Bourne syntax, while the latter is the CSH syntax. Simple text substitution will replace 'la' with 'ls -a' and 'll' with 'ls -l' during evaluation. An alias is functionally equivalent to the following statement:
+
+	la() {
+		ls -a
+	}
+
+Therefore any attempts to access the shells positional parameters ($1, $2, $*, etc) from within an alias definition will instead access the positional parameters of the macro. This allows one to define an alias such as:
+
+	alias qux='qux -f $1 -ab $2'
+
+and may be called like so:
+
+	qux foo bar
+
+with the following expansion:
+
+	qux -f foo -ab bar
+
+Note that the single quotes around the alias definition is important; single quotes prevents tpsh from expanding the positional parameters B<before> storing the alias. The right hand side of an alias definition is not treated specially, and therefore obeys the shells usual quoting schematics.
+
+=head4 User Defined Functions
+
+A named macro may also be defined as if it were a function:
+
+=over 8
+
+=item Bourne Again syntax
+
+	[function] name() command
+
+The definition of C<command> may be any simple command or anonymous macro body.
+
+=item Terry's syntax
+
+	macro name( commands )
+
+=back
+
+The macro then can be executed by invoking C<name> as if it were a simple command.  The primary distinction between aliases and user defined functions, is only a matter of syntax: they are B<functionally> equivalent macros.
+
+
+Arguments are passed to a user defined function (named macro) by localizing the shells positional parameters to the currently executing macro; thus in the above example the C<$0> parameter would expand to C<name> rather then C<tpsh>. When using the Bourne style of defining a function, often the C<command> portion is a list of commands grouped within curly braces: in tpsh this context is what gives macro its name, therefore it is no longer anonymous and receives localized positional parameters in order to simulate C<function arguments>.
+
+
+=head3 Example Macros
+
+	alias lf=ls -f
+	alias pgr less
+	macro cvs-st(cvs status | grep -i Status:)
+	function new-script() {
+		echo '#!/usr/bin/env' " $1\n\n" >> $2
+	}
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<-C> noclobber
+
+Do not overwrite existing files with the '>' redirection operator
+
+=item B<-f> noglob
+
+Disables file name globbing
+
+=back
+
+
+=head1 FILES
+
+F<filename>     what about it
+
+=head1 EXIT STATUS
+
+The progname utility exits 0 on success, and >0 if an error occurs.
+
+=head1 SEE ALSO
+
+L<sh(1)>, L<perl(1)>, L<File::Glob>, L<Term::ReadLine>
+
+=head1 HISTORY
+
+head1 CAVEATS & BUGS
+
+If the command is equal to 'unalias', it's arguments up until a command terminator (such as ;, |, >, ), or }) are not subject to macro expansion; note that parameter expansion is still performed.
+
+=head1 LICENSE
+
+
+                            "THE BEER-WARE LICENSE"
+
+This file is was written by TerryP / BigBoss1964@gmail.com.  As long as you
+retain this notice you can do whatever you want with this stuff. If we meet
+some day, and you think this stuff is worth it, you can buy me a drink in
+return.
+
+=cut
+
