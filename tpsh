@@ -9,6 +9,7 @@ use strict;
 
 use Cwd;
 use Dumpvalue;
+use File::Basename;
 use File::Glob ':glob';
 use Getopt::Long;
 use Pod::Usage;
@@ -31,6 +32,7 @@ sub handle_prompt;
 sub rehash;
 sub update_env;
 sub sh_eval;
+sub do_completion;
 sub expand_quotes;
 sub expand_tilde;
 sub expand_parameters;
@@ -445,6 +447,32 @@ sub rehash {
     }
 }
 
+sub do_completion {
+    my ($word, $str) = @_;
+    my @completions  = ();
+
+    # sh_eval() the various arguments before evaluation
+    $word = sh_eval($word);
+
+    my $compl_filename = sub {
+        my $word     = shift;
+        my $basename = basename($word);
+        my $dirname  = dirname($word);
+
+        my $cwd      = $ENV{PWD};
+        chdir $dirname or warn $!;
+        my @a = expand_glob "${word}*";
+        chdir $cwd or warn "directory overflow: $!";
+        return @a;
+    };
+
+    grep { /^$word/ and push @completions, $_ } keys %Builtins;
+    grep { /^$word/ and push @completions, $_ } keys %Aliases;
+    #push @completions, expand_glob("${word}*");
+    push @completions, $compl_filename->($word);
+
+    return sort @completions;
+}
 
 sub expand_quotes {
 
