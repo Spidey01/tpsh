@@ -468,6 +468,7 @@ sub do_completion {
 
     grep { /^$word/ and push @completions, $_ } keys %Builtins;
     grep { /^$word/ and push @completions, $_ } keys %Aliases;
+    grep { /^$word/ and push @completions, $_ } keys %Path;
     #push @completions, expand_glob("${word}*");
     push @completions, $compl_filename->($word);
 
