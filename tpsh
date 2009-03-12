@@ -9,6 +9,7 @@ use strict;
 
 use Cwd;
 use Dumpvalue;
+use File::Glob ':glob';
 use Getopt::Long;
 use Pod::Usage;
 use Term::ReadLine;
@@ -288,6 +289,10 @@ sub init_sh {
     $Term = Term::ReadLine->new($ENV{SHELL});
     $ENV{TPSH_READLINE} = $Term->ReadLine();
 
+    # Set defaults for shell globbing behavour
+    #
+    $ENV{TPSH_GLOB_FLAGS} ||= 'GLOB_MARK | GLOB_QUOTE | GLOB_TILDE';
+
     # change to the users home directory by default.
     # this will also take care of the OLDPWD/PWD variables.
     #
@@ -440,6 +445,7 @@ sub rehash {
     }
 }
 
+
 sub expand_quotes {
 
     my ($quote, $cmdln)     = @_;
@@ -583,9 +589,30 @@ sub expand_aliases {
     return wantarray ? @argv : join ' ', @argv;
 }
 
+# returns " " on error
+#
 sub expand_glob {
 
-    return map { $Options{noglob} ? $_ : glob $_ } @_;
+    return @_ if $Options{noglob};
+
+    my $flags = eval "$ENV{TPSH_GLOB_FLAGS}";
+    if ($@) {
+        warn "syntax error in \$TPSH_GLOB_FLAGS: $!";
+        return " ";
+    }
+    my $globch = qr/[\[\]\{\}?*]/;
+    my @argv;
+
+    for (ifsplit @_) {
+        my @args = bsd_glob $_, $flags;
+        if (!@args and /$globch/) {
+                warn "no matches found: $_\n";
+                return " ";
+        }
+        push @argv, @args ? @args : $_;
+    }
+
+    return @argv
 }
 
 sub exec_pipe {
@@ -691,7 +718,6 @@ sub sh_eval {
     # XXX none of this understands the shells quoting rules
 
     my $ln   = join ' ', expand_glob(@_);
-    print "GLOB: $ln\n";
     my @argv = ifsplit $ln;
 
     # dirty fix: turn off alias expansions for unalias
