@@ -54,7 +54,9 @@ sub echo_bin;
 sub eval_bin;
 sub exit_bin;
 sub export_bin;
+sub function_bin;
 sub hash_bin;
+sub macro_bin;
 sub read_bin;
 sub rehash_bin;
 sub set_bin;
@@ -158,10 +160,12 @@ my %Builtins = ( '['            => sub { warn "Not implemented\n" },
                  'false'        => sub { warn "Not implemented\n" },
                  'fc'           => sub { warn "Not implemented\n" },
                  'fg'           => sub { warn "Not implemented\n" },
+                 'function'     => \&function_bin,
                  'getopts'      => sub { warn "Not implemented\n" },
                  'hash'         => \&hash_bin,
                  'jobs'         => sub { warn "Not implemented\n" },
                  'local'        => sub { warn "Not implemented\n" },
+                 'macro'       => \&macro_bin,
                  'read'         => \&read_bin,
                  'readonly'     => sub { warn "Not implemented\n" },
                  'rehash'       => \&rehash_bin,
@@ -872,6 +876,17 @@ sub export_bin {
     
 }
 
+sub function_bin {
+    my ($name, $def) = (shift @_, join ' ', @_);
+    unless ($name =~ s/\(\)$//) {
+        warn "syntax error: did you forget the parentheses? ",
+             "function $name $def";
+
+        return " ";
+    }
+    $Aliases{$name} = $def;
+}
+
 sub hash_bin {
 
     while (my ($k, $v) = each %Path) {
@@ -879,6 +894,33 @@ sub hash_bin {
     }
 
     return 1;
+}
+
+sub macro_bin {
+
+    # name( ... ) == good 
+    my @line = @_;
+
+    # get macro name and strip the parens
+    #
+    my $name = shift @line;
+    # macro name(foo == bad
+    if ($name =~ /\w*\(\w/) {
+       warn "syntax error: no space after opening parentheses ", 
+            "macro ".join ' ', @_;
+        return " ";
+    }
+    $name =~ s/\(([^\s]*)$//g;
+    # macro name( foo) == also bad
+    my $endmk = pop @line;
+    if ($endmk ne ')') {
+        warn "syntax error: no space before closing parentheses ", 
+             "macro ".join ' ', @_;
+        return " ";
+    }
+
+    #$Aliases{$name} = '(' . join(' ', @line) . ')';
+    $Aliases{$name} = join(' ', @line);
 }
 
 sub read_bin {
