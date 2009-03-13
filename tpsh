@@ -804,7 +804,7 @@ sub alias_bin {
         ($lvalue, $rvalue) = (shift @argv, join ' ', @argv);
     }
 
-    $Aliases{$lvalue} = $rvalue;
+    $Aliases{$lvalue} = sh_eval $rvalue;
     return 1;
 }
 
