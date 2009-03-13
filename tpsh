@@ -7,6 +7,7 @@
 use warnings;
 use strict;
 
+
 use Cwd;
 use Dumpvalue;
 use File::Basename;
@@ -33,6 +34,8 @@ sub rehash;
 sub update_env;
 sub sh_eval;
 sub do_completion;
+sub complete_filename;
+sub complete_command;
 sub expand_quotes;
 sub expand_tilde;
 sub expand_parameters;
@@ -455,28 +458,39 @@ sub do_completion {
     my ($word, $str) = @_;
     my @completions  = ();
 
-    # sh_eval() the various arguments before evaluation
-    $word = sh_eval($word);
-
-    my $compl_filename = sub {
-        my $word     = shift;
-        my $basename = basename($word);
-        my $dirname  = dirname($word);
-
-        my $cwd      = $ENV{PWD};
-        chdir $dirname or warn $!;
-        my @a = expand_glob "${word}*";
-        chdir $cwd or warn "directory overflow: $!";
-        return @a;
-    };
-
-    grep { /^$word/ and push @completions, $_ } keys %Builtins;
-    grep { /^$word/ and push @completions, $_ } keys %Aliases;
-    grep { /^$word/ and push @completions, $_ } keys %Path;
-    #push @completions, expand_glob("${word}*");
-    push @completions, $compl_filename->($word);
+    push @completions, complete_command($word);
+    push @completions, complete_filename($word);
 
     return sort @completions;
+}
+
+sub complete_filename {
+    my $word     = sh_eval shift;
+    my $basename = basename($word);
+    my $dirname  = dirname($word);
+    my $cwd      = $ENV{PWD};
+    if ($word =~ /\/$/) {
+        # make sure we complete what's in the child dir
+        $basename .= "/";
+    }
+
+    # this is a cheap trick but works well for now
+
+    cd_bin $dirname 
+        or warn "$! maybe $dirname was removed by another process?";
+
+    my @a = bsd_glob "${basename}*", GLOB_MARK | GLOB_QUOTE | GLOB_TILDE;
+
+    cd_bin $cwd 
+        or warn "directory overflow: $!", "maybe $cwd was removed?";
+
+    @a = map { "${dirname}/${_}" } @a;
+    return @a;
+}
+
+sub complete_command {
+    my $word = shift;
+    grep /^${word}.*/, (keys %Aliases, keys %Builtins, keys %Path);
 }
 
 sub expand_quotes {
