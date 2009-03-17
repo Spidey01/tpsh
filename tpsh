@@ -412,7 +412,15 @@ sub resolve_cmd {
             unless defined $1 and defined $2 and defined $3;
         my ($ch, $commd, $op, $file) = (undef, $1, $2, $3);
 
+        if ($Options{noclobber}) {
+            if ( $op eq '>' and -e $file) {
+                warn "'$file' already exists",
+                     " and `set -o noclobber` is in effect";
+                return 0;
+            }
+        }
         open my $fp, $op, $file or return binerr "Can't open $file: $!";
+
         if ($op eq '<') {
             open $ch, '|-', $commd;
             while (<$fp>) {
@@ -420,10 +428,6 @@ sub resolve_cmd {
             }
         } else {
             open $ch, '-|', $commd;
-            if ( $op eq '>' and -x $file) {
-                # the noclobber option is not implemented yet, so always warn
-                print STDERR "File already exists, overwriting it\n";
-            }
             while (<$ch>) {
                 print $fp $_;
             }
