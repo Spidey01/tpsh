@@ -331,6 +331,11 @@ sub do_getopt {
                #'help'           =>   \&pod2usage(-verbose => 1, -exitval => 1),
                #'m|man'          =>   \&pod2usage(-verbose => 3, -exitval => 0),
               );
+
+    $Options{interactive} = -t *STDIN ? 1 : 0;
+    $Options{stdin}       = @ARGV     ? 1 : 0;
+
+    return 1;
 }
 
 =pod
@@ -357,9 +362,18 @@ sub main_loop {
 sub handle_prompt {
     my $ln = "";
 
-    $ln = $Term->readline($ENV{PS1});
-    $Term->addhistory($ln) 
-        if defined $ln and $ln =~ /\S/;
+    if ($Options{interactive} && !$Options{stdin}) {
+        $ln = $Term->readline($ENV{PS1});
+        $Term->addhistory($ln) 
+            if defined $ln and $ln =~ /\S/;
+    } else {
+        $ln = <>;
+    }
+    if (defined($ln) && $Options{xtrace}) {
+        # temporary side-step for killin' error messages when PS4 is bad
+        my $ps4 = $ENV{PS4} || '';
+        print "${ps4}$ln";
+    }
 
     return $ln;
 }
