@@ -370,9 +370,15 @@ sub handle_prompt {
         $ln = <>;
     }
     if (defined($ln) && $Options{xtrace}) {
-        # temporary side-step for killin' error messages when PS4 is bad
-        my $ps4 = $ENV{PS4} || '';
-        print "${ps4}$ln";
+        if ($Options{verbose}) {
+            print $ln;
+            $Options{interactive} ? print "\n" : 0;
+        }
+        if ($Options{xtrace}) {
+            # temporary side-step for killin' error messages when PS4 is bad
+            my $ps4 = $ENV{PS4} || '';
+            print STDERR "${ps4}$ln";
+        }
     }
 
     return $ln;
