@@ -309,7 +309,8 @@ sub init_sh {
 }
 
 sub do_getopt {
-	Getopt::Long::Configure('gnu_getopt', 'auto_version', 'auto_help');
+	Getopt::Long::Configure('gnu_getopt', 'getopt_compat',
+                            'auto_version', 'auto_help');
 	GetOptions(
                'a|allexport'    =>  \$Options{allexport},
                'b|notify'       =>  \$Options{notify},
