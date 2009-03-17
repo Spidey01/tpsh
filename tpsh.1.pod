@@ -16,9 +16,96 @@ tpsh [-abCEefIimPpsuVvx] [-c string] [arg ...]
 
 =head2 Argument List Processing
 
+
+Since most of these options may be set either at invocation or at run time:
+both the short and long names have been listed here for each option. The short
+form may only be specified as a command line argument to tpsh. The long form
+may be passed to the built-in set command using the -o/+o option to the set
+command (described later in L</Built-in Commands>.)
+
+=over 8
+
+=item B<-a> allexport
+
+Automatically export variables to the environment; i.e. C<FOO=BAR> has the same effect as C<FOO=BAR; export FOO>.
+
+=item B<-b> notify
+
+Enable asynchronous notification of background job completion.
+
+=item B<-C> noclobber
+
+Do not overwrite existing files with I/O redirection; e.g. C<<cat f1 f2 > f1>> becomes an error under noclobber.
+
+=item B<-c string> 
+
+Commands are read from the following argument (string) instead of from standard input. Keep in mind that multi-word strings must be quoted in most shells.
+
+
+=item B<-E> emacs
+
+Use key bindings for interactive line editing that resemble the L<emacs(1)> operating system. (This option counteracts -V)
+
+=item B<-e> errexit
+
+Exit the script immediately if any untested command fails. A command is considered tested if it appears within a conditional statement or on the left hand side of any logical operator, such as the C<&&> or C<||> operators. Because user defined functions and aliases are mealy a form of textual macro, the contents of any function is B<not> exempt from testing a commands exit status..
+
+=item B<-f> noglob
+
+Disable filename globing; e.g. C<vi f*> passes the C<f*> to vi, rather then all files matching the pattern.
+
+=item B<-I> ignoreeof
+
+Ignore end of file indicators from input when running in interactive mode. 
+
+=item B<-i> interactive
+
+Force th shell to execute in interactive mode.
+
+=item B<-m> monitor
+
+Enables built-in commands used for job control; e.g. fg, bg, jobs, etc.
+
+XXX there is no job control yet
+
+=item B<-n> noexec
+
+if not interactive, read commands but do not execute them. Normally this is used for checking a script for syntax errors without running it.
+
+XXX not implemented yet
+
+=item B<-s> stdin
+
+Read the commands from standard input (set automatically if there are no command  line arguments left after option parsing).
+
+=item B<-V> vi
+
+Use key bindings for interactive line editing that resemble the L<vi(1)> text editor. (This option counteracts -E)
+
+=item B<-v> verbose
+
+Before executing a command, write it to standard out; you may prefer the C<-x> option for most situations.
+
+=item B<-x> xtrace
+
+Before executing a command, write it to standard error prefixed by the PS4 environment variable. More useful then the C<-v> option.
+
+
+=back
+
 =head2 Lexical Structure
 
 =head2 Quoting Rules
+
+=over 8
+
+=item Single Quotes
+
+=item Double Quotes
+
+=item Backquotes (or backticks)
+
+=back
 
 =head2 Command Macros
 
@@ -96,20 +183,24 @@ Arguments are passed to a user defined function (named macro) by localizing the 
 		echo '#!/usr/bin/env' " $1\n\n" >> $2
 	}
 
-=head1 OPTIONS
+=head2 Built-in Commands
 
 =over 8
 
-=item B<-C> noclobber
+=item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]
 
-Do not overwrite existing files with the '>' redirection operator
+If no options are given, the set command displays the values of all shell variables.
 
-=item B<-f> noglob
+If options are given using either short form or C<-/+o logname> form; it sets
+or clears the specified options as described in the above section L</Argument
+List Processing>. Introducing an option with a dash (C<->) enables the option,
+while using a plus (C<+>) disables the option.  A C<--> or plain C<-> will stop
+option processing and will force the remaining words on the command line to be
+treated as arguments.
 
-Disables file name globbing
+If the C<--> option is specified or only bare words are given, set will replace the shells positional parameters with whatever arguments follow. If no arguments follow the C<--> option, all the positional parameters will be cleared, as if the user had executed C<shift $#>.
 
 =back
-
 
 =head1 FILES
 
