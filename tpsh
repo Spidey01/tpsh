@@ -800,9 +800,13 @@ sub sh_eval {
     my $ln   = join ' ', expand_glob(@_);
     my @argv = ifsplit $ln;
 
-    # dirty fix: turn off alias expansions for unalias/alias 
+    # dirty fix: turn off alias expansions for the following commands
+    # 
+    #   alias, builtin, unalias
     #
-    if ($ln !~ m/(un)?alias [^;|><]*/) { 
+    my $csep = qr'[^;|><]*';
+    if ($ln !~ m/(un)?alias $csep/ and $ln !~ m/builtin $csep/) 
+    { 
         $ln = expand_aliases(@argv);
     }
                      
@@ -867,7 +871,7 @@ sub builtin_bin {
     if (exists $Builtins{$bin}) {
         $Builtins{$bin}->(@_) 
     } else {
-        warn "not found";
+        warn "not found: $bin";
     }
 }
 
