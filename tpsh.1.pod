@@ -216,10 +216,18 @@ environment variable is set, and directory does not begin with /, ., or ..,
 then the directories listed in CDPATH will be searched for the specified
 directory.  If CDPATH is unset, then only the current directory is searched. The format of CDPATH is explained in L</ENVIRONMENT>.
 
+=item B<exec command [args ...]>
+
+The shell will replace itself with the specified command using the L<exec(3)> function. Command can not be a shell built-in or macro.
 
 =item B<chdir [directory]
 
 A synonym for the cd built-in command.
+
+=item B<exit [status]>
+
+Exit the shell with exit status C<status>, if status is omitted then the exit status of the last command is used.
+
 
 
 =item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]
@@ -253,7 +261,11 @@ L<sh(1)>, L<perl(1)>, L<File::Glob>, L<Term::ReadLine>
 
 head1 CAVEATS & BUGS
 
-If the command is equal to 'unalias', it's arguments up until a command terminator (such as ;, |, >, ), or }) are not subject to macro expansion; note that parameter expansion is still performed.
+If the command is equal to 'alias', 'builtin', 'unalias', it's arguments up
+until a command terminator (such as ;, |, >, ), or }) are not subject to macro
+expansion; note that parameter expansion is still performed.
+
+The chdir and cd built-in commands delegate finding the users home directory to the behaviour of Perl's chdir() function; it does not inspect $HOME as C<sh> should. Like wise, $PWD is updated using the standard L<Cwd> Perl module.
 
 =head1 LICENSE
 
