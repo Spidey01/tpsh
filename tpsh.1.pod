@@ -204,6 +204,10 @@ without any definition, the definition of macro C<name> will be displayed if it
 exists; without any arguments, the alias command displays all named macros in a
 format then can easily be processed by L<awk(1)>.
 
+=item B<builtin command [arg ...]>
+
+Execute built-in command C<command> with specified arguments. If you have overridden a built-in command using a macro, you can still use the built-in by invoking it through the C<builtin> built-in command, are you tongue twisted yet?
+
 =item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]
 
 If no options are given, the set command displays the values of all shell variables.
