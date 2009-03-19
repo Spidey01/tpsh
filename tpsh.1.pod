@@ -208,6 +208,20 @@ format then can easily be processed by L<awk(1)>.
 
 Execute built-in command C<command> with specified arguments. If you have overridden a built-in command using a macro, you can still use the built-in by invoking it through the C<builtin> built-in command, are you tongue twisted yet?
 
+=item B<cd [directory]>
+
+Change the shells current working directory to the specified directory, or to
+the users HOME directory if no directory was specified. When the CDPATH
+environment variable is set, and directory does not begin with /, ., or ..,
+then the directories listed in CDPATH will be searched for the specified
+directory.  If CDPATH is unset, then only the current directory is searched. The format of CDPATH is explained in L</ENVIRONMENT>.
+
+
+=item B<chdir [directory]
+
+A synonym for the cd built-in command.
+
+
 =item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]
 
 If no options are given, the set command displays the values of all shell variables.
