@@ -74,6 +74,10 @@ if not interactive, read commands but do not execute them. Normally this is used
 
 XXX not implemented yet
 
+=item reportpipe
+
+Print an additional error message whenever SIGPIPE is received; default off.
+
 =item B<-s> stdin
 
 Read the commands from standard input (set automatically if there are no command  line arguments left after option parsing).

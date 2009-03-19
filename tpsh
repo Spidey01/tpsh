@@ -92,6 +92,7 @@ my %Options = (
     noexec          =>  0,
     physical        =>  0,  # this will be removed unless POSIX requires it
     privileged      =>  0,
+    reportpipe      =>  0,
     stdin           =>  0,
     vi              =>  0,
     verbose         =>  0,
@@ -323,6 +324,7 @@ sub do_getopt {
                'm|monitor'      =>  \$Options{monitor},
                'P|physical'     =>  \$Options{physical},
                'p|privileged'   =>  \$Options{privileged},
+               'reportpipe'     =>  \$Options{reportpipe},
                's|stdin'        =>  \$Options{stdin},
                'V|vi'           =>  \$Options{vi},
                'v|verbose'      =>  \$Options{verbose},
@@ -701,6 +703,12 @@ sub exec_pipe {
         goto notfound unless defined $Path{$cmd} and -x $Path{$cmd};
     }
 
+    # XXX we must trap SIGPIPE or things like 
+    #     ls | head 1 will kill tpsh!
+    #
+    local $SIG{PIPE} = sub { warn "$lhs | ${rhs}: $!"
+                                if $Options{reportpipe} 
+                           };
     pipe my ($lfd, $rfd) or goto fail;
 
     unless (my $kid = fork) {
