@@ -191,6 +191,19 @@ Arguments are passed to a user defined function (named macro) by localizing the 
 
 =over 8
 
+=item B<alias [name=string | name string]>
+
+Creates a named macro or C<alias> with name and definition string. Both the
+Bourne and C-Shell syntaxes are emulated (respectively). When using the first
+form, the string value should be quoted to ensure the that macro expansion
+occurs at the desired time (i.e. run time or allocation). For one line
+expressions, you may find the C-Shell syntax or tpsh's C<macro> built-in more
+convenient; for more complex expressions the function built-in is better suited
+to created a named macro then the alias built-in. If C<name> is specified
+without any definition, the definition of macro C<name> will be displayed if it
+exists; without any arguments, the alias command displays all named macros in a
+format then can easily be processed by L<awk(1)>.
+
 =item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]
 
 If no options are given, the set command displays the values of all shell variables.
