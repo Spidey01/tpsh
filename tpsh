@@ -896,7 +896,10 @@ sub cd_bin {
     unless ($rv) {
         if (defined $ENV{CDPATH}) {
             for my $d (hsplit $ENV{CDPATH}) {
-                $rv = chdir "${d}/$target" and last;
+                my $dest = "${d}/$target";
+                if ($target !~ /^[\/.]/) {
+                    $rv = chdir $dest and last; 
+                }
             }
         }
     }
