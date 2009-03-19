@@ -929,7 +929,7 @@ sub exec_bin {
 sub exit_bin {
     my $ev = shift;
 
-    defined $ev ? exit $ev : exit 0;
+    defined $ev ? exit $ev : exit $? >> 8;
 }
 
 sub export_bin {
