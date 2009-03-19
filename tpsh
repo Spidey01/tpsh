@@ -800,9 +800,9 @@ sub sh_eval {
     my $ln   = join ' ', expand_glob(@_);
     my @argv = ifsplit $ln;
 
-    # dirty fix: turn off alias expansions for unalias
+    # dirty fix: turn off alias expansions for unalias/alias 
     #
-    if ($ln !~ m/(unalias [^;|><]*)/) { 
+    if ($ln !~ m/(un)?alias [^;|><]*/) { 
         $ln = expand_aliases(@argv);
     }
                      
@@ -838,7 +838,7 @@ style alias, in the form of 'alias command value'. If no argument list is specif
 sub alias_bin {
     unless (@_) {
         $Dumper->dumpValue(\%Aliases);
-        return;
+        return 1;
     }
     my @argv = @_;
     my ($lvalue, $rvalue);
@@ -849,6 +849,12 @@ sub alias_bin {
     } else {
         # join C-Shell style rhs into a scalar for assignment
         ($lvalue, $rvalue) = (shift @argv, join ' ', @argv);
+    } 
+    unless ($rvalue) {
+        if (exists $Aliases{$lvalue}) {
+            print "'$lvalue' => '$Aliases{$lvalue}'\n" 
+        }
+        return 1
     }
 
     $Aliases{$lvalue} = $rvalue;
