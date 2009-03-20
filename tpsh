@@ -973,14 +973,17 @@ sub macro_bin {
     #
     my $name = shift @line;
     # macro name(foo == bad
-    if ($name =~ /\w*\(\w/) {
+    if ($name =~ /\w*\([\w\(\)\{\}]/) {
        warn "syntax error: no space after opening parentheses ", 
             "macro ".join ' ', @_;
         return " ";
     }
     $name =~ s/\(([^\s]*)$//g;
-    # macro name( foo) == also bad
-    my $endmk = pop @line;
+    #
+    # macro name( foo) == also bad; or handle name()
+    # if the above test failed for some fault of ours
+    #
+    my $endmk = pop @line || '';
     if ($endmk ne ')') {
         warn "syntax error: no space before closing parentheses ", 
              "macro ".join ' ', @_;
