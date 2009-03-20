@@ -45,6 +45,8 @@ sub exec_pipe;
 sub binerr;
 sub hsplit;
 sub ifsplit;
+sub is_macro;
+sub is_builtin;
 sub err_handler;
 sub death_handler;
 #
@@ -448,8 +450,8 @@ sub resolve_cmd {
     # built in command
     #
   builtin:
-    defined $Builtins{$cmd} ?  return $Builtins{$cmd}->(@argv)
-                            :  return pexec($cmd, @argv);
+    is_builtin $cmd ?  return $Builtins{$cmd}->(@argv)
+                    :  return pexec($cmd, @argv);
 }
 
 =pod 
@@ -662,7 +664,7 @@ sub expand_aliases {
     my @argv = @_;
 
     for my $arg (@argv) {
-        if (defined $Aliases{$arg}) {
+        if (is_macro $arg) {
             $arg = $Aliases{$arg};
         }
     }
@@ -783,6 +785,21 @@ sub ifsplit {
     return grep !/^$/, split $ifs, join ' ', @_;
 }
 
+sub is_macro {
+    my $name = shift;
+
+    if (exists $Aliases{$name}) {
+        return defined $Aliases{$name};
+    }
+}
+
+sub is_builtin {
+    my $cmd = shift;
+
+    if (exists $Builtins{$cmd}) {
+        return defined $Builtins{$cmd};
+    }
+}
 
 sub err_handler {
 
@@ -862,7 +879,7 @@ sub alias_bin {
         ($lvalue, $rvalue) = (shift @argv, join ' ', @argv);
     } 
     unless ($rvalue) {
-        if (exists $Aliases{$lvalue}) {
+        if (is_macro $lvalue) {
             print "'$lvalue' => '$Aliases{$lvalue}'\n" 
         }
         return 1
@@ -875,7 +892,7 @@ sub alias_bin {
 sub builtin_bin {
     my $bin = shift;
 
-    if (exists $Builtins{$bin}) {
+    if (is_builtin $bin) {
         $Builtins{$bin}->(@_) 
     } else {
         warn "not found: $bin";
@@ -1069,9 +1086,9 @@ sub type_bin {
         # check macros, builtins, path, and current directory.
         #
         print "$_ is a macro for $Aliases{$_}\n"   
-                                    and next          if defined $Aliases{$_};
+                                    and next          if is_macro $_;
         print "$_ is a shell builtin\n" 
-                                    and next          if defined $Builtins{$_};
+                                    and next          if is_builtin $_;
         print "$_ is $Path{$_}\n" 
                                     and next          if defined $Path{$_};
         #
