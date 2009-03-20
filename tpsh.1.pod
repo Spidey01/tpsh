@@ -228,7 +228,9 @@ A synonym for the cd built-in command.
 
 Exit the shell with exit status C<status>, if status is omitted then the exit status of the last command is used.
 
+=item B<hash [-r] [command ...]>
 
+Displays the shells internal hash table of 'command=/path/to/command', which is used for caching the value of the PATH environment variable. Any arguments given to the hash built-in command, are assumed to be the name of a program found in the users PATH, which is to be removed from the hash table. If the -r option is specified, then delete the entire contents of the hash table. Note well that this does B<not> allow you to remove a single command from your search PATH, it only manipulates internal data structures.
 
 =item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]
 
