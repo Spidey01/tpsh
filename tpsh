@@ -950,7 +950,7 @@ sub function_bin {
 sub hash_bin {
 
     if (@_) {
-        map { delete $Path{$_} } @_;
+        map { delete $Path{$_} or warn "command not found: $_" } @_;
     } else {
         while (my ($k, $v) = each %Path) {
             print "$k=$v\n";
