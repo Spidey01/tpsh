@@ -27,7 +27,8 @@ command (described later in L</Built-in Commands>.)
 
 =item B<-a> allexport
 
-Automatically export variables to the environment; i.e. C<FOO=BAR> has the same effect as C<FOO=BAR; export FOO>.
+Automatically export variables to the environment; i.e. C<FOO=BAR> has the same
+effect as C<FOO=BAR; export FOO>.
 
 =item B<-b> notify
 
@@ -35,24 +36,33 @@ Enable asynchronous notification of background job completion.
 
 =item B<-C> noclobber
 
-Do not overwrite existing files with I/O redirection; e.g. C<<cat f1 f2 > f1>> becomes an error under noclobber.
+Do not overwrite existing files with I/O redirection; e.g. C<<cat f1 f2 > f1>>
+becomes an error under noclobber.
 
 =item B<-c string> 
 
-Commands are read from the following argument (string) instead of from standard input. Keep in mind that multi-word strings must be quoted in most shells.
+Commands are read from the following argument (string) instead of from standard
+input. Keep in mind that multi-word strings must be quoted in most shells.
 
 
 =item B<-E> emacs
 
-Use key bindings for interactive line editing that resemble the L<emacs(1)> operating system. (This option counteracts -V)
+Use key bindings for interactive line editing that resemble the L<emacs(1)>
+operating system. (This option counteracts -V)
 
 =item B<-e> errexit
 
-Exit the script immediately if any untested command fails. A command is considered tested if it appears within a conditional statement or on the left hand side of any logical operator, such as the C<&&> or C<||> operators. Because user defined functions and aliases are mealy a form of textual macro, the contents of any function is B<not> exempt from testing a commands exit status..
+Exit the script immediately if any untested command fails. A command is
+considered tested if it appears within a conditional statement or on the left
+hand side of any logical operator, such as the C<&&> or C<||> operators.
+Because user defined functions and aliases are mealy a form of textual macro,
+the contents of any function is B<not> exempt from testing a commands exit
+status..
 
 =item B<-f> noglob
 
-Disable filename globing; e.g. C<vi f*> passes the C<f*> to vi, rather then all files matching the pattern.
+Disable filename globing; e.g. C<vi f*> passes the C<f*> to vi, rather then all
+files matching the pattern.
 
 =item B<-I> ignoreeof
 
@@ -70,7 +80,8 @@ XXX there is no job control yet
 
 =item B<-n> noexec
 
-if not interactive, read commands but do not execute them. Normally this is used for checking a script for syntax errors without running it.
+if not interactive, read commands but do not execute them. Normally this is
+used for checking a script for syntax errors without running it.
 
 XXX not implemented yet
 
@@ -80,19 +91,23 @@ Print an additional error message whenever SIGPIPE is received; default off.
 
 =item B<-s> stdin
 
-Read the commands from standard input (set automatically if there are no command  line arguments left after option parsing).
+Read the commands from standard input (set automatically if there are no
+command  line arguments left after option parsing).
 
 =item B<-V> vi
 
-Use key bindings for interactive line editing that resemble the L<vi(1)> text editor. (This option counteracts -E)
+Use key bindings for interactive line editing that resemble the L<vi(1)> text
+editor. (This option counteracts -E)
 
 =item B<-v> verbose
 
-Before executing a command, write it to standard out; you may prefer the C<-x> option for most situations.
+Before executing a command, write it to standard out; you may prefer the C<-x>
+option for most situations.
 
 =item B<-x> xtrace
 
-Before executing a command, write it to standard error prefixed by the PS4 environment variable. More useful then the C<-v> option.
+Before executing a command, write it to standard error prefixed by the PS4
+environment variable. More useful then the C<-v> option.
 
 
 =back
@@ -113,7 +128,9 @@ Before executing a command, write it to standard error prefixed by the PS4 envir
 
 =head2 Command Macros
 
-Several features of other shells are considered by tpsh, to be a form of command "Macro" for logical reasons (read: Terry's brain works this way). There are 4 kinds of command macro, aliases, functions, and groups.
+Several features of other shells are considered by tpsh, to be a form of
+command "Macro" for logical reasons (read: Terry's brain works this way). There
+are 4 kinds of command macro, aliases, functions, and groups.
 
 =head3 Anonymous Macros
 
@@ -121,26 +138,36 @@ An anonymous macro may be defined with the following syntax:
 
 	{ commands }
 
-Note that anonymous macros have access to the shells positional parameters, unlike named macros which instead have localized positional parameters. The content within the curly braces may contain anything that a named macro may /* except things like local varname */
+Note that anonymous macros have access to the shells positional parameters,
+unlike named macros which instead have localized positional parameters. The
+content within the curly braces may contain anything that a named macro may /*
+except things like local varname */
 
 =head3 Named Macros
 
-There are several ways to record a command macro for later use, a declaratory syntax and an imperative syntax: often referred to as aliases and user defined functions respectively.
+There are several ways to record a command macro for later use, a declaratory
+syntax and an imperative syntax: often referred to as aliases and user defined
+functions respectively.
 
 =head4 Aliases
 
-Command aliases provide a simple form of macro expansion at run time. An alias is is defined with either of the following syntaxes:
+Command aliases provide a simple form of macro expansion at run time. An alias
+is is defined with either of the following syntaxes:
 
 	alias la='ls -a'
 	alias ll 'ls -l'
 
-The former is the Bourne syntax, while the latter is the CSH syntax. Simple text substitution will replace 'la' with 'ls -a' and 'll' with 'ls -l' during evaluation. An alias is functionally equivalent to the following statement:
+The former is the Bourne syntax, while the latter is the CSH syntax. Simple
+text substitution will replace 'la' with 'ls -a' and 'll' with 'ls -l' during
+evaluation. An alias is functionally equivalent to the following statement:
 
 	la() {
 		ls -a
 	}
 
-Therefore any attempts to access the shells positional parameters ($1, $2, $*, etc) from within an alias definition will instead access the positional parameters of the macro. This allows one to define an alias such as:
+Therefore any attempts to access the shells positional parameters ($1, $2, $*,
+etc) from within an alias definition will instead access the positional
+parameters of the macro. This allows one to define an alias such as:
 
 	alias qux='qux -f $1 -ab $2'
 
@@ -152,7 +179,10 @@ with the following expansion:
 
 	qux -f foo -ab bar
 
-Note that the single quotes around the alias definition is important; single quotes prevents tpsh from expanding the positional parameters B<before> storing the alias. The right hand side of an alias definition is not treated specially, and therefore obeys the shells usual quoting schematics.
+Note that the single quotes around the alias definition is important; single
+quotes prevents tpsh from expanding the positional parameters B<before> storing
+the alias. The right hand side of an alias definition is not treated specially,
+and therefore obeys the shells usual quoting schematics.
 
 =head4 User Defined Functions
 
@@ -172,10 +202,18 @@ The definition of C<command> may be any simple command or anonymous macro body.
 
 =back
 
-The macro then can be executed by invoking C<name> as if it were a simple command.  The primary distinction between aliases and user defined functions, is only a matter of syntax: they are B<functionally> equivalent macros.
+The macro then can be executed by invoking C<name> as if it were a simple
+command. The primary distinction between aliases and user defined functions,
+is only a matter of syntax: they are B<functionally> equivalent macros.
 
 
-Arguments are passed to a user defined function (named macro) by localizing the shells positional parameters to the currently executing macro; thus in the above example the C<$0> parameter would expand to C<name> rather then C<tpsh>. When using the Bourne style of defining a function, often the C<command> portion is a list of commands grouped within curly braces: in tpsh this context is what gives macro its name, therefore it is no longer anonymous and receives localized positional parameters in order to simulate C<function arguments>.
+Arguments are passed to a user defined function (named macro) by localizing the
+shells positional parameters to the currently executing macro; thus in the
+above example the C<$0> parameter would expand to C<name> rather then C<tpsh>.
+When using the Bourne style of defining a function, often the C<command>
+portion is a list of commands grouped within curly braces: in tpsh this context
+is what gives macro its name, therefore it is no longer anonymous and receives
+localized positional parameters in order to simulate C<function arguments>.
 
 
 =head3 Example Macros
@@ -206,7 +244,10 @@ format then can easily be processed by L<awk(1)>.
 
 =item B<builtin command [arg ...]>
 
-Execute built-in command C<command> with specified arguments. If you have overridden a built-in command using a macro, you can still use the built-in by invoking it through the C<builtin> built-in command, are you tongue twisted yet?
+Execute built-in command C<command> with specified arguments. If you have
+overridden a built-in command using a macro, you can still use the built-in by
+invoking it through the C<builtin> built-in command, are you tongue twisted
+yet?
 
 =item B<cd [directory]>
 
@@ -214,11 +255,13 @@ Change the shells current working directory to the specified directory, or to
 the users HOME directory if no directory was specified. When the CDPATH
 environment variable is set, and directory does not begin with /, ., or ..,
 then the directories listed in CDPATH will be searched for the specified
-directory.  If CDPATH is unset, then only the current directory is searched. The format of CDPATH is explained in L</ENVIRONMENT>.
+directory.  If CDPATH is unset, then only the current directory is searched.
+The format of CDPATH is explained in L</ENVIRONMENT>.
 
 =item B<exec command [args ...]>
 
-The shell will replace itself with the specified command using the L<exec(3)> function. Command can not be a shell built-in or macro.
+The shell will replace itself with the specified command using the L<exec(3)>
+function. Command can not be a shell built-in or macro.
 
 =item B<chdir [directory]
 
@@ -226,15 +269,40 @@ A synonym for the cd built-in command.
 
 =item B<exit [status]>
 
-Exit the shell with exit status C<status>, if status is omitted then the exit status of the last command is used.
+Exit the shell with exit status C<status>, if status is omitted then the exit
+status of the last command is used.
+
+=item B<function name() [command ...]>
+
+Defines a named macro using syntax that resembles the GNU Bourne Again SHell.
+List may be any simple or grouped command. Defining a complex or multi-line
+function is best done by binding name() to an anonymous macro; done  by using
+{} or () grouping. For short (i.e. one line) macros, you may find the macro
+built-in a more concise notation. See L</Command Macros>.
 
 =item B<hash [-r] [command ...]>
 
-Displays the shells internal hash table of 'command=/path/to/command', which is used for caching the value of the PATH environment variable. Any arguments given to the hash built-in command, are assumed to be the name of a program found in the users PATH, which is to be removed from the hash table. If the -r option is specified, then delete the entire contents of the hash table. Note well that this does B<not> allow you to remove a single command from your search PATH, it only manipulates internal data structures.
+Displays the shells internal hash table of 'command=/path/to/command', which is
+used for caching the value of the PATH environment variable. Any arguments
+given to the hash built-in command, are assumed to be the name of a program
+found in the users PATH, which is to be removed from the hash table. If the -r
+option is specified, then delete the entire contents of the hash table. Note
+well that this does B<not> allow you to remove a single command from your
+search PATH, it only manipulates internal data structures.
+
+=item B<macro name( [command ...] )>
+
+Defines a named macro using a tpsh specific syntax. There must be a space after
+the opening parentheses, and if command is given there must also be a space
+before the close parentheses. An empty macro may be defined as C<macro name(
+)>, but not C<macro name()>. Command may be any arbitrary command line (similar
+to the eval built-in command), and will be stored as a named macro with
+C<name>. See L</Command Macros>.
 
 =item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]
 
-If no options are given, the set command displays the values of all shell variables.
+If no options are given, the set command displays the values of all shell
+variables.
 
 If options are given using either short form or C<-/+o logname> form; it sets
 or clears the specified options as described in the above section L</Argument
@@ -243,7 +311,10 @@ while using a plus (C<+>) disables the option.  A C<--> or plain C<-> will stop
 option processing and will force the remaining words on the command line to be
 treated as arguments.
 
-If the C<--> option is specified or only bare words are given, set will replace the shells positional parameters with whatever arguments follow. If no arguments follow the C<--> option, all the positional parameters will be cleared, as if the user had executed C<shift $#>.
+If the C<--> option is specified or only bare words are given, set will replace
+the shells positional parameters with whatever arguments follow. If no
+arguments follow the C<--> option, all the positional parameters will be
+cleared, as if the user had executed C<shift $#>.
 
 =back
 
@@ -267,7 +338,9 @@ If the command is equal to 'alias', 'builtin', 'unalias', it's arguments up
 until a command terminator (such as ;, |, >, ), or }) are not subject to macro
 expansion; note that parameter expansion is still performed.
 
-The chdir and cd built-in commands delegate finding the users home directory to the behaviour of Perl's chdir() function; it does not inspect $HOME as C<sh> should. Like wise, $PWD is updated using the standard L<Cwd> Perl module.
+The chdir and cd built-in commands delegate finding the users home directory to
+the behaviour of Perl's chdir() function; it does not inspect $HOME as C<sh>
+should. Like wise, $PWD is updated using the standard L<Cwd> Perl module.
 
 =head1 LICENSE
 
