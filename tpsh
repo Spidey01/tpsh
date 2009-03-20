@@ -949,8 +949,12 @@ sub function_bin {
 
 sub hash_bin {
 
-    while (my ($k, $v) = each %Path) {
-        print "$k=$v\n";
+    if (@_) {
+        map { delete $Path{$_} } @_;
+    } else {
+        while (my ($k, $v) = each %Path) {
+            print "$k=$v\n";
+        }
     }
 
     return 1;
