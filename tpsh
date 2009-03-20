@@ -60,6 +60,7 @@ sub export_bin;
 sub function_bin;
 sub hash_bin;
 sub macro_bin;
+sub pwd_bin;
 sub read_bin;
 sub rehash_bin;
 sub set_bin;
@@ -169,7 +170,8 @@ my %Builtins = ( '['            => sub { warn "Not implemented\n" },
                  'hash'         => \&hash_bin,
                  'jobs'         => sub { warn "Not implemented\n" },
                  'local'        => sub { warn "Not implemented\n" },
-                 'macro'       => \&macro_bin,
+                 'macro'        => \&macro_bin,
+                 'pwd'          => \&pwd_bin,
                  'read'         => \&read_bin,
                  'readonly'     => sub { warn "Not implemented\n" },
                  'rehash'       => \&rehash_bin,
@@ -997,6 +999,21 @@ sub macro_bin {
 
     #$Aliases{$name} = '(' . join(' ', @line) . ')';
     $Aliases{$name} = join(' ', @line);
+}
+
+sub pwd_bin {
+    my $arg = shift || '-L';
+    goto bad if @_;
+
+    if ($arg eq '-P') {
+        return print Cwd::realpath($ENV{PWD}), "\n";
+    } elsif ($arg eq '-L') {
+        return print Cwd::getcwd(), "\n";
+    } else {
+      bad:
+        return warn "to many arguments";
+    }
+
 }
 
 sub read_bin {

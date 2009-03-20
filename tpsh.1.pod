@@ -299,6 +299,10 @@ before the close parentheses. An empty macro may be defined as C<macro name(
 to the eval built-in command), and will be stored as a named macro with
 C<name>. See L</Command Macros>.
 
+=item B<pwd [-L | -P]>
+
+A built in function for printing the current working directory. If the -P option is specified, print the current working directories real path; if the -L option is specified, print the shells idea of its current working directory. The -L option is the default behaviour.
+
 =item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]
 
 If no options are given, the set command displays the values of all shell
@@ -341,6 +345,8 @@ expansion; note that parameter expansion is still performed.
 The chdir and cd built-in commands delegate finding the users home directory to
 the behaviour of Perl's chdir() function; it does not inspect $HOME as C<sh>
 should. Like wise, $PWD is updated using the standard L<Cwd> Perl module.
+
+The pwd built-in command is implemented using the Cwd Perl module, so C<pwd -L> likely will behave differently in tpsh, then sh or /bin/pwd.
 
 =head1 LICENSE
 
