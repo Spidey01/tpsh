@@ -1066,15 +1066,20 @@ sub trap_bin {
 sub type_bin {
 
     for (@_) {
-        # check aliases, builtins, path, current directory.
-        print "$_ is an alias for $Aliases{$_}\n"   if defined $Aliases{$_};
-        # XXX functions are not implemented yet
-        print "$_ is a shell builtin\n"             if defined $Builtins{$_};
-        print "$_ is $Path{$_}\n"                   if defined $Path{$_};
+        # check macros, builtins, path, and current directory.
+        #
+        print "$_ is a macro for $Aliases{$_}\n"   
+                                    and next          if defined $Aliases{$_};
+        print "$_ is a shell builtin\n" 
+                                    and next          if defined $Builtins{$_};
+        print "$_ is $Path{$_}\n" 
+                                    and next          if defined $Path{$_};
         #
         # this is a custom exstension
         #
-        print "$_ may be $ENV{PWD}/$_\n"            if -x "./$_";
+        print "$_ may be $ENV{PWD}/$_\n"            
+                                    and next          if -x "./$_";
+        print "$_ not found"
     }
     return 1;
 }

@@ -320,6 +320,10 @@ the shells positional parameters with whatever arguments follow. If no
 arguments follow the C<--> option, all the positional parameters will be
 cleared, as if the user had executed C<shift $#>.
 
+=item B<type [name ...]>
+
+Interpret each name as a command, then print the result. Possible types are: built-in command, command, macro, or not found. For convenience, if an executable is found in the current directory tpsh will print C<command may be $PWD/command> before giving up. For macros, the stored definition is printed; for command the complete pathname is printed
+
 =back
 
 =head1 FILES
