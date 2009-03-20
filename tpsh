@@ -394,9 +394,12 @@ sub resolve_cmd {
     my $cmdln = join ' ', $cmd, @argv;
     $Last_Cmd = $cmdln;
 
+    # skip the I/O tricks when command is the macro built-in
+    goto builtin if $cmd =~ /^macro/;
 
     # test if it's a pipe
     #
+  pipe:
     if ($cmdln =~ /([^|]*) \| ([^|]*)/) {
         return exec_pipe $1, $2 || warn "bad pipe: $!\n";
     }
@@ -409,6 +412,7 @@ sub resolve_cmd {
     #
     # Note: >> must come before > in order for append mode to work.
     #
+  redirect:
     if ($cmdln =~ /([^><]*) \s* (>>|>|<) \s* (.*)/x) {
         return warn "Bad syntax: $cmdln"
             unless defined $1 and defined $2 and defined $3;
@@ -441,6 +445,7 @@ sub resolve_cmd {
 
     # built in command
     #
+  builtin:
     defined $Builtins{$cmd} ?  return $Builtins{$cmd}->(@argv)
                             :  return pexec($cmd, @argv);
 }
