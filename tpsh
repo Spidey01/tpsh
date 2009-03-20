@@ -144,7 +144,7 @@ my %Path = ();
 # The aliases are kept separate from %Builtins, so the user
 # can _not_ clobber builtin commands; only mask them.
 #
-my %Aliases = ();
+my %Macros = ();
 
 #
 # A hash of built in commands in the format of command => sub.
@@ -206,7 +206,7 @@ sub init_sh {
     # override warn/die behaviour with the desired output
     #
     $SIG{__WARN__} = \&err_handler;
-    $SIG{__DIE__} = \&death_handler;
+    #$SIG{__DIE__} = \&death_handler;
 
     if (grep { $^O eq $_ } qw(VMS MacOS NetWare beos vos)) {
         warn "$0: Unsupported OS $^O -- YMMV\n";
@@ -450,8 +450,8 @@ sub resolve_cmd {
     # built in command
     #
   builtin:
-    is_builtin $cmd ?  return $Builtins{$cmd}->(@argv)
-                    :  return pexec($cmd, @argv);
+    is_builtin($cmd) ?  return $Builtins{$cmd}->(@argv)
+                     :  return pexec($cmd, @argv);
 }
 
 =pod 
@@ -526,7 +526,7 @@ sub complete_filename {
 
 sub complete_command {
     my $word = shift;
-    grep /^${word}.*/, (keys %Aliases, keys %Builtins, keys %Path);
+    grep /^${word}.*/, (keys %Macros, keys %Builtins, keys %Path);
 }
 
 sub expand_quotes {
@@ -665,7 +665,7 @@ sub expand_aliases {
 
     for my $arg (@argv) {
         if (is_macro $arg) {
-            $arg = $Aliases{$arg};
+            $arg = $Macros{$arg};
         }
     }
 
@@ -788,8 +788,8 @@ sub ifsplit {
 sub is_macro {
     my $name = shift;
 
-    if (exists $Aliases{$name}) {
-        return defined $Aliases{$name};
+    if (exists $Macros{$name}) {
+        return defined $Macros{$name};
     }
 }
 
@@ -865,7 +865,7 @@ style alias, in the form of 'alias command value'. If no argument list is specif
 =cut
 sub alias_bin {
     unless (@_) {
-        $Dumper->dumpValue(\%Aliases);
+        $Dumper->dumpValue(\%Macros);
         return 1;
     }
     my @argv = @_;
@@ -880,12 +880,12 @@ sub alias_bin {
     } 
     unless ($rvalue) {
         if (is_macro $lvalue) {
-            print "'$lvalue' => '$Aliases{$lvalue}'\n" 
+            print "'$lvalue' => '$Macros{$lvalue}'\n" 
         }
         return 1
     }
 
-    $Aliases{$lvalue} = $rvalue;
+    $Macros{$lvalue} = $rvalue;
     return 1;
 }
 
@@ -968,7 +968,7 @@ sub function_bin {
 
         return " ";
     }
-    $Aliases{$name} = $def;
+    $Macros{$name} = $def;
 }
 
 sub hash_bin {
@@ -1014,8 +1014,8 @@ sub macro_bin {
         return " ";
     }
 
-    #$Aliases{$name} = '(' . join(' ', @line) . ')';
-    $Aliases{$name} = join(' ', @line);
+    #$Macros{$name} = '(' . join(' ', @line) . ')';
+    $Macros{$name} = join(' ', @line);
 }
 
 sub pwd_bin {
@@ -1085,7 +1085,7 @@ sub type_bin {
     for (@_) {
         # check macros, builtins, path, and current directory.
         #
-        print "$_ is a macro for $Aliases{$_}\n"   
+        print "$_ is a macro for $Macros{$_}\n"   
                                     and next          if is_macro $_;
         print "$_ is a shell builtin\n" 
                                     and next          if is_builtin $_;
@@ -1103,7 +1103,7 @@ sub type_bin {
 
 sub unalias_bin {
 
-    delete @Aliases{@_};
+    delete @Macros{@_};
 }
 
 sub unset_bin {
