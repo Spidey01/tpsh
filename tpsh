@@ -74,6 +74,7 @@ sub trap_bin;
 sub type_bin;
 sub unalias_bin;
 sub unset_bin;
+sub which_bin;
 
 #----------------------------------------------------------
 #                Global Data Structures
@@ -192,6 +193,7 @@ my %Builtins = ( '['            => sub { warn "Not implemented\n" },
                  'unalias'      => \&unalias_bin,
                  'unset'        => \&unset_bin,
                  'wait'         => sub { warn "Not implemented\n" },
+                 'which'        => \&which_bin,
 );
 
 
@@ -1108,6 +1110,55 @@ sub unalias_bin {
 
 sub unset_bin {
 
+}
+
+sub which_bin {
+
+    # XXX all these $flag eq ... deserve an internal coderef
+    my $flag  = " ";
+    my $found = 0;
+    my @progs = ();
+
+    if ($_[0] =~ /(-\w)/) {
+        $flag = $1;
+        if (shift !~ /-[as]/) {
+            return warn "bad option: $flag";
+        }
+    }
+    @progs = @_;
+
+    for (@progs) {
+        # first check if built in or macro
+        if (is_builtin $_) {
+            print "${_}: shell built-in command\n" unless $flag eq '-s';
+            $found++;
+            next unless $flag eq '-a';
+        }
+        if (is_macro $_) {
+            print "${_}: macro for $Macros{$_}\n" unless $flag eq '-s';
+            $found++;
+            next unless $flag eq '-a';
+        }
+        for my $p (hsplit $ENV{PATH}) {
+            my $path = "${p}/${_}";
+            if (-x $path) {
+                print "$path\n" unless $flag eq '-s';
+                $found++;
+                last if $flag eq '-a' or $flag eq '-s';
+            }
+        }
+        if ($flag ne '-s') {
+            print "${_}: not found\n" unless $found;
+        }
+    }
+
+    if ($found >= scalar @progs) {
+        $? = 0;
+        return 1;
+    } else {
+        $? = 1 << 8;
+        return 0;
+    }
 }
 
 

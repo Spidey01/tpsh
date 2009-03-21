@@ -263,7 +263,7 @@ The format of CDPATH is explained in L</ENVIRONMENT>.
 The shell will replace itself with the specified command using the L<exec(3)>
 function. Command can not be a shell built-in or macro.
 
-=item B<chdir [directory]
+=item B<chdir [directory]>
 
 A synonym for the cd built-in command.
 
@@ -303,7 +303,7 @@ C<name>. See L</Command Macros>.
 
 A built in function for printing the current working directory. If the -P option is specified, print the current working directories real path; if the -L option is specified, print the shells idea of its current working directory. The -L option is the default behaviour.
 
-=item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]
+=item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]>
 
 If no options are given, the set command displays the values of all shell
 variables.
@@ -322,8 +322,16 @@ cleared, as if the user had executed C<shift $#>.
 
 =item B<type [name ...]>
 
-Interpret each name as a command, then print the result. Possible types are: built-in command, command, macro, or not found. For convenience, if an executable is found in the current directory tpsh will print C<command may be $PWD/command> before giving up. For macros, the stored definition is printed; for command the complete pathname is printed
+Interpret each name as a command, then print the result. Possible types are:
+built-in command, command, macro, or not found. For convenience, if an
+executable is found in the current directory tpsh will print C<command may be
+$PWD/command> before giving up. For macros, the stored definition is printed;
+for command the complete pathname is printed
 
+=item B<which [-as] command ...>
+
+Check for the presence of C<command> by searching the users PATH environment variable. The result of the search is then printed to standard output, subject to the options given by the user. Command may be a built-in command, macro, or the name of a program without a path (e.g. C<ls>). If the -s option is specified, return 0 if all commands were found, and 1 otherwise; but do not generate B<any> output. If the -a option is specified, continue searching after command has been found, printing all occurances to standard output. If both the -a and -s options were given, the first shall take presidence!
+ 
 =back
 
 =head1 FILES
@@ -340,7 +348,7 @@ L<sh(1)>, L<perl(1)>, L<File::Glob>, L<Term::ReadLine>
 
 =head1 HISTORY
 
-head1 CAVEATS & BUGS
+=head1 CAVEATS & BUGS
 
 If the command is equal to 'alias', 'builtin', 'unalias', it's arguments up
 until a command terminator (such as ;, |, >, ), or }) are not subject to macro
@@ -351,6 +359,13 @@ the behaviour of Perl's chdir() function; it does not inspect $HOME as C<sh>
 should. Like wise, $PWD is updated using the standard L<Cwd> Perl module.
 
 The pwd built-in command is implemented using the Cwd Perl module, so C<pwd -L> likely will behave differently in tpsh, then sh or /bin/pwd.
+
+The which built-in command only checks the first option switch, and assumes
+that any bundled flags after the first are typo-graphic errors. These extra
+option switches are  silently ignored as long as they are bundled, anything
+after the first option bundle is of course assumed to be a command; C<which -ax
+foo> is treated as C<which -a foo>, but C<which -a -x foo> will attempt to
+locate both C<-x> and C<foo> in PATH. This behaviour is inconsistent but suitable until built-in commands rely on a generified getopt function.
 
 =head1 LICENSE
 
