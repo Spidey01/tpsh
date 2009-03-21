@@ -11,8 +11,8 @@ use strict;
 use Cwd;
 use Dumpvalue;
 use File::Basename;
-use File::Glob ':glob';
-use Getopt::Long;
+use File::Glob          ':glob';
+use Getopt::Long        qw(GetOptions GetOptionsFromArray);
 use Pod::Usage;
 use Term::ReadLine;
 
@@ -102,6 +102,41 @@ my %Options = (
     verbose         =>  0,
     xtrace          =>  0,
 );
+
+#
+# Hash for updating %Options through Getopt::Long
+#
+my %Setopts = (
+    'a|allexport'    =>  \$Options{allexport},
+    'b|notify'       =>  \$Options{notify},
+    'C|noclobber'    =>  \$Options{noclobber},
+    'E|emacs'        =>  \$Options{emacs},
+    'e|errexit'      =>  \$Options{errexit},
+    'f|noglob'       =>  \$Options{noglob},
+    'I|ignoreeof'    =>  \$Options{ignoreeof},
+    'i|interactive'  =>  \$Options{interactive},
+    'P|physical'     =>  \$Options{physical},
+    'm|monitor'      =>  \$Options{monitor},
+    'o=s'            =>  sub { 
+                             my @opts = keys %Options;
+                             for my $o (split /,/, $_[1]) {
+                                 grep /$o/, @opts or 
+                                    die("no such option: $o"), last;
+                                 $Options{$o} = 1;
+                             }
+                         },
+    'p|privileged'   =>  \$Options{privileged},
+    'reportpipe'     =>  \$Options{reportpipe},
+    's|stdin'        =>  \$Options{stdin},
+    'V|vi'           =>  \$Options{vi},
+    'v|verbose'      =>  \$Options{verbose},
+    'x|xtrace'       =>  \$Options{xtrace},
+    #---
+    #'h'              =>   \&pod2usage(-verbose => 0, -exitval => 1),
+    #'help'           =>   \&pod2usage(-verbose => 1, -exitval => 1),
+    #'m|man'          =>   \&pod2usage(-verbose => 3, -exitval => 0),
+);
+
 
 #
 # Used whenever split /sep/, "foosepbar" is needed. I.e. $PATH, $CDPATH.
@@ -316,43 +351,12 @@ sub init_sh {
 }
 
 sub do_getopt {
+
+    my ($argv, %opthash) = @_;
+
 	Getopt::Long::Configure('gnu_getopt', 'getopt_compat',
                             'auto_version', 'auto_help');
-	GetOptions(
-               'a|allexport'    =>  \$Options{allexport},
-               'b|notify'       =>  \$Options{notify},
-               'C|noclobber'    =>  \$Options{noclobber},
-               'E|emacs'        =>  \$Options{emacs},
-               'e|errexit'      =>  \$Options{errexit},
-               'f|noglob'       =>  \$Options{noglob},
-               'I|ignoreeof'    =>  \$Options{ignoreeof},
-               'i|interactive'  =>  \$Options{interactive},
-               'P|physical'     =>  \$Options{physical},
-               'm|monitor'      =>  \$Options{monitor},
-               'o=s'            =>  sub { 
-                                        my @opts = keys %Options;
-                                        for my $o (split /,/, $_[1]) {
-                                            grep /$o/, @opts or 
-                                               die("no such option: $o"), last;
-                                            $Options{$o} = 1;
-                                        }
-                                    },
-               'p|privileged'   =>  \$Options{privileged},
-               'reportpipe'     =>  \$Options{reportpipe},
-               's|stdin'        =>  \$Options{stdin},
-               'V|vi'           =>  \$Options{vi},
-               'v|verbose'      =>  \$Options{verbose},
-               'x|xtrace'       =>  \$Options{xtrace},
-               #---
-               #'h'              =>   \&pod2usage(-verbose => 0, -exitval => 1),
-               #'help'           =>   \&pod2usage(-verbose => 1, -exitval => 1),
-               #'m|man'          =>   \&pod2usage(-verbose => 3, -exitval => 0),
-              );
-
-    $Options{interactive} = -t *STDIN ? 1 : 0;
-    $Options{stdin}       = @ARGV     ? 1 : 0;
-
-    return 1;
+	return GetOptionsFromArray($argv, %opthash);
 }
 
 =pod
@@ -395,6 +399,7 @@ sub handle_prompt {
             # temporary side-step for killin' error messages when PS4 is bad
             my $ps4 = $ENV{PS4} || '';
             print STDERR "${ps4}$ln";
+            $Options{interactive} ? print "\n" : 0;
         }
     }
 
@@ -1053,9 +1058,8 @@ sub rehash_bin {
 
 sub set_bin {
     my @argv = @_;
-
     if (@argv) {
-       warn "set [opts] [args] is not implemented yet\n";
+        do_getopt(\@argv, %Setopts);
     } else {
         # pretty print everything like sh
         while (my ($var, $val) = each %ENV) {
@@ -1176,6 +1180,8 @@ sub which_bin {
 #----------------------------------------------------------
 if (__PACKAGE__ eq 'main') {
     init_sh();
-    do_getopt();
+    do_getopt(\@ARGV, %Setopts);
+    $Options{interactive} = -t *STDIN ? 1 : 0;
+    $Options{stdin}       = @ARGV     ? 1 : 0;
     exit main_loop();
 }
