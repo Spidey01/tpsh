@@ -327,8 +327,16 @@ sub do_getopt {
                'f|noglob'       =>  \$Options{noglob},
                'I|ignoreeof'    =>  \$Options{ignoreeof},
                'i|interactive'  =>  \$Options{interactive},
-               'm|monitor'      =>  \$Options{monitor},
                'P|physical'     =>  \$Options{physical},
+               'm|monitor'      =>  \$Options{monitor},
+               'o=s'            =>  sub { 
+                                        my @opts = keys %Options;
+                                        for my $o (split /,/, $_[1]) {
+                                            grep /$o/, @opts or 
+                                               die("no such option: $o"), last;
+                                            $Options{$o} = 1;
+                                        }
+                                    },
                'p|privileged'   =>  \$Options{privileged},
                'reportpipe'     =>  \$Options{reportpipe},
                's|stdin'        =>  \$Options{stdin},
