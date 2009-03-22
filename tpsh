@@ -27,8 +27,9 @@ use Term::ReadLine;
 sub init_sh;
 sub do_getop;
 sub main_loop;
-sub pexec;
+sub tpsh_lex;
 sub resolve_cmd;
+sub pexec;
 sub handle_prompt;
 sub rehash;
 sub update_env;
@@ -370,15 +371,7 @@ Program main loop
 =cut
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
-        my @argv;
-        if ($cmdln =~ /([\'\"\`])/) {
-            @argv = expand_quotes($1, $cmdln)
-        } else {
-            @argv = sh_eval($cmdln);
-        }
-        next unless @argv;
-
-        resolve_cmd(@argv);
+        tpsh_lex $cmdln;
     }
 }
 
@@ -406,6 +399,20 @@ sub handle_prompt {
     }
 
     return $ln;
+}
+
+sub tpsh_lex {
+
+        my $cmdln = shift;
+        my @argv;
+        if ($cmdln =~ /([\'\"\`])/) {
+            @argv = expand_quotes($1, $cmdln)
+        } else {
+            @argv = sh_eval($cmdln);
+        }
+        return unless @argv;
+
+        resolve_cmd(@argv);
 }
 
 sub resolve_cmd {
