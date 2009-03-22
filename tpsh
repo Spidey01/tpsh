@@ -68,6 +68,7 @@ sub rehash_bin;
 sub set_bin;
 sub setenv_bin;
 sub setvar_bin;
+sub sleep_bin;
 sub test_bin;
 sub times_bin;
 sub trap_bin;
@@ -218,6 +219,7 @@ my %Builtins = ( '['            => sub { warn "Not implemented\n" },
                  'setenv'       => \&setenv_bin,
                  'setvar'       => \&setvar_bin,
                  'shift'        => sub { warn "Not implemented\n" },
+                 'sleep'        => \&sleep_bin,
                  'test'         => \&test_bin,
                  'times'        => \&times_bin,
                  'trap'         => \&trap_bin,
@@ -1072,7 +1074,7 @@ sub read_bin {
         # remove custom die for ease of error check/report
         local %SIG;
         $SIG{__DIE__} = sub { die @_ };
-        $SIG{ALRM} = sub { die "timed-out\n" };
+        $SIG{ALRM}    = sub { die "timed-out\n" };
         if ($time) {
             # an s, m, or h suffix causes sleep for sec, min, or hour
             #
@@ -1141,6 +1143,33 @@ sub setenv_bin {
 
 sub setvar_bin {
 
+}
+
+sub sleep_bin {
+
+    my $secs = shift;
+
+    # an s, m, or h suffix causes sleep for sec, min, or hour
+    #
+    if ($secs =~ /^(\d*)([smh]?)/) {
+        if ($2 eq 's') {
+            $secs = $1;
+        } elsif ($2 eq 'm') {
+            $secs = $1 * 60;
+        } elsif ($2 eq 'h') {
+            $secs = $1 * 3600;
+        } else {
+            # NOTREACHED
+            unless (defined $2) {
+                warn "internal error on line ", __LINE__;
+            }
+        }
+
+        return sleep $secs;
+    } else {
+        warn "usage: sleep timespec";
+        return 0;
+    }
 }
 
 sub test_bin {
