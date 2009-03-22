@@ -301,7 +301,22 @@ C<name>. See L</Command Macros>.
 
 =item B<pwd [-L | -P]>
 
-A built in function for printing the current working directory. If the -P option is specified, print the current working directories real path; if the -L option is specified, print the shells idea of its current working directory. The -L option is the default behaviour.
+A built in function for printing the current working directory. If the -P
+option is specified, print the current working directories real path; if the -L
+option is specified, print the shells idea of its current working directory.
+The -L option is the default behaviour.
+
+=item B<read> [B<-p> I<prompt>] [B<-t> I<timeout>] I<variable ...>]
+
+Read a line from standard input, split by fields, and assign each field to the
+indicated variables. If the number of variables is less then the number of
+fields, the remaining fields will be stored 'as is' in the last variable. If
+there are more variables then fields, the excess variables will be undefined. A
+prompt may be printed before reading input, by using the -p option. The -t
+option may be used to specify a timeout in which to abort the operation, should
+the user take their sweet time about pressing CR. The I<timeout> value can take
+an optional C<s>, C<m>, or C<h> suffix to denote seconds, minutes, or hours. If
+no suffix is given, C<s> will be assumed.
 
 =item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]>
 
@@ -365,7 +380,13 @@ that any bundled flags after the first are typo-graphic errors. These extra
 option switches are  silently ignored as long as they are bundled, anything
 after the first option bundle is of course assumed to be a command; C<which -ax
 foo> is treated as C<which -a foo>, but C<which -a -x foo> will attempt to
-locate both C<-x> and C<foo> in PATH. This behaviour is inconsistent but suitable until built-in commands rely on a generified getopt function.
+locate both C<-x> and C<foo> in PATH. This behaviour is inconsistent but
+suitable until built-in commands rely on a generified getopt function.
+
+Operations that rely on time delays, via system calls such as sleep() or
+alarm() may return early, late, or whatever strange IAW behaviour can be
+expected from your Operating System and Perl Distribution. The B<sleep> and
+B<read> built-in commands are a prime example.
 
 =head1 LICENSE
 

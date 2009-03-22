@@ -1090,7 +1090,7 @@ sub read_bin {
             }
             alarm $time;
         }
-        chomp($line = <>);
+        chomp($line = <STDIN>);
         alarm 0 if $time;
     };
     if ($@) {
