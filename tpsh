@@ -243,7 +243,7 @@ sub init_sh {
     # override warn/die behaviour with the desired output
     #
     $SIG{__WARN__} = \&err_handler;
-    #$SIG{__DIE__} = \&death_handler;
+    $SIG{__DIE__} = \&death_handler;
 
     if (grep { $^O eq $_ } qw(VMS MacOS NetWare beos vos)) {
         warn "$0: Unsupported OS $^O -- YMMV\n";
@@ -1050,6 +1050,67 @@ sub pwd_bin {
 
 sub read_bin {
 
+    my ($prmpt, $time);
+    my $line = "";
+    my @argv = @_;
+    my %opts = ( 'p=s' => \$prmpt,
+                 't=s' => \$time,
+                 'e'   => sub { "no-op" },
+               );
+
+    do_getopt(\@argv, %opts);
+    unless (@argv) {
+        warn "I can't read into thin air!";
+        return 0;
+    }
+
+    if ($prmpt and -t *STDIN) {
+        print $prmpt;
+    }
+
+    eval {
+        # remove custom die for ease of error check/report
+        local %SIG;
+        $SIG{__DIE__} = sub { die @_ };
+        $SIG{ALRM} = sub { die "timed-out\n" };
+        if ($time) {
+            # an s, m, or h suffix causes sleep for sec, min, or hour
+            #
+            if ($time =~ /^(\d*)([smh])/) {
+                if ($2 eq 's') {
+                    $time = $1;
+                } elsif ($2 eq 'm') {
+                    $time = $1 * 60;
+                } elsif ($2 eq 'h') {
+                    $time = $1 * 3600;
+                } else {
+                    warn "internal error on ", __LINE__;
+                    # NOTREACHED
+                }
+            }
+            alarm $time;
+        }
+        chomp($line = <>);
+        alarm 0 if $time;
+    };
+    if ($@) {
+        warn $@ unless $@ eq "timed-out\n";
+        # on time out, init the vars to empty strings
+        @ENV{@argv} = ('') x scalar @argv;
+        return 0;
+    } else {
+        # set each var to the words
+        #
+        # XXX because ifsplit has no notion of a &split 'LIMIT'
+        #     if we used ifsplit here instead of a manual split,
+        #       read x y
+        #       foo bar ham
+        #     would set $y to 'bar' instead of 'bar ham'
+        #
+        my $ifs = defined $ENV{IFS} ? qr/[$ENV{IFS}]/ : qr/\s/;
+        @ENV{@argv} = grep !/^$/, split $ifs, $line, scalar(@argv);
+        return 1;
+    }
 }
 
 sub rehash_bin {
