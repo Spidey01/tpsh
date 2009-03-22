@@ -70,6 +70,7 @@ sub set_bin;
 sub setenv_bin;
 sub setvar_bin;
 sub sleep_bin;
+sub source_bin;
 sub test_bin;
 sub times_bin;
 sub trap_bin;
@@ -189,7 +190,8 @@ my %Macros = ();
 # Each handler should be named command_bin for consistency. For 
 # security reasons, you should never modify this hash at runtime.
 #
-my %Builtins = ( '['            => sub { warn "Not implemented\n" },
+my %Builtins = ( '.'            => \&source_bin,
+                 '['            => sub { warn "Not implemented\n" },
                  'alias'        => \&alias_bin,
                  'bg'           => sub { warn "Not implemented\n" },
                  'bind'         => sub { warn "Not implemented\n" },
@@ -221,6 +223,7 @@ my %Builtins = ( '['            => sub { warn "Not implemented\n" },
                  'setvar'       => \&setvar_bin,
                  'shift'        => sub { warn "Not implemented\n" },
                  'sleep'        => \&sleep_bin,
+                 'source'       => \&source_bin,
                  'test'         => \&test_bin,
                  'times'        => \&times_bin,
                  'trap'         => \&trap_bin,
@@ -1177,6 +1180,20 @@ sub sleep_bin {
         warn "usage: sleep timespec";
         return 0;
     }
+}
+
+sub source_bin {
+
+    my @args = @_;
+    eval {
+        for my $file (@args) {
+            open my $fh, '<', $file     or die "$!\n";
+            while (defined(my $ln = <$fh>)) {
+                tpsh_lex $ln            or warn "bad lex";
+            }
+        }
+    };
+    warn $@ if $@;
 }
 
 sub test_bin {

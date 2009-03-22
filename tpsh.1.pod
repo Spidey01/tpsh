@@ -338,6 +338,13 @@ the shells positional parameters with whatever arguments follow. If no
 arguments follow the B<--> option, all the positional parameters will be
 cleared, as if the user had executed C<shift $#>.
 
+=item B<sleep> I<timespec>
+
+Causes tpsh to pause execution for I<timespec> using the L<sleep> system call.
+The I<timespec> is assumed to be an integer number of seconds to sleep. An
+optional suffix of C<s>, C<m>, or C<h> can be used to denote seconds, minutes,
+or hours.
+
 =item B<type> [I<name ...>]
 
 Interpret each I<name> as a command, then print the result. Possible types are:
