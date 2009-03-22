@@ -97,7 +97,6 @@ my %Options = (
     interactive     =>  0, 
     monitor         =>  0,
     noexec          =>  0,
-    physical        =>  0,  # this will be removed unless POSIX requires it
     privileged      =>  0,
     reportpipe      =>  0,
     stdin           =>  0,
@@ -118,7 +117,6 @@ my %Setopts = (
     'f|noglob'       =>  \$Options{noglob},
     'I|ignoreeof'    =>  \$Options{ignoreeof},
     'i|interactive'  =>  \$Options{interactive},
-    'P|physical'     =>  \$Options{physical},
     'm|monitor'      =>  \$Options{monitor},
     'o=s'            =>  sub { 
                              my @opts = keys %Options;
