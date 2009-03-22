@@ -1184,8 +1184,9 @@ sub source_bin {
 
     my @args = @_;
     eval {
+        local $SIG{__DIE__} = sub { die @_ };
         for my $file (@args) {
-            open my $fh, '<', $file     or die "$!\n";
+            open my $fh, '<', $file     or die "${file}: $!\n";
             while (defined(my $ln = <$fh>)) {
                 tpsh_lex $ln            or warn "bad lex";
             }
