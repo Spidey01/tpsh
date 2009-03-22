@@ -229,125 +229,137 @@ localized positional parameters in order to simulate C<function arguments>.
 
 =over 8
 
-=item B<alias [name=string | name string]>
+=item B<alias> [I<name>=I<string> | I<name string>]
 
-Creates a named macro or C<alias> with name and definition string. Both the
+Creates a named macro or C<alias> with name and definition I<string>. Both the
 Bourne and C-Shell syntaxes are emulated (respectively). When using the first
 form, the string value should be quoted to ensure the that macro expansion
 occurs at the desired time (i.e. run time or allocation). For one line
-expressions, you may find the C-Shell syntax or tpsh's C<macro> built-in more
-convenient; for more complex expressions the function built-in is better suited
-to created a named macro then the alias built-in. If C<name> is specified
-without any definition, the definition of macro C<name> will be displayed if it
-exists; without any arguments, the alias command displays all named macros in a
-format then can easily be processed by L<awk(1)>.
+expressions, you may find the C-Shell syntax or tpsh's B<macro> built-in more
+convenient; for more complex expressions the B<function> built-in is better
+suited to created a named macro then the B<alias> built-in. If I<name> is
+specified without any definition, then the definition of macro I<name> will be
+displayed if it exists; without any arguments, the B<alias> command displays
+all named macros in a format then can easily be processed by L<awk(1)>.
 
-=item B<builtin command [arg ...]>
+=item B<builtin> I<command> [I<arg ...>]
 
-Execute built-in command C<command> with specified arguments. If you have
+Execute built-in command I<command> with specified arguments. If you have
 overridden a built-in command using a macro, you can still use the built-in by
-invoking it through the C<builtin> built-in command, are you tongue twisted
+invoking it through the B<builtin> built-in command, are you tongue twisted
 yet?
 
-=item B<cd [directory]>
+=item B<cd> [I<directory>]
 
 Change the shells current working directory to the specified directory, or to
 the users HOME directory if no directory was specified. When the CDPATH
-environment variable is set, and directory does not begin with /, ., or ..,
+environment variable is set, and I<directory> does not begin with /, ., or ..,
 then the directories listed in CDPATH will be searched for the specified
 directory.  If CDPATH is unset, then only the current directory is searched.
 The format of CDPATH is explained in L</ENVIRONMENT>.
 
-=item B<exec command [args ...]>
+=item B<exec> I<command> [I<args ...>]
 
-The shell will replace itself with the specified command using the L<exec(3)>
-function. Command can not be a shell built-in or macro.
+The shell will replace itself with the specified I<command> using the L<exec>
+function. I<Command> can not be a shell built-in or macro.
 
-=item B<chdir [directory]>
+=item B<chdir> [I<directory>]
 
-A synonym for the cd built-in command.
+A synonym for the B<cd> built-in command.
 
-=item B<exit [status]>
+=item B<exit> [I<status>]
 
-Exit the shell with exit status C<status>, if status is omitted then the exit
-status of the last command is used.
+Exit the shell with exit status I<status>, if status is omitted then the exit
+status of the last command is used. Note that I<status> should be an integer.
 
-=item B<function name() [command ...]>
+=item B<function> I<name()> [I<list ...>]
 
 Defines a named macro using syntax that resembles the GNU Bourne Again SHell.
-List may be any simple or grouped command. Defining a complex or multi-line
-function is best done by binding name() to an anonymous macro; done  by using
-{} or () grouping. For short (i.e. one line) macros, you may find the macro
-built-in a more concise notation. See L</Command Macros>.
+I<List> may be any simple or grouped command. Defining a complex or multi-line
+function is best done by binding I<name()> to an anonymous macro; which is done
+by using {} or () grouping. For short (i.e. one line) macros, you may find the
+B<macro> built-in to be a more concise notation. See L</Command Macros>.
 
-=item B<hash [-r] [command ...]>
+=item B<hash> [B<-r>] [I<command ...>]
 
-Displays the shells internal hash table of 'command=/path/to/command', which is
-used for caching the value of the PATH environment variable. Any arguments
-given to the hash built-in command, are assumed to be the name of a program
-found in the users PATH, which is to be removed from the hash table. If the -r
-option is specified, then delete the entire contents of the hash table. Note
-well that this does B<not> allow you to remove a single command from your
-search PATH, it only manipulates internal data structures.
+Displays the shells internal hash table of C<command=/path/to/command>, which
+is used for caching the value of the PATH environment variable. Any arguments
+given to the B<hash> built-in command, are assumed to be the name of a program
+found in the users PATH, which is to be removed from the shells hash table. If
+the B<-r> option is specified, then delete the entire contents of the hash
+table.  Note well that this does I<not> allow you to remove a single command
+from your search PATH, it only manipulates internal data structures. One can
+use B<hash> to manipulate what built-in commands like B<type> see, but that is
+about it.
 
-=item B<macro name( [command ...] )>
+
+=item B<macro> I<name(> [<command ...>] I<)>
 
 Defines a named macro using a tpsh specific syntax. There must be a space after
-the opening parentheses, and if command is given there must also be a space
-before the close parentheses. An empty macro may be defined as C<macro name(
-)>, but not C<macro name()>. Command may be any arbitrary command line (similar
-to the eval built-in command), and will be stored as a named macro with
-C<name>. See L</Command Macros>.
+the opening parentheses, and if I<command> is given there must also be a space
+before the closing parentheses. An empty macro may be defined as C<macro
+name()>, but not C<macro name()>. I<Command> may be any arbitrary command line
+(similar to what the B<eval> built-in command accepts), and will be stored as a
+named macro with I<name>. See L</Command Macros>.
 
-=item B<pwd [-L | -P]>
+=item B<pwd> [B<-L> | B<-P>]
 
-A built in function for printing the current working directory. If the -P
-option is specified, print the current working directories real path; if the -L
-option is specified, print the shells idea of its current working directory.
-The -L option is the default behaviour.
+A built in function for printing the current working directory. If the B<-P>
+option is specified, print the current working directories real path; if the
+B<-L> option is specified, print the shells idea of its current working
+directory.  The B<-L> option is the default behaviour.
 
 =item B<read> [B<-p> I<prompt>] [B<-t> I<timeout>] I<variable ...>]
 
 Read a line from standard input, split by fields, and assign each field to the
-indicated variables. If the number of variables is less then the number of
+indicated I<variable>s. If the number of variables is less then the number of
 fields, the remaining fields will be stored 'as is' in the last variable. If
-there are more variables then fields, the excess variables will be undefined. A
-prompt may be printed before reading input, by using the -p option. The -t
-option may be used to specify a timeout in which to abort the operation, should
-the user take their sweet time about pressing CR. The I<timeout> value can take
-an optional C<s>, C<m>, or C<h> suffix to denote seconds, minutes, or hours. If
-no suffix is given, C<s> will be assumed.
+there are more variables then fields, the excess variables will be defined with
+empty strings. A prompt may be printed before reading input, by using the B<-p>
+option. The B<-t> option may be used to specify a timeout in which to abort the
+operation, should the user take their sweet time about pressing CR. The
+I<timeout> value can take an optional C<s>, C<m>, or C<h> suffix to denote
+seconds, minutes, or hours. If no suffix is given, C<s> will be assumed.
 
-=item B<set [-/+abCEefIimVvx] [-/+o longname] [-c string] [-- arg ...]>
+=item B<set> [B<-/+abCEefIimVvx>] [B<-/+o> I<longname>] [B<-c> I<string>] [B<--> I<arg ...>]
 
-If no options are given, the set command displays the values of all shell
+If no options are given, the B<set> command displays the values of all shell
 variables.
 
-If options are given using either short form or C<-/+o logname> form; it sets
-or clears the specified options as described in the above section L</Argument
-List Processing>. Introducing an option with a dash (C<->) enables the option,
-while using a plus (C<+>) disables the option.  A C<--> or plain C<-> will stop
-option processing and will force the remaining words on the command line to be
-treated as arguments.
+If options are given using either short form or the C<-/+o logname> form; it
+sets or clears the specified options as described in the above section
+L</Argument List Processing>. Introducing an option with a dash (C<->) enables
+the option, while using a plus (C<+>) disables the option.  A C<--> or plain
+C<-> will stop option processing and will force the remaining words on the
+command line to be treated as arguments.
 
-If the C<--> option is specified or only bare words are given, set will replace
+If the B<--> option is specified or only bare words are given, set will replace
 the shells positional parameters with whatever arguments follow. If no
-arguments follow the C<--> option, all the positional parameters will be
+arguments follow the B<--> option, all the positional parameters will be
 cleared, as if the user had executed C<shift $#>.
 
-=item B<type [name ...]>
+=item B<type> [I<name ...>]
 
-Interpret each name as a command, then print the result. Possible types are:
+Interpret each I<name> as a command, then print the result. Possible types are:
 built-in command, command, macro, or not found. For convenience, if an
 executable is found in the current directory tpsh will print C<command may be
 $PWD/command> before giving up. For macros, the stored definition is printed;
 for command the complete pathname is printed
 
-=item B<which [-as] command ...>
+=item B<which> [B<-as>] I<command ...>
 
-Check for the presence of C<command> by searching the users PATH environment variable. The result of the search is then printed to standard output, subject to the options given by the user. Command may be a built-in command, macro, or the name of a program without a path (e.g. C<ls>). If the -s option is specified, return 0 if all commands were found, and 1 otherwise; but do not generate B<any> output. If the -a option is specified, continue searching after command has been found, printing all occurances to standard output. If both the -a and -s options were given, the first shall take presidence!
+Check for the presence of I<command> by searching the users PATH environment
+variable. The result of the search is then printed to standard output, subject
+to the options given by the user. I<Command> may be a built-in command, macro,
+or the name of a program without a path (e.g. C<ls>). If the B<-s> option is
+specified, return 0 if all commands were found, and 1 otherwise; but do not
+generate I<any> output. If the B<-a> option is specified, continue searching
+after command has been found, printing all occurrences to standard output. If
+both the B<-a> and B<-s> options were given, the first shall take precedence!
  
 =back
+
+=head1 ENVIRONMENT
 
 =head1 FILES
 
@@ -359,7 +371,7 @@ The progname utility exits 0 on success, and >0 if an error occurs.
 
 =head1 SEE ALSO
 
-L<sh(1)>, L<perl(1)>, L<File::Glob>, L<Term::ReadLine>
+L<sh(1)>, L<perl>, L<File::Glob>, L<Term::ReadLine>
 
 =head1 HISTORY
 
@@ -369,15 +381,16 @@ If the command is equal to 'alias', 'builtin', 'unalias', it's arguments up
 until a command terminator (such as ;, |, >, ), or }) are not subject to macro
 expansion; note that parameter expansion is still performed.
 
-The chdir and cd built-in commands delegate finding the users home directory to
-the behaviour of Perl's chdir() function; it does not inspect $HOME as C<sh>
-should. Like wise, $PWD is updated using the standard L<Cwd> Perl module.
+The B<chdir> and B<cd> built-in commands delegate finding the users home
+directory to the behaviour of Perl's chdir() function; it does not inspect
+$HOME as C<sh> should. Like wise, $PWD is updated using the standard L<Cwd>
+Perl module.
 
-The pwd built-in command is implemented using the Cwd Perl module, so C<pwd -L> likely will behave differently in tpsh, then sh or /bin/pwd.
+The B<pwd> built-in command is implemented using the Cwd Perl module, so C<pwd -L> likely will behave differently in tpsh, then sh or /bin/pwd.
 
-The which built-in command only checks the first option switch, and assumes
+The B<which> built-in command only checks the first option switch, and assumes
 that any bundled flags after the first are typo-graphic errors. These extra
-option switches are  silently ignored as long as they are bundled, anything
+option switches are silently ignored as long as they are bundled, anything
 after the first option bundle is of course assumed to be a command; C<which -ax
 foo> is treated as C<which -a foo>, but C<which -a -x foo> will attempt to
 locate both C<-x> and C<foo> in PATH. This behaviour is inconsistent but
