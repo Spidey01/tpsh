@@ -348,7 +348,7 @@ sub init_sh {
 
     # Set defaults for shell globbing behavour
     #
-    $ENV{TPSH_GLOB_FLAGS} ||= 'GLOB_MARK | GLOB_QUOTE | GLOB_TILDE';
+    $ENV{TPSH_GLOB_FLAGS} ||= 'GLOB_QUOTE | GLOB_TILDE';
 
     # change to the users home directory by default.
     # this will also take care of the OLDPWD/PWD variables.
