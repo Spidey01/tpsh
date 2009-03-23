@@ -489,8 +489,8 @@ Set but not used yet
 
 Contains the name of the readline package being used by tpsh. You should be
 able to look up the documentation for the current readline package with the
-command `perldoc Term::ReadLine::$TPSH_READLINE`. Potentional values include
-Stubs, Gnu, Perl, and Zoid.
+command `perldoc $TPSH_READLINE`. Potentional values include Stubs, Gnu, Perl,
+and Zoid.
 
 =item TPSH_GLOB_FLAGS
 
