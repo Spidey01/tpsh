@@ -374,6 +374,14 @@ sub init_sh {
     # this will also take care of the OLDPWD/PWD variables.
     #
     $Builtins{chdir}->($ENV{HOME});
+
+    if ($Options{interactive}) {
+        if (exists $ENV{ENV}) {
+            map { my $f = sh_eval $_; 
+                  source_bin $f or warn "$f: $!";
+                } hsplit $ENV{ENV};
+        }
+    }
 }
 
 sub do_getopt {
@@ -1248,6 +1256,8 @@ sub source_bin {
         }
     };
     warn $@ if $@;
+
+    return 1;
 }
 
 sub test_bin {
@@ -1347,9 +1357,9 @@ sub which_bin {
 #                begin program execution 
 #----------------------------------------------------------
 if (__PACKAGE__ eq 'main') {
-    init_sh();
     do_getopt(\@ARGV, %Setopts);
-    $Options{interactive} = -t *STDIN ? 1 : 0;
-    $Options{stdin}       = @ARGV     ? 1 : 0;
+    $Options{interactive} = -t *STDIN && !@ARGV ? 1 : 0;
+    $Options{stdin}       = @ARGV               ? 1 : 0;
+    init_sh();
     exit main_loop();
 }
