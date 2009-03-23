@@ -368,6 +368,166 @@ both the B<-a> and B<-s> options were given, the first shall take precedence!
 
 =head1 ENVIRONMENT
 
+Environment variables may be broken down into variables that I<should> be
+inheritied from the invocation environment, variables set by tpsh on startup,
+and variables that are not automatically set; but never the less have
+significance to tpsh's behaviour. Most variables will retain their original
+value if found in tpsh's invocation environment.
+
+An environment variable is set if it contains an string or numeric value.
+Variables may be unset by setting them to the empty string, or by using the
+B<unset> built-in command.  
+
+Some variables are interpreted as a string yielding a C<hash-sep> delimited
+list of values, such as the PATH, CDPATH, and MAILPATH environment variables.
+The value of hash-sep is system dependent; currently if OSTYPE is C<MSWin32>,
+C<os2>, or C<dos> the value of hash-sep is C<;>, other wise the unix convention
+of C<:> will be assumed. 
+
+=head2 From Invocation Environment
+
+These variables should be inherited by tpsh at startup, if not they will be
+initialized to sane values as noted below. 
+
+=over 8
+
+=item USER, LOGNAME, USERNAME
+
+The name of the currently logged in user. One of these variables must be set by
+the operating system before the shell is executed, then tpsh will set the other
+variables to match unless they already exist. If I<none> of these variables have
+been set by the invocation environment, tpsh will pop a cork.
+
+=item HOME, HOMEPATH, USERPROFILE
+
+The path to the users personal or C<home> directory, and tpsh's default
+starting directory. tpsh will attempt to set these variables to the correct
+values if necessary.
+
+=item PATH
+
+The default search path for executables. PATH is a hash-sep delimited list of directories in which to search. The default value is system dependent.
+
+=item SHELL
+
+Set to the pathname of tpsh. Typically this is C</path/to/tpsh>. If no value
+was set by the invocation environemt, then Perl's internal C<$0> variable will
+be used.
+
+=item TMPDIR, TEMP, TMP
+
+A place where programs may store temporary files. TMPDIR is the Unix
+convention, the other are used by Microsoft platforms.  tpsh will proprogate
+the first correct value to the other variables in the following order of
+precedence: TMPDIR, TMP, TEMP.  Other wise there is no default value for these
+variables.
+
+=item TERM
+
+Specifies the terminal type used. tpsh generally does not inspect TERM per se,
+but will warn if it is not set, because many UNIX programs may rely on it (e.g.
+vi).
+
+=back
+
+=head2 From tpsh
+
+Unless pre-define din the invocation environment, these variables will always
+be set by tpsh at startup.
+
+=over 8
+
+=item OSTYPE
+
+Set to the value of Perl's C<$^O> variable. The value of OSTYPE may be used in an ENV file to adjust itself based on the current operating system.
+
+=item EDITOR
+
+The fall back editor used with the B<fc> built-in command. Many Unix programs
+will also use EDITOR as the users default editor. The default value is system
+dependent.
+
+=item FCEDIT
+
+The default editor used with the B<fc> built-in command.
+
+=item IFS
+
+The Input Feild Separator (IFS) used by many internal operations. See the
+L</XXX> section for more details. The default value is space, tab, and newline.
+Nota Bene: this is expected to be a string, I<never> a perl regular expression.
+
+=item PWD
+
+The shells current working directory, as set by the B<cd> and B<chdir> built-in commands.
+
+=item PS1
+
+The string used as the primary command prompt. The default is C<$ >, unless you have a UID of 0, in which case it defaults to C<# >.
+
+=item PS2
+
+The secondary prompt string, used whenever tpsh requires additional information from the user. The default is C<<> >.
+
+=item PS4
+
+When the B<xtrace> option has been set in the shell, this string will be
+prefixed to the trace output to aid debugging. For compatiblity with existing
+shells (most of which are not purely compatible with IEEE Std 1003.1-2001
+either), PS4 is used rather then a C<PS3>, The default value is C<+ >.
+
+=item HISTSIZE
+
+The number of lines to record in HISTFILE, looked up with the B<history> and
+related built-in commands, etc. The default value is 512.
+
+=item MAIL
+
+Set but not used yet
+
+=item TPSH_READLINE
+
+Contains the name of the readline package being used by tpsh. You should be
+able to look up the documentation for the current readline package with the
+command `perldoc Term::ReadLine::$TPSH_READLINE`. Potentional values include
+Stubs, Gnu, Perl, and Zoid.
+
+=item TPSH_GLOB_FLAGS
+
+A string in the format of 'FLAG1 | FLAG2' to apply to tpsh's file globbing
+behaviour, see L<File::Glob/POSIX FLAGS> for possible values. The default is
+'GLOB_QUOTE | GLOB_TILDE'.
+
+=back
+
+=head2 From Profile/Runtime
+
+These variables effect tpsh's behaviour, but will not be automatically set by tpsh.
+
+=over 8
+
+=item ENV
+
+When invoking an interactive shells invocation, the ENV variable is interpreted
+as a hash-sep delimited list of files to be sourced after any profile scripts.
+The reccomended value is F<${HOME}/.tpshrc>. See L</Invocation>
+
+=item CDPATH
+
+Search path used by the B<cd> and B<chdir> built-in commands, refer to L</Built-in Commands> for a discription of its side effects. There is no default.
+
+
+=item HISTFILE
+
+The file to save history to, and restore history from. There is no default.
+
+=item TPSH_DOTDIR
+
+A PATH like delimited list, specifing the directories to search for F<tpsh_profile>s when starting a login shell. There is no default.
+
+=back
+
+
 =head1 FILES
 
 F<filename>     what about it
@@ -407,6 +567,10 @@ Operations that rely on time delays, via system calls such as sleep() or
 alarm() may return early, late, or whatever strange IAW behaviour can be
 expected from your Operating System and Perl Distribution. The B<sleep> and
 B<read> built-in commands are a prime example.
+
+The value of the IFS variable is interpreted as a string not a regular expression. This is intended and will not be changed. Note however, that internally IFS is interpreted as /[IFS]/ with I<all> the implied implications; but the author is not required to retain this behaviour: screw around at your own risk.
+
+The PS2 variable is not actually used yet, instead such things are delegated to the L<Term::ReadLine> implementation for the time being.
 
 =head1 LICENSE
 
