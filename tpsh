@@ -1288,7 +1288,7 @@ sub type_bin {
         #
         print "$_ may be $ENV{PWD}/$_\n"            
                                     and next          if -x "./$_";
-        print "$_ not found"
+        print "$_ not found\n";
     }
     return 1;
 }
