@@ -353,7 +353,7 @@ executable is found in the current directory tpsh will print C<command may be
 $PWD/command> before giving up. For macros, the stored definition is printed;
 for command the complete pathname is printed
 
-=item B<which> [B<-as>] I<command ...>
+=item B<which> [B<-as>] [B<--all> | B<--silent>] I<command ...>
 
 Check for the presence of I<command> by searching the users PATH environment
 variable. The result of the search is then printed to standard output, subject
