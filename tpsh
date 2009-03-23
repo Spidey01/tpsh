@@ -308,6 +308,14 @@ sub init_sh {
     $ENV{HOME}      ||= $pw{homedir};
     $ENV{USER}      ||= $pw{name};
     $ENV{USERNAME}  ||= $pw{name};
+    if (defined $ENV{TMPDIR}) {
+        $ENV{TMP}   ||= $ENV{TMPDIR};
+        $ENV{TEMP}  ||= $ENV{TMPDIR};
+    } else {
+        $ENV{TMPDIR} ||= $ENV{TMP} || $ENV{TEMP};
+        $ENV{TMP}    ||= $ENV{TMPDIR};
+        $ENV{TEMP}   ||= $ENV{TMPDIR};
+    }
 
     # We consider LOGNAME to be the authoritve form of the users name as
     # specified in our starting environment. This should never fail, but I'm to
