@@ -1307,15 +1307,13 @@ sub which_bin {
     # XXX all these $flag eq ... deserve an internal coderef
     my $flag  = " ";
     my $found = 0;
+    my @argv  = @_;
     my @progs = ();
-
-    if ($_[0] =~ /(-\w)/) {
-        $flag = $1;
-        if (shift !~ /-[as]/) {
-            return warn "bad option: $flag";
-        }
-    }
-    @progs = @_;
+    my %opts  = ( 'a|all'      => sub { $flag = '-a' },
+                  's|sillent'   => sub { $flag = '-s' },
+       );
+    do_getopt(\@argv, %opts);
+    @progs = @argv;
 
     for (@progs) {
         # first check if built in or macro
