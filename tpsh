@@ -43,6 +43,7 @@ sub expand_parameters;
 sub expand_aliases;
 sub expand_glob;
 sub exec_pipe;
+sub get_history;
 sub binerr;
 sub hsplit;
 sub ifsplit;
@@ -62,6 +63,7 @@ sub exit_bin;
 sub export_bin;
 sub function_bin;
 sub hash_bin;
+sub history_bin;
 sub macro_bin;
 sub pwd_bin;
 sub read_bin;
@@ -208,6 +210,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'function'     => \&function_bin,
                  'getopts'      => sub { warn "Not implemented\n" },
                  'hash'         => \&hash_bin,
+                 'history'      =>\ &history_bin,
                  'jobs'         => sub { warn "Not implemented\n" },
                  'local'        => sub { warn "Not implemented\n" },
                  'macro'        => \&macro_bin,
@@ -328,6 +331,11 @@ sub init_sh {
     $ENV{MAIL}      ||= "/var/mail/${ENV{USER}}";
     #$ENV{MAILPATH}  ||= 'unused';
 
+    # Set defaults for shell globbing behavour
+    #
+    $ENV{TPSH_GLOB_FLAGS} ||= 'GLOB_QUOTE | GLOB_TILDE';
+
+
     unless (defined $ENV{PATH}) {
         $ENV{PATH} = $isUnix ? "/usr/bin:/bin" 
                              : "C:/Windows/system32;C:/Windows;" .
@@ -351,10 +359,16 @@ sub init_sh {
     #
     $Term = Term::ReadLine->new($ENV{SHELL});
     $ENV{TPSH_READLINE} = $Term->ReadLine();
+    my $attr = $Term->Attribs();
 
-    # Set defaults for shell globbing behavour
+    # attempt to disable the autohistory, it interfers
+    # with our own history manipulation. XXX only works in Zoid!
     #
-    $ENV{TPSH_GLOB_FLAGS} ||= 'GLOB_QUOTE | GLOB_TILDE';
+    $attr->{autohistory} = 0;
+
+    # Setup custom completion function
+    #
+    $attr->{completion_function}   = \&do_completion;
 
     # change to the users home directory by default.
     # this will also take care of the OLDPWD/PWD variables.
@@ -788,6 +802,30 @@ sub exec_pipe {
     };
 }
 
+sub get_history {
+
+    # cache HISTSIZE here, incase it changes during execution
+    my $histsize = $ENV{HISTSIZE};
+
+    # some readline packages might not supply this function, 
+    # known: Zoid, Perl, and Gnu do but Stubs doesn't. so 
+    # call within an eval to be sure.
+    #
+    my @lines = eval { $Term->GetHistory() };
+
+    if ($@) {
+        warn $Term->ReadLine(), " might not support GetHistory()";
+    }
+
+    if ( @lines > $histsize) {
+        # this is far from optimized
+        @lines = reverse @lines;
+        $#lines -= $#lines - $histsize +1;
+        @lines = reverse @lines;
+    }
+    return @lines;
+}
+
 =pod
 
 binerr EXPR
@@ -1019,6 +1057,15 @@ sub hash_bin {
     }
 
     return 1;
+}
+
+sub history_bin {
+
+    my @lines = get_history();
+    my $i=1;
+    for my $ln (@lines) {
+        print STDERR "$i: $ln\n"; $i++;
+    }
 }
 
 sub macro_bin {
