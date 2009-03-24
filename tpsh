@@ -238,6 +238,16 @@ my %Builtins = ( '.'            => \&source_bin,
                  'which'        => \&which_bin,
 );
 
+#
+# Some commands expect an unexpanded macro as an argument, other wise
+# it would be kind of hard to use the unalias or builtin commands!
+# sh_eval() will check for these word-patterns and abort macro expansion
+# at the proper place whenever found.
+#
+my @NonExpanding = ( qr'(?:un)?alias',    qr'builtin', 
+                     qr'which',            qr'type',
+                     qr'macro',
+);
 
 #----------------------------------------------------------
 #                Subroutine Implementations
@@ -717,14 +727,19 @@ sub expand_parameters {
 sub expand_aliases {
 
     my @argv = @_;
+    my @nargv;
 
     for my $arg (@argv) {
-        if (is_macro $arg) {
-            $arg = $Macros{$arg};
+        for my $word (ifsplit $arg) {
+            if (is_macro $word) {
+                push @nargv, map { $Macros{$_} || $_ } ifsplit $Macros{$word};
+            } else {
+                push @nargv, $word
+            }
         }
     }
 
-    return wantarray ? @argv : join ' ', @argv;
+    return wantarray ? @nargv : join ' ', @nargv;
 }
 
 # returns " " on error
@@ -903,16 +918,15 @@ sub sh_eval {
     my $ln   = join ' ', expand_glob(@_);
     my @argv = ifsplit $ln;
 
-    # dirty fix: turn off alias expansions for the following commands
+    # dirty fix: turn off alias expansions for patterns in @NonExpanding
     # 
-    #   alias, builtin, unalias
-    #
+    my $bad  = 0;
     my $csep = qr'[^;|><]*';
-    if ($ln !~ m/(un)?alias $csep/ and $ln !~ m/builtin $csep/) 
-    { 
+    map { $ln =~ m/^$_ $csep/ and $bad++; } @NonExpanding;
+    unless ($bad) {
         $ln = expand_aliases(@argv);
     }
-                     
+
     $ln = expand_parameters($ln);
     $ln = expand_tilde($ln);
 
@@ -1310,10 +1324,11 @@ sub which_bin {
     my @argv  = @_;
     my @progs = ();
     my %opts  = ( 'a|all'      => sub { $flag = '-a' },
-                  's|sillent'   => sub { $flag = '-s' },
+                  's|sillent'  => sub { $flag = '-s' },
+                  '<>'         => sub { push @progs, shift },
        );
     do_getopt(\@argv, %opts);
-    @progs = @argv;
+    #@progs = @argv;
 
     for (@progs) {
         # first check if built in or macro
