@@ -245,7 +245,7 @@ my %Builtins = ( '.'            => \&source_bin,
 # at the proper place whenever found.
 #
 my @NonExpanding = ( qr'(?:un)?alias',    qr'builtin', 
-                     qr'which',            qr'type',
+                     qr'which',           qr'type',
                      qr'macro',
 );
 
@@ -603,7 +603,7 @@ sub expand_quotes {
     # found within the quotes as it's sole arugment.
     #
     my %evals = ('"' => sub {
-                       chomp (my $s = sh_eval(@_));
+                       chomp (my $s = expand_parameters(join ' ', @_));
                        return $s;
                  },
                  "'" => sub {
