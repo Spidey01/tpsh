@@ -1281,6 +1281,10 @@ sub set_bin {
     } else {
         # pretty print everything like sh
         while (my ($var, $val) = each %ENV) {
+            # shut up uninitialized warnings if VAR=
+            #
+            $val = "" unless defined $val;
+
             if ($val =~ /\s/) {
                 $val = "'$val'";
             }
