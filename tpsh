@@ -727,16 +727,59 @@ sub expand_parameters {
 sub expand_aliases {
 
     my @argv = @_;
+    unless (is_macro $argv[0]) {
+        return wantarray ? @argv : join ' ', @argv;
+    }
     my @nargv;
+    my $exp;
+    my %cache;
 
-    for my $arg (@argv) {
-        for my $word (ifsplit $arg) {
-            if (is_macro $word) {
-                push @nargv, map { $Macros{$_} || $_ } ifsplit $Macros{$word};
-            } else {
-                push @nargv, $word
+    local %ENV       = %ENV;
+    @ENV{0..$#argv}  = @argv;
+    $argv[0]         = $Macros{$argv[0]};
+    @nargv           = (ifsplit($argv[0]),@argv[1..$#argv]);
+
+    # try splitting the macro expansion, and resubjecting it to
+    # continued macro expansions until we reach a finite expansion, 
+    # or encounter an unresolvable macro (it's done or circular). 
+    #
+    # In the chain x -> y -> z -> x; x resolves to back to x.
+    #
+    # notes:
+    #
+    #   the %cache stores back refs, i.e. y => x, x => z, z => y
+    #
+    #   macros may expand to commands with spaces, so the expansions
+    #   must under go the (cmd, args, ...) treatment with ifsplit.
+    #
+    #   Each expansion must have access to it's own local()ized set
+    #   of positional parameters. XXX params not yet implemented
+    #
+    while (1) {
+        last unless is_macro $nargv[0];
+
+        # to save typing
+        my $a    = \$nargv[0];
+        my $p    = $nargv[0];
+
+        # re-local the positional parameters
+        #
+        local %ENV        = %ENV;
+        @ENV{0..$#nargv}  = @nargv;
+
+        $$a     = $Macros{$$a};
+        @nargv  = (ifsplit(shift @nargv), @nargv);
+        $cache{(ifsplit($$a))[0]} = $p;
+
+        # XXX remember the cache stores macro names back-ref'ed !!!
+        #
+        grep { 
+            if (exists $cache{$_} && $cache{$_} eq $nargv[0]) {
+               $nargv[0] = $cache{$nargv[0]};
+               last;
             }
-        }
+        } keys %cache;
+
     }
 
     return wantarray ? @nargv : join ' ', @nargv;
