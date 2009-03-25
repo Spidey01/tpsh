@@ -1092,7 +1092,7 @@ sub cd_bin {
     }
 
     warn $! unless $rv;
-    $ENV{OLDPWD} = $ENV{PWD};
+    $ENV{OLDPWD} = $ENV{PWD} || "";
     $ENV{PWD}    = cwd();
     return $rv;
 }
