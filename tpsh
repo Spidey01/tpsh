@@ -325,7 +325,7 @@ sub init_sh {
         $ENV{TMP}   ||= $ENV{TMPDIR};
         $ENV{TEMP}  ||= $ENV{TMPDIR};
     } else {
-        $ENV{TMPDIR} ||= $ENV{TMP} || $ENV{TEMP};
+        $ENV{TMPDIR} ||= $ENV{TMP} || $ENV{TEMP} || "";
         $ENV{TMP}    ||= $ENV{TMPDIR};
         $ENV{TEMP}   ||= $ENV{TMPDIR};
     }
