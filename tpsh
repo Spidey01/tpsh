@@ -12,7 +12,7 @@ use Cwd;
 use Dumpvalue;
 use File::Basename;
 use File::Glob          ':glob';
-use Getopt::Long        qw(GetOptions GetOptionsFromArray);
+use Getopt::Long;       # do NOT export GetOptionsFrom*
 use Pod::Usage;
 use Term::ReadLine;
 
@@ -325,7 +325,7 @@ sub init_sh {
         $ENV{TMP}   ||= $ENV{TMPDIR};
         $ENV{TEMP}  ||= $ENV{TMPDIR};
     } else {
-        $ENV{TMPDIR} ||= $ENV{TMP} || $ENV{TEMP};
+        $ENV{TMPDIR} ||= $ENV{TMP} || $ENV{TEMP} || "";
         $ENV{TMP}    ||= $ENV{TMPDIR};
         $ENV{TEMP}   ||= $ENV{TMPDIR};
     }
@@ -398,9 +398,36 @@ sub do_getopt {
 
     my ($argv, %opthash) = @_;
 
+    # this is a bandaid for systems with an older Getopt::Long module
+    # OpenBSD 4.5 Release for example. Comparing with floats are not
+    # precise, but for this it should be accurate enough.
+    #
+    my $ver = $Getopt::Long::VERSION_STRING ? $Getopt::Long::VERSION_STRING
+                                            : "$Getopt::Long::VERSION";
+    if ($ver lt '2.29') {
+        # We've got to draw the line somewhere 
+        #
+        die "Getopt::Long version $ver is just to old...\n";
+    } elsif ($ver lt '2.36') {
+        # before 2.36, Getopt::Long can only use ARGV
+        # so we save / restore it before switching it with our own
+        # array reference; to mimic 2.36's GetOptionsFromArray
+        #
+        my @oldargv = @ARGV;
+        @ARGV = @$argv;
+        my $ret = GetOptions(%opthash);
+        @$argv = @ARGV;
+        @ARGV = @oldargv;
+        return $ret;
+    } else {
+        print "use decent module\n";
+        return Getopt::Long::GetOptionsFromArray($argv, %opthash);
+    }
+    die "end test";
+
 	Getopt::Long::Configure('gnu_getopt', 'getopt_compat',
                             'auto_version', 'auto_help');
-	return GetOptionsFromArray($argv, %opthash);
+    #return GetOptionsFromArray($argv, %opthash);
 }
 
 =pod
@@ -1065,7 +1092,7 @@ sub cd_bin {
     }
 
     warn $! unless $rv;
-    $ENV{OLDPWD} = $ENV{PWD};
+    $ENV{OLDPWD} = $ENV{PWD} || "";
     $ENV{PWD}    = cwd();
     return $rv;
 }
@@ -1261,6 +1288,10 @@ sub set_bin {
     } else {
         # pretty print everything like sh
         while (my ($var, $val) = each %ENV) {
+            # shut up uninitialized warnings if VAR=
+            #
+            $val = "" unless defined $val;
+
             if ($val =~ /\s/) {
                 $val = "'$val'";
             }
@@ -1423,6 +1454,7 @@ if (__PACKAGE__ eq 'main') {
     do_getopt(\@ARGV, %Setopts);
     $Options{interactive} = -t *STDIN && !@ARGV ? 1 : 0;
     $Options{stdin}       = @ARGV               ? 1 : 0;
+    @ARGV = ('test', 'elems', 'to', 'restore');
     init_sh();
     exit main_loop();
 }
