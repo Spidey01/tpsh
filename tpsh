@@ -438,7 +438,7 @@ Program main loop
 =cut
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
-        tpsh_lex $cmdln;
+        tpsh_lex $cmdln or warn "bad lex from main: $cmdln";
     }
 }
 
@@ -472,7 +472,7 @@ sub tpsh_lex {
 
         my $cmdln = shift;
         my @argv;
-        return 0 if $cmdln =~ /^$/ or $cmdln =~ /\s*#/;
+        return 1 if $cmdln =~ /^$/ or $cmdln =~ /^\s*#/;
         if ($cmdln =~ /([\'\"\`])/) {
             @argv = expand_quotes($1, $cmdln)
         } else {
@@ -1343,7 +1343,7 @@ sub source_bin {
         for my $file (@args) {
             open my $fh, '<', $file     or die "${file}: $!\n";
             while (defined(my $ln = <$fh>)) {
-                tpsh_lex $ln            or warn "bad lex";
+                tpsh_lex $ln            or warn "bad lex: $ln";
             }
         }
     };
