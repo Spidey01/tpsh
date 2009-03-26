@@ -150,7 +150,7 @@ my %Setopts = (
 #
 # You should use hsplit(LIST) instead of directly using split 
 #
-my $HashSep;
+my $HashSep = \$ENV{HASHSEP};
 
 #
 # Introspector / debugging aid -- will be initialized in init_sh()
@@ -355,11 +355,11 @@ sub init_sh {
     }
 
     if ($isUnix) {
-        $HashSep = qr':';
+        $$HashSep ||= qr':';
     } else {
-        $HashSep = qr';';
+        $$HashSep ||= qr';';
     }
-
+    
     rehash();
 
     $ENV{'$'} = $$;
@@ -983,7 +983,14 @@ sub binerr {
 }
 
 sub hsplit {
-    return split /$HashSep/, $_ for @_;
+
+    # cache changed HASHSEP to a qr for performance
+    # 
+    if (ref $$HashSep ne 'Regexp') {
+        $$HashSep = qr/$$HashSep/;
+    }
+
+    return split /$$HashSep/, $_ for @_;
 }
 
 sub ifsplit {
