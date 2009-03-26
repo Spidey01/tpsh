@@ -10,8 +10,10 @@ binerr	tpsh	/^sub binerr {$/;"	s
 builtin	tpsh	/^  builtin:$/;"	l
 builtin_bin	tpsh	/^sub builtin_bin {$/;"	s
 cd_bin	tpsh	/^sub cd_bin {$/;"	s
+complete_builtin	tpsh	/^sub complete_builtin {$/;"	s
 complete_command	tpsh	/^sub complete_command {$/;"	s
 complete_filename	tpsh	/^sub complete_filename {$/;"	s
+complete_macro	tpsh	/^sub complete_macro {$/;"	s
 death_handler	tpsh	/^sub death_handler {$/;"	s
 do_completion	tpsh	/^sub do_completion {$/;"	s
 do_getopt	tpsh	/^sub do_getopt {$/;"	s
