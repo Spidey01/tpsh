@@ -566,8 +566,29 @@ sub pexec {
         wait();
     } else {
         if (defined $cmds[0]) {
-            exec { $cmds[0] } @cmds or warn "$cmds[0] command not found";
-            exit $?;
+            #
+            # override Perl's PATH look up by using a qualified path, 
+            # so that exec'ing stuff respects the users HASHSEP
+            #
+
+            if (exists $Path{$cmds[0]}) {
+                $cmds[0] = $Path{$cmds[0]};
+                exec { $cmds[0] } @cmds or warn "$cmds[0] command not found";
+                exit $?;
+            } elsif (exists $ENV{PATHEXT} && $ENV{PATHEXT}) {
+                # attempt a check for file extensions via PATHEXT 
+                # XXX case in-sensitive or ?
+                for my $ext (hsplit $ENV{PATHEXT}) {
+                    if (grep /$cmds[0]$ext/i, keys %Path) {
+                        $cmds[0] .= $ext;
+                        last;
+                    }
+                }
+                exec { $cmds[0] } @cmds or warn "$cmds[0] command not found";
+                exit $?;
+            } else {
+                exit warn "bad command, sorry";
+            }
         }
         exit 0; # then there wasn't any command given.
     }
