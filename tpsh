@@ -1500,7 +1500,6 @@ if (__PACKAGE__ eq 'main') {
     do_getopt(\@ARGV, %Setopts);
     $Options{interactive} = -t *STDIN && !@ARGV ? 1 : 0;
     $Options{stdin}       = @ARGV               ? 1 : 0;
-    @ARGV = ('test', 'elems', 'to', 'restore');
     init_sh();
     exit main_loop();
 }
