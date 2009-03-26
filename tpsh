@@ -472,6 +472,7 @@ sub tpsh_lex {
 
         my $cmdln = shift;
         my @argv;
+        return 0 if $cmdln =~ /^$/ or $cmdln =~ /\s*#/;
         if ($cmdln =~ /([\'\"\`])/) {
             @argv = expand_quotes($1, $cmdln)
         } else {
@@ -949,7 +950,7 @@ sub ifsplit {
 }
 
 sub is_macro {
-    my $name = shift;
+    my $name = shift || "";
 
     if (exists $Macros{$name}) {
         return defined $Macros{$name};
