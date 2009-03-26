@@ -1105,12 +1105,9 @@ sub echo_bin {
 sub eval_bin {
 
     my $args = join ' ', @_;
-    eval {
-        tpsh_lex $args or warn "syntax error: $@"
+    return eval {
+        tpsh_lex $args or warn "syntax error: $args";
     };
-    warn $@ if $@;
-
-    return 1;
 }
 
 sub exec_bin {
