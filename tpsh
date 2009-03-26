@@ -586,8 +586,17 @@ sub do_completion {
     my ($word, $str) = @_;
     my @completions  = ();
 
-    push @completions, complete_command($word);
-    push @completions, complete_filename($word);
+    # if first word, do all completions.
+    # if not first word, do file completion
+    #
+
+    my @argv = ifsplit $str;
+    if ($argv[0] =~ /^$word/) {
+        push @completions, complete_command($word);
+        push @completions, complete_filename($word);
+    } else {
+        push @completions, complete_filename($word);
+    }
 
     return sort @completions;
 }
