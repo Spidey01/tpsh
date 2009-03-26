@@ -37,6 +37,8 @@ sub sh_eval;
 sub do_completion;
 sub complete_filename;
 sub complete_command;
+sub complete_macro;
+sub complete_builtin;
 sub expand_quotes;
 sub expand_tilde;
 sub expand_parameters;
@@ -586,12 +588,39 @@ sub do_completion {
     my ($word, $str) = @_;
     my @completions  = ();
 
-    # if first word, do all completions.
+    # rules of thumb:
+    #
+    # if first word, do all completions; subject to special cases.
     # if not first word, do file completion
     #
 
     my @argv = ifsplit $str;
-    if ($argv[0] =~ /^$word/) {
+    my $grep = sub { grep { $argv[0] eq $_ }  @_ };
+    #
+    # complete all-stuff for these commands
+    #
+    my @all  = ('type', 'which');
+    # complete macros for these commands
+    #
+    my @macs = ('alias', 'unalias');
+    #
+    # complete built-in commands for these commands
+    #
+    my @cmds = ('builtin');
+
+    # allow command completion for things like 'builtin e^I'
+    # and 'alias l^I', fall though to normal rules if needed
+    #
+    if ($grep->(@all)) {
+        push @completions, complete_command($word);
+    } elsif ($grep->(@macs)) {
+        return complete_macro $word;
+    } elsif ($grep->(@cmds)) {
+        return complete_builtin $word;
+    }
+
+    # normal completion rules
+    if ($word =~ /^$argv[0]/) {
         push @completions, complete_command($word);
         push @completions, complete_filename($word);
     } else {
@@ -628,6 +657,16 @@ sub complete_filename {
 sub complete_command {
     my $word = shift;
     grep /^${word}.*/, (keys %Macros, keys %Builtins, keys %Path);
+}
+
+sub complete_macro {
+    my $word = shift;
+    grep /^${word}.*/, (keys %Macros);
+}
+
+sub complete_builtin {
+    my $word = shift;
+    grep /^${word}.*/, (keys %Builtins);
 }
 
 sub expand_quotes {
