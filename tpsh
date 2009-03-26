@@ -404,10 +404,15 @@ sub do_getopt {
     #
     my $ver = $Getopt::Long::VERSION_STRING ? $Getopt::Long::VERSION_STRING
                                             : "$Getopt::Long::VERSION";
+
+	Getopt::Long::Configure('gnu_getopt', 'getopt_compat',
+                            'auto_version', 'auto_help');
+
     if ($ver lt '2.29') {
         # We've got to draw the line somewhere 
         #
-        die "Getopt::Long version $ver is just to old...\n";
+        print STDERR "Getopt::Long version $ver is just to old... bye\n";
+        sleep 10; die "Please update your Getopt::Long\n";
     } elsif ($ver lt '2.36') {
         # before 2.36, Getopt::Long can only use ARGV
         # so we save / restore it before switching it with our own
@@ -420,14 +425,8 @@ sub do_getopt {
         @ARGV = @oldargv;
         return $ret;
     } else {
-        print "use decent module\n";
         return Getopt::Long::GetOptionsFromArray($argv, %opthash);
     }
-    die "end test";
-
-	Getopt::Long::Configure('gnu_getopt', 'getopt_compat',
-                            'auto_version', 'auto_help');
-    #return GetOptionsFromArray($argv, %opthash);
 }
 
 =pod
