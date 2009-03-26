@@ -631,7 +631,7 @@ sub do_completion {
 }
 
 sub complete_filename {
-    my $word     = sh_eval shift;
+    my $word     = expand_parameters(expand_glob(shift));
     my $basename = basename($word);
     my $dirname  = dirname($word);
     my $cwd      = $ENV{PWD};
