@@ -1324,6 +1324,7 @@ sub read_bin {
 
 sub rehash_bin {
     rehash;
+    return 1;
 }
 
 sub set_bin {
