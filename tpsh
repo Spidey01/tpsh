@@ -242,17 +242,6 @@ my %Builtins = ( '.'            => \&source_bin,
                  'which'        => \&which_bin,
 );
 
-#
-# Some commands expect an unexpanded macro as an argument, other wise
-# it would be kind of hard to use the unalias or builtin commands!
-# sh_eval() will check for these word-patterns and abort macro expansion
-# at the proper place whenever found.
-#
-my @NonExpanding = ( qr'(?:un)?alias',    qr'builtin', 
-                     qr'which',           qr'type',
-                     qr'macro',
-);
-
 #----------------------------------------------------------
 #                Subroutine Implementations
 #----------------------------------------------------------
@@ -1128,15 +1117,7 @@ sub sh_eval {
     my $ln   = join ' ', expand_glob(@_);
     my @argv = ifsplit $ln;
 
-    # dirty fix: turn off alias expansions for patterns in @NonExpanding
-    # 
-    my $bad  = 0;
-    my $csep = qr'[^;|><]*';
-    map { $ln =~ m/^$_ $csep/ and $bad++; } @NonExpanding;
-    unless ($bad) {
-        $ln = expand_aliases(@argv);
-    }
-
+    $ln = expand_aliases(@argv);
     $ln = expand_parameters($ln);
     $ln = expand_tilde($ln);
 
