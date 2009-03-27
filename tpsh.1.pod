@@ -288,10 +288,8 @@ given to the B<hash> built-in command, are assumed to be the name of a program
 found in the users PATH, which is to be removed from the shells hash table. If
 the B<-r> option is specified, then delete the entire contents of the hash
 table.  Note well that this does I<not> allow you to remove a single command
-from your search PATH, it only manipulates internal data structures. One can
-use B<hash> to manipulate what built-in commands like B<type> see, but that is
-about it.
-
+from your search PATH, it only manipulates internal data structures used to
+speed up command execution. 
 
 =item B<macro> I<name(> [<command ...>] I<)>
 
@@ -380,12 +378,6 @@ An environment variable is set if it contains an string or numeric value.
 Variables may be unset by setting them to the empty string, or by using the
 B<unset> built-in command.  
 
-Some variables are interpreted as a string yielding a C<hash-sep> delimited
-list of values, such as the PATH, CDPATH, and MAILPATH environment variables.
-The value of hash-sep is system dependent; currently if OSTYPE is C<MSWin32>,
-C<os2>, or C<dos> the value of hash-sep is C<;>, other wise the unix convention
-of C<:> will be assumed. 
-
 =head2 From Invocation Environment
 
 These variables should be inherited by tpsh at startup, if not they will be
@@ -408,7 +400,8 @@ values if necessary.
 
 =item PATH
 
-The default search path for executables. PATH is a hash-sep delimited list of directories in which to search. The default value is system dependent.
+The default search path for executables. PATH is a HASHSEP delimited list of
+directories in which to search. The default value is system dependent.
 
 =item SHELL
 
@@ -441,7 +434,17 @@ be set by tpsh at startup.
 
 =item OSTYPE
 
-Set to the value of Perl's C<$^O> variable. The value of OSTYPE may be used in an ENV file to adjust itself based on the current operating system.
+Set to the value of Perl's C<$^O> variable. The value of OSTYPE may be used in
+an ENV file to adjust itself based on the current operating system.
+
+=item HASHSEP
+
+Used as the field separator for hash-sep delimited lists. Whenever an internal
+operation accesses such data, the shell may modify this environment variable
+with the corrisponding compiled regular expression. The default value of
+hash-sep is system dependent; currently if OSTYPE is C<MSWin32>, C<os2>, or
+C<dos> the value of hash-sep is C<;>, other wise the unix convention of C<:>
+will be assumed. 
 
 =item EDITOR
 
@@ -511,12 +514,14 @@ These variables effect tpsh's behaviour, but will not be automatically set by tp
 =item ENV
 
 When invoking an interactive shells invocation, the ENV variable is interpreted
-as a hash-sep delimited list of files to be sourced after any profile scripts.
+as a HASHSEP delimited list of files to be sourced after any profile scripts.
 The reccomended value is F<${HOME}/.tpshrc>. See L</Invocation>
 
 =item CDPATH
 
-Search path used by the B<cd> and B<chdir> built-in commands, refer to L</Built-in Commands> for a discription of its side effects. There is no default.
+Search path used by the B<cd> and B<chdir> built-in commands, refer to
+L</Built-in Commands> for a discription of its side effects. There is no
+default; the value of CDPATH should be a HASHSEP delimited list.
 
 
 =item HISTFILE
