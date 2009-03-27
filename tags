@@ -51,6 +51,7 @@ redirect	tpsh	/^  redirect:$/;"	l
 rehash	tpsh	/^sub rehash {$/;"	s
 rehash_bin	tpsh	/^sub rehash_bin {$/;"	s
 resolve_cmd	tpsh	/^sub resolve_cmd {$/;"	s
+search_path	tpsh	/^sub search_path {$/;"	s
 set_bin	tpsh	/^sub set_bin {$/;"	s
 setenv_bin	tpsh	/^sub setenv_bin {$/;"	s
 setvar_bin	tpsh	/^sub setvar_bin {$/;"	s
