@@ -60,6 +60,7 @@ sub death_handler;
 sub alias_bin;
 sub builtin_bin;
 sub cd_bin;
+sub cls_bin;
 sub echo_bin;
 sub eval_bin;
 sub exit_bin;
@@ -209,6 +210,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'builtin'      => \&builtin_bin,
                  'cd'           => \&cd_bin,
                  'chdir'        => \&cd_bin,
+                 'cls'          => \&cls_bin,
                  'command'      => sub { warn "Not implemented\n" }, 
                  'echo'         => \&echo_bin,
                  'eval'         => \&eval_bin,
@@ -1225,6 +1227,29 @@ sub cd_bin {
     $ENV{OLDPWD} = $ENV{PWD} || "";
     $ENV{PWD}    = cwd();
     return $rv;
+}
+
+sub cls_bin {
+
+    # assume unix environment
+    #
+    eval { 
+        require Term::Cap;
+        my $tcap = Tgetent Term::Cap { TERM => undef };
+
+        # 'cl' is the control char to clear the screen
+        $tcap->Trequire('cl');
+        $tcap->Tputs('cl', 1, *STDOUT);
+    };
+
+    if ($@) {
+        # assume Term::Cap croaked
+        my $LINES = $ENV{LINES} ? $ENV{LINES} : 50;
+        for (my $n=0; $n < $LINES; $n++) {
+            print "\r\n";
+        }
+    }
+    return 1;
 }
 
 sub echo_bin {

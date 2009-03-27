@@ -267,6 +267,12 @@ function. I<Command> can not be a shell built-in or macro.
 
 A synonym for the B<cd> built-in command.
 
+=item B<cls>
+
+Attempt to clear the terminal screen. If your perl distrubtion supports the
+L<Term::Cap> module correctly, the usual unix convention is used; other wise
+enough whitespace will be generated for the average display.
+
 =item B<exit> [I<status>]
 
 Exit the shell with exit status I<status>, if status is omitted then the exit
