@@ -1500,13 +1500,16 @@ sub type_bin {
                                     and next          if is_macro $_;
         print "$_ is a shell builtin\n" 
                                     and next          if is_builtin $_;
-        print "$_ is $Path{$_}\n" 
-                                    and next          if defined $Path{$_};
+        if (my $p = search_path $_) {
+            print "$_ is $p\n";
+            next;
+        }
         #
         # this is a custom exstension
         #
         print "$_ may be $ENV{PWD}/$_\n"            
                                     and next          if -x "./$_";
+
         print "$_ not found\n";
     }
     return 1;
