@@ -1585,7 +1585,7 @@ sub which_bin {
             if (-x $path) {
                 print "$path\n" unless $flag eq '-s';
                 $found++;
-                last if $flag eq '-a' or $flag eq '-s';
+                last unless $flag eq '-a' or $flag eq '-s';
             }
         }
         if ($flag ne '-s') {
