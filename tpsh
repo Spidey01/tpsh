@@ -169,6 +169,13 @@ my $Last_Cmd = '';
 #
 my @Last_Line = ();
 
+#
+# In an interactive shell, this holds the number of command lines that have
+# been entered by the user. If you call get_history() to get a list of lines
+# within HISTSIZE, you can find your numerical indexs starting point within 
+# the # global history as $#get_history() - $HistoryNumber. 
+#
+my $HistoryNumber = 0;
 
 #
 # Reference to our ReadLine interface
@@ -440,8 +447,10 @@ sub handle_prompt {
 
     if ($Options{interactive} && !$Options{stdin}) {
         $ln = $Term->readline($ENV{PS1});
-        $Term->addhistory($ln) 
-            if defined $ln and $ln =~ /\S/;
+        if (defined $ln and $ln =~ /\S/) {
+            $HistoryNumber ++;
+            $Term->addhistory($ln);
+        }
     } else {
         $ln = <>;
     }
@@ -1279,7 +1288,8 @@ sub hash_bin {
 sub history_bin {
 
     my @lines = get_history();
-    my $i=1;
+    my $i     = $HistoryNumber  - $#lines;
+
     for my $ln (@lines) {
         print STDERR "$i: $ln\n"; $i++;
     }
