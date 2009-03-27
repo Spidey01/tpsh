@@ -351,7 +351,7 @@ Interpret each I<name> as a command, then print the result. Possible types are:
 built-in command, command, macro, or not found. For convenience, if an
 executable is found in the current directory tpsh will print C<command may be
 $PWD/command> before giving up. For macros, the stored definition is printed;
-for command the complete pathname is printed
+for command, the complete pathname is printed; for built-in command, tsph will print command is a shell builtin.
 
 =item B<which> [B<-as>] [B<--all> | B<--silent>] I<command ...>
 
@@ -361,8 +361,10 @@ to the options given by the user. I<Command> may be a built-in command, macro,
 or the name of a program without a path (e.g. C<ls>). If the B<-s> option is
 specified, return 0 if all commands were found, and 1 otherwise; but do not
 generate I<any> output. If the B<-a> option is specified, continue searching
-after command has been found, printing all occurrences to standard output. If
-both the B<-a> and B<-s> options were given, the first shall take precedence!
+after command has been found, printing all occurrences to standard output. Nota
+Bene: for compatiblity with other traditional implementationsshells, B<which>
+does not interprete the users PATHEXT variable or the shells pathext option;
+use B<type> instead.
  
 =back
 
