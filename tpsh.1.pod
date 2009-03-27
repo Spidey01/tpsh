@@ -551,10 +551,6 @@ L<sh(1)>, L<perl>, L<File::Glob>, L<Term::ReadLine>
 
 =head1 CAVEATS & BUGS
 
-If the command is equal to 'alias', 'builtin', 'unalias', it's arguments up
-until a command terminator (such as ;, |, >, ), or }) are not subject to macro
-expansion; note that parameter expansion is still performed.
-
 The B<chdir> and B<cd> built-in commands delegate finding the users home
 directory to the behaviour of Perl's chdir() function; it does not inspect
 $HOME as C<sh> should. Like wise, $PWD is updated using the standard L<Cwd>
