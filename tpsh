@@ -12,8 +12,8 @@ use Cwd;
 use Dumpvalue;
 use File::Basename;
 use File::Glob          ':glob';
+use File::Spec;
 use Getopt::Long;       # do NOT export GetOptionsFrom*
-use Pod::Usage;
 use Term::ReadLine;
 
 
@@ -30,6 +30,7 @@ sub main_loop;
 sub tpsh_lex;
 sub resolve_cmd;
 sub pexec;
+sub search_path;
 sub handle_prompt;
 sub rehash;
 sub update_env;
@@ -102,6 +103,7 @@ my %Options = (
     monitor         =>  0,
     noexec          =>  0,
     privileged      =>  0,
+    pathext         =>  1,
     reportpipe      =>  0,
     stdin           =>  0,
     vi              =>  0,
@@ -554,44 +556,92 @@ pexec LIST
 
 Executes it's arguments in a child process and waits.
 
+pexec() overrides Perl's PATH look up for exec(), by using a qualified path for
+the shells %Path. exec'ing stuff this way respects the users HASHSEP, and
+ensures that the operation will also respect the users pathext setting.
+
 =cut
+
 sub pexec {
-    my @cmds = @_;
+
     local $!;
-    my $pid = fork();
+    my    @cmds = @_;
+    my    $c    = \$cmds[0];   # save typing
+    my    $pid  = fork();
+
     die "Unable to fork for pexec(\@): $!" 
         unless defined $pid;
 
     if ($pid) {
         wait();
     } else {
-        if (defined $cmds[0]) {
-            #
-            # override Perl's PATH look up by using a qualified path, 
-            # so that exec'ing stuff respects the users HASHSEP
-            #
+        my $e = $$c;
+        unless ($$c = search_path $$c) {
+            warn "command not found: $e";
+            exit 1;
+        }
+        exec { $cmds[0] } @cmds;
+        warn "NOT REACHED -- CHILD ON ", __FILE__, ':', __LINE__;
+        exit $? >> 8;
+    }
+}
 
-            if (exists $Path{$cmds[0]}) {
-                $cmds[0] = $Path{$cmds[0]};
-                exec { $cmds[0] } @cmds or warn "$cmds[0] command not found";
-                exit $?;
-            } elsif (exists $ENV{PATHEXT} && $ENV{PATHEXT}) {
-                # attempt a check for file extensions via PATHEXT 
-                # XXX case in-sensitive or ?
-                for my $ext (hsplit $ENV{PATHEXT}) {
-                    if (grep /$cmds[0]$ext/i, keys %Path) {
-                        $cmds[0] .= $ext;
-                        last;
-                    }
-                }
-                exec { $cmds[0] } @cmds or warn "$cmds[0] command not found";
-                exit $?;
-            } else {
-                exit warn "bad command, sorry";
+=pod
+
+search_path EXPR
+
+Attempt to find EXPR in %Path or the users PATH, and return a valid path name
+for use by pexec() or comparable value. If EXPR can not be found return false.
+The order of precedence is searching the %Path hash table, then the users PATH.
+If the pathext option has been set, and the command has still not be found:
+then repeat the search using the users PATHEXT variable.
+
+=cut
+
+sub search_path {
+
+    my $cmd = $_[0];
+
+    # try to avoid unneccessary PATHEXT checks
+    #
+    if (exists $Path{$cmd}) {
+        return $Path{$cmd};
+    } else {
+        for my $p (hsplit $ENV{PATH}) {
+            my $fpath = File::Spec->catfile($p, $cmd);
+            if (-x $fpath) {
+                return $fpath;
             }
         }
-        exit 0; # then there wasn't any command given.
     }
+
+    if ($Options{pathext} && exists $ENV{PATHEXT}) {
+        #
+        # attempt a check for file extensions via PATHEXT.
+        # first via cached %Path, then the users PATH.
+        #
+        my $pe = $ENV{PATHEXT};
+        return unless defined $pe;
+
+        for my $ext (hsplit $ENV{PATHEXT}) {
+            my $p = $cmd.$ext;
+            if (exists $Path{$p}) {
+                return $Path{$p};
+            }
+        }
+
+        for my $p (hsplit $ENV{PATH}) {
+            for my $ext (hsplit $ENV{PATHEXT}) {
+                my $fpath = File::Spec->catfile($p, $cmd.$ext);
+                if (-x $fpath) {
+                    return $fpath;
+                }
+            }
+        }
+    }
+
+    # we didn't find anything :-(
+    return;
 }
 
 sub rehash {
