@@ -1058,7 +1058,21 @@ sub hsplit {
     # cache changed HASHSEP to a qr for performance
     # 
     if (ref $$HashSep ne 'Regexp') {
-        $$HashSep = qr/$$HashSep/;
+        # trap regexp syntax errors.
+        eval { 
+            local $SIG{__WARN__} = 'IGNORE';
+            local $SIG{__DIE__}  = sub { 
+                my $msg = join ' ', @_;
+                $msg =~ s/(marked by <-- HERE in)/$1\n/;
+                die $msg, "\n";
+            };
+            $$HashSep = qr/$$HashSep/ 
+        };
+        if ($@) {
+            warn "syntax error: $@", "\nHASHSEP cleared\n";
+            $$HashSep = '';
+            exit 0;
+        }
     }
 
     return split /$$HashSep/, $_ for @_;
