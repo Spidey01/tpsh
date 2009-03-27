@@ -553,24 +553,22 @@ directory to the behaviour of Perl's chdir() function; it does not inspect
 $HOME as C<sh> should. Like wise, $PWD is updated using the standard L<Cwd>
 Perl module.
 
-The B<pwd> built-in command is implemented using the Cwd Perl module, so C<pwd -L> likely will behave differently in tpsh, then sh or /bin/pwd.
-
-The B<which> built-in command only checks the first option switch, and assumes
-that any bundled flags after the first are typo-graphic errors. These extra
-option switches are silently ignored as long as they are bundled, anything
-after the first option bundle is of course assumed to be a command; C<which -ax
-foo> is treated as C<which -a foo>, but C<which -a -x foo> will attempt to
-locate both C<-x> and C<foo> in PATH. This behaviour is inconsistent but
-suitable until built-in commands rely on a generified getopt function.
+The B<pwd> built-in command is implemented using the Cwd Perl module, so C<pwd
+-L> likely will behave differently in tpsh, then sh or /bin/pwd.
 
 Operations that rely on time delays, via system calls such as sleep() or
 alarm() may return early, late, or whatever strange IAW behaviour can be
 expected from your Operating System and Perl Distribution. The B<sleep> and
 B<read> built-in commands are a prime example.
 
-The value of the IFS variable is interpreted as a string not a regular expression. This is intended and will not be changed. Note however, that internally IFS is interpreted as /[IFS]/ with I<all> the implied implications; but the author is not required to retain this behaviour: screw around at your own risk.
+The value of the IFS variable is interpreted as a string not a regular
+expression. This is intended and will not be changed. Note however, that
+internally IFS is interpreted as /[IFS]/ with I<all> the implied implications;
+but the author is not required to retain this behaviour: screw around at your
+own risk.
 
-The PS2 variable is not actually used yet, instead such things are delegated to the L<Term::ReadLine> implementation for the time being.
+The PS2 variable is not actually used yet, instead such things are delegated to
+the L<Term::ReadLine> implementation for the time being.
 
 =head1 LICENSE
 
