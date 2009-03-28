@@ -14,6 +14,28 @@ tpsh [-abCEefIimPpsuVvx] [-c string] [arg ...]
 
 =head2 Invocation
 
+How tpsh behaves is dependent on how it was started, or "invoked" by the user.
+When first starting up, tpsh will process its command line arguments for
+options as explained below under L</Argument List Processing>. Any non options
+remaining in the on the command line after this processing, are assumed to be
+the names of shell scripts to be executed by the shell.
+
+If tpsh is executing a shell script through a command line argument, it is
+assumed to be a I<non-interactive> shell; otherwise if tpsh's standard input
+is connected to a terminal or the B<-i> option was given: tpsh assumes it is
+to behave as an I<interactive> shell should. A non-interactive shell reads
+commands from the named files or standard input until receiving the end of
+file marker.  An interactive shell initializes your systems L<Term::ReadLine>
+module and displays a command prompt. Commands are read from standard input
+until the shell is exited.
+
+tpsh will always inspect the initial environment, and modify it accordingly
+(see L</ENVIORNMENT>). tpsh then attempts to change to the users personal
+directory, if running as an interactive shell, tpsh inspects the ENV
+environment variable for shell initialization files. Interactive sessions then
+process ENV if set, reading in each file as a script, before issuing the
+prompt.
+ 
 =head2 Argument List Processing
 
 
