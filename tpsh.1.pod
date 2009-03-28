@@ -215,6 +215,23 @@ for each simple command:
 
 =head3 Complex Commands
 
+Complex commands are groupings of simple commands, keywords, and various
+operators that tie together a more challenging command. Complex commands may
+be:
+
+	simple commands
+
+	pipelines
+
+	lists
+
+	compound commands
+
+	anonymous macros
+
+Unless otherwise stated, the exit status of a complex command is always that
+of the last simple command executed by the command.
+
 =head3 Command Search & Execution
 
 The shell understands several types of commands: built-in commands, macros,
@@ -294,8 +311,8 @@ to generate a list of possible filename extensions. By default tpsh enables
 the pathext option, but does not set a value for PATHEXT.  If the pathext
 option has been disabled, no checks are made.
 
-The path extensions in PATHEXT are interpreted similar to PATH variable. Each
-element of the list is suffixed to the commands name, such that if 
+The command suffixes in PATHEXT are interpreted similar to PATH variable. Each
+element of the list is appended to the commands name, such that if 
 
 	PATHEXT='.sh:.py:.rb'
 
