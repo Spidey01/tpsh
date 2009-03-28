@@ -381,6 +381,8 @@ Note that stdin, stdout, and stderr are common terms for standard input,
 output, and error; respectively. You can specify stdin, stdout, or stderr as
 file descriptors 0, 1, or 2; also respectively.
 
+=head2 Pipelines
+
 =head2 Command Macros
 
 Several features of other shells are considered by tpsh, to be a form of
@@ -621,16 +623,74 @@ or the name of a program without a path (e.g. C<ls>). If the B<-s> option is
 specified, return 0 if all commands were found, and 1 otherwise; but do not
 generate I<any> output. If the B<-a> option is specified, continue searching
 after command has been found, printing all occurrences to standard output. Nota
-Bene: for compatiblity with other traditional implementationsshells, B<which>
-does not interprete the users PATHEXT variable or the shells pathext option;
+Bene: for compatibility with other traditional implementations shells, B<which>
+does not interpreted the users PATHEXT variable or the shells pathext option;
 use B<type> instead.
  
 =back
 
+=head2 File Globbing
+
+Unless the B<noglob> option is set, tpsh will attempt to evaluate several
+special characters within pathnames, substituting their expansions for the
+original patterns: this is commonly known as file[name] globing. You can think
+of globing as the fusion of filename completion with a subset of regular
+expression syntax.
+
+tpsh understands the following glob characters:
+
+=over 8
+
+=item \
+
+Quote the next glob character. C<\*> becomes a literal C<*> character, rather
+then the expansion of the C<*> glob character.
+
+=item []
+
+Group one or more characters into a class; glob characters within the class
+must be quoted. C<x[abc]> matches C<xa>, C<xb>, or C<xc> but never C<xab>,
+C<xac>, etc. (for matching that, see below). To specify a range of characters,
+use a dash: C<[a-zA-Z0-9]>. Nota bene: a-Z is an error. In order to negate or
+'complement' a character class, prefix it with an exclamation point:
+C<[!a-z]>.
+
+=item {}
+
+Multiple pattern match. Expressions within the curly braces are treated like
+an alternating sub pattern: C<f.{zip,tar}> is short hand for C<f.zip f.tar>.
+An empty '{}' is not interpreted as a glob.
+
+=item *
+
+Match any string of characters: C<foo*bar> matches any filename beginning with
+foo and ending with bar.
+
+=item ?
+
+Match any single character: C<foob?r> will match C<foobar> or C<foober> but
+not C<fookbar> or C<foobeer>.
+
+=item ~
+
+User name and home directory expansion. The 'tilde' symbol on it's own will
+expand to the path to the current users personal directory (HOME). If suffixed
+with a user name, it instead expands to that users personal directory.
+
+=back
+
+The glob characters can be combined together to form a more complex 'glob
+pattern', which may be equally more useful.
+
+tpsh's default globing behaviour should be suitable for most situations,
+however if it is not you may customize it through POSIX flags. tpsh will check
+the environment for a variable named TPSH_GLOB_FLAGS, and pass it on to the
+underlaying L<File::Glob> module.
+
 =head1 ENVIRONMENT
 
 Environment variables may be broken down into variables that I<should> be
-inheritied from the invocation environment, variables set by tpsh on startup,
+inherited from the invocation environment, variables set by tpsh on startup,
 and variables that are not automatically set; but never the less have
 significance to tpsh's behaviour. Most variables will retain their original
 value if found in tpsh's invocation environment.
@@ -673,7 +733,7 @@ be used.
 =item TMPDIR, TEMP, TMP
 
 A place where programs may store temporary files. TMPDIR is the Unix
-convention, the other are used by Microsoft platforms.  tpsh will proprogate
+convention, the other are used by Microsoft platforms.  tpsh will propagate
 the first correct value to the other variables in the following order of
 precedence: TMPDIR, TMP, TEMP.  Other wise there is no default value for these
 variables.
@@ -702,7 +762,7 @@ an ENV file to adjust itself based on the current operating system.
 
 Used as the field separator for hash-sep delimited lists. Whenever an internal
 operation accesses such data, the shell may modify this environment variable
-with the corrisponding compiled regular expression. The default value of
+with the corresponding compiled regular expression. The default value of
 hash-sep is system dependent; currently if OSTYPE is C<MSWin32>, C<os2>, or
 C<dos> the value of hash-sep is C<;>, other wise the unix convention of C<:>
 will be assumed. 
@@ -719,7 +779,7 @@ The default editor used with the B<fc> built-in command.
 
 =item IFS
 
-The Input Feild Separator (IFS) used by many internal operations. See the
+The Input Field Separator (IFS) used by many internal operations. See the
 L</XXX> section for more details. The default value is space, tab, and newline.
 Nota Bene: this is expected to be a string, I<never> a perl regular expression.
 
@@ -755,12 +815,12 @@ Set but not used yet
 
 Contains the name of the readline package being used by tpsh. You should be
 able to look up the documentation for the current readline package with the
-command `perldoc $TPSH_READLINE`. Potentional values include Stubs, Gnu, Perl,
+command `perldoc $TPSH_READLINE`. Potential values include Stubs, Gnu, Perl,
 and Zoid.
 
 =item TPSH_GLOB_FLAGS
 
-A string in the format of 'FLAG1 | FLAG2' to apply to tpsh's file globbing
+A string in the format of 'FLAG1 | FLAG2' to apply to tpsh's file globing
 behaviour, see L<File::Glob/POSIX FLAGS> for possible values. The default is
 'GLOB_QUOTE | GLOB_TILDE'.
 
@@ -776,12 +836,12 @@ These variables effect tpsh's behaviour, but will not be automatically set by tp
 
 When invoking an interactive shells invocation, the ENV variable is interpreted
 as a HASHSEP delimited list of files to be sourced after any profile scripts.
-The reccomended value is F<${HOME}/.tpshrc>. See L</Invocation>
+The recommended value is F<${HOME}/.tpshrc>. See L</Invocation>
 
 =item CDPATH
 
 Search path used by the B<cd> and B<chdir> built-in commands, refer to
-L</Built-in Commands> for a discription of its side effects. There is no
+L</Built-in Commands> for a description of its side effects. There is no
 default; the value of CDPATH should be a HASHSEP delimited list.
 
 
@@ -791,7 +851,7 @@ The file to save history to, and restore history from. There is no default.
 
 =item TPSH_DOTDIR
 
-A PATH like delimited list, specifing the directories to search for F<tpsh_profile>s when starting a login shell. There is no default.
+A PATH like delimited list, specifying the directories to search for F<tpsh_profile>s when starting a login shell. There is no default.
 
 =back
 
@@ -839,6 +899,10 @@ Avid users of the GNU Bourne Again SHell (bash) should take note: while tpsh
 implements the B<history> built-in command, no attempt is made to mimic the
 functionality provided bash; use the provided built-ins. This is Terry's
 Portable SHell after all, not a Bourne Again Clone :-P.
+
+Most things say "meta character" or something similar, I say glob character:
+it keeps it simple. Don't like my notation? Then write your own stinking
+manual :-P.
 
 =head1 LICENSE
 

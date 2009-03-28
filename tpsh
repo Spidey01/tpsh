@@ -174,7 +174,7 @@ my @Last_Line = ();
 # In an interactive shell, this holds the number of command lines that have
 # been entered by the user. If you call get_history() to get a list of lines
 # within HISTSIZE, you can find your numerical indexs starting point within 
-# the # global history as $#get_history() - $HistoryNumber. 
+# the global history as $#get_history() - $HistoryNumber. 
 #
 my $HistoryNumber = 0;
 
