@@ -680,7 +680,8 @@ with a user name, it instead expands to that users personal directory.
 =back
 
 The glob characters can be combined together to form a more complex 'glob
-pattern', which may be equally more useful.
+pattern', which may be equally more useful. If no expansion is possible, tpsh
+will abort the command and report an error.
 
 tpsh's default globing behaviour should be suitable for most situations,
 however if it is not you may customize it through POSIX flags. tpsh will check
