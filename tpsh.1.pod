@@ -188,6 +188,91 @@ and both expand to 'echo first line of ls output'.
 
 =back
 
+=head2 Commands
+
+tpsh interprets the words it reads as commands for execution through a queue.
+Complex commands are broken down enqueued (into) simple commands. The first
+word of each simple command is checked for expansion in accordance with the
+shells quoting rules, and then executed by the shell. To illustrate a point,
+if the following simple command was given to tpsh:
+
+	$ vi -c "set ai" file.c
+
+the argument vector (argv) or vi will be as follows:
+
+	argv[0] = '/path/to/vi'
+	argv[1] = '-c'
+	argv[2] = 'set ai'
+	argv[3] = 'file.c'
+
+If no quotes were used around set ai, then they would have been interpreted as
+separate arguments (2 and 3), pushing file.c further down the list (4).
+
+=head3 Simple Commands
+
+When processing the command queue, the shell performs the following actions
+for each simple command:
+
+=head3 Complex Commands
+
+
+=head2 I/O Redirections
+
+It is possible to change where a command reads its input or sends its output,
+by using an I/O redirection; for the uninitiated I/O stands for Input and
+Output. The most common usage of an I/O redirection is to save a programs
+output to a file, or make it read its input from a file; however much more is
+possible.
+
+Redirections operators use the format of: C<operator file>. The I/O
+redirection operators follow the general style of an arrow representing the
+direction in which to redirect the file descriptor, and an arrow and ampersand
+representing the file descriptor to close or duplicate. A list of all these
+operators follows:
+
+XXX only <, >, and >> on their standard file descriptors are currently
+implemented
+
+=over 8
+
+=item [I<n>]> F<file>
+
+Redirect stdout (or file descriptor I<n>) to F<file>.
+
+=item [I<n>]>| F<file>
+
+Same as the above C<< > >> operator, but override the B<noclobber> option.
+
+=item [I<n>]> F<file>
+
+Append stdout (or file descriptor I<n>) to F<file>.
+
+=item [I<n>]< F<file>
+
+Redirect stdin (or file descriptor I<n>) from F<file>.
+
+=item [I<n1>]<&I<n2>
+
+Duplicate stdin (or file descriptor I<n1>) from file to descriptor I<n2>.
+
+=item [I<n>]<&-
+
+Close stdin (or file descriptor I<n>).
+
+=item [I<n1>]>&I<n2>
+
+Duplicate stdout (or file descriptor I<n1> to file descriptor I<n2>.
+
+=item [I<n>]&-
+
+Close stdout (or file descriptor I<n>).
+
+=back
+
+Note that stdin, stdout, and stderr are common terms for standard input,
+output, and error; respectively. You can specify stdin, stdout, or stderr as
+file descriptors 0, 1, or 2; also respectively.
+
 =head2 Command Macros
 
 Several features of other shells are considered by tpsh, to be a form of
