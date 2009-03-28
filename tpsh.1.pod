@@ -215,6 +215,97 @@ for each simple command:
 
 =head3 Complex Commands
 
+=head3 Command Search & Execution
+
+The shell understands several types of commands: built-in commands, macros,
+and external programs. The command is searched for by name in a predefined
+order, and then executed.
+
+First a command is checked if it is a named macro. tpsh's use of named macros
+is analogous to other shells use of B<alias>es or shell B<function>s. The
+macro will be expanded recursively before execution occurs, the expansion
+replaces the macro name in the queue. Refer to L</Macro Expansions> below for
+the gory details of how macros are expanded.
+
+Next tpsh examines if the command is built-in to the shell. If so, the
+command is executed internally without spawning a new process. tpsh provides
+many built-in commands either for connivance or portability; they are
+documented under L</Built-in Commands>.
+
+Lastly if the command does not match a named macro or built-in command, it is
+assumed to be an external program to be executed. If the command begins with
+an absolute or relative file specification (i.e. a pathname), it will be
+executed directly. Other wise the name is subject to a PATH Search, and
+expanded to a suitable file specification for invocation by L<exec>.
+
+If the command could not be executed, an error message will be printed to the
+shells standard error stream, and exit status set accordingly.
+
+=head4 Path Search
+
+Internally tpsh maintains a hash table of all known commands, by mapping these
+command names to their full path names it is possible to speed up the
+execution of commands by minimizing the search procedure to a simple command
+=> filename look up. The shell is made aware of external commands by setting
+the PATH environment variable, and B<rehash>ing the saved values for
+performance. It is also possible to automate a limited understanding of file
+extensions though the use of the PATHEXT variable and pathext shell option.
+
+Terry's Portable SHell performs the following actions whenever it must search
+the users PATH for a program:
+
+=over 8
+
+=item 1. 
+
+If the command name looks like a file specification, it is executed without
+further comment.
+
+=item 2.
+
+The shell consults an internal hash table with the command name. If it is
+found, the saved file specification is executed.
+
+=item 3.
+
+If the command still has not been found: the users PATH environment variable
+is interpreted as a list of directories separated by the HASHSEP environment
+variable. Each directory is manually searched for the command; if the pathext
+option or PATHEXT variable is not set, then the search path ends here.
+
+=item 4.
+
+If the user has set the PATHEXT environment variable, and the shells pathext
+option is also set: repeat step 2 with each element of PATHEXT until the
+command has been found or continue to step 5.
+
+=item 5.
+
+If step 4 failed, repeat step 3 in the same manor, or give up.
+
+=back
+
+=head4 Path Extensions
+
+in order to reduce typing, and make certain antique operating systems easier
+to use: tpsh allows the user to specify command suffixes or "Path extensions"
+to try befor egiving up. The PATHEXT environment variable if set, will be used
+to generate a list of possible filename extensions. By default tpsh enables
+the pathext option, but does not set a value for PATHEXT.  If the pathext
+option has been disabled, no checks are made.
+
+The path extensions in PATHEXT are interpreted similar to PATH variable. Each
+element of the list is suffixed to the commands name, such that if 
+
+	PATHEXT='.sh:.py:.rb'
+
+Then 'name' will be checked as 'name', 'name.sh', 'name.py', and 'name.rb'
+before giving up the search.
+
+No attempt is made at understanding file or MIME type associations: your
+operating system must understand how to execute the named file. Microsoft
+systems should have file associations setup to run the appropriate program,
+most Unix systems will obey the usual C<magic number> exec pattern.
 
 =head2 I/O Redirections
 
