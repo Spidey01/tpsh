@@ -157,9 +157,34 @@ environment variable. More useful then the C<-v> option.
 
 =item Single Quotes
 
+Enclosing characters within single quotes serve to remove any special meaning
+they may have. Inside single quotes, no parameter or macro expansion is
+performed, whitespace will be maintained where applicable, and no escape
+characters are interpreted. The literal characters are retained, making it
+impossible to nest single quotes.
+
 =item Double Quotes
 
+Enclosing characters within double quotes restricts the evaluation to
+parameter expansion and backslash escapes. The backslash inside double quotes
+is historically weird: and the shell does not yet understand them.
+
 =item Backquotes (or backticks)
+
+The back-quotes, or `back-ticks` as this documentation prefers serve as a
+means for executing a command expression, and substituting the expressions
+output in place of the quotes. The use of back-ticks behaves exactly like the
+B<$()> command substitution syntax, but without three presses of the shift
+key. No special evaluations are performed on the contents of back-quotes, only
+simple text substitution.
+
+	$ echo `ls | head -n 1`
+
+is equivalent to
+
+	$ echo `sh -c "ls | head -n 1"`
+
+and both expand to 'echo first line of ls output'.
 
 =back
 
