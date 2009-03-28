@@ -602,6 +602,11 @@ sub search_path {
 
     my $cmd = $_[0];
 
+    # this is not portable, but works most places
+    if (substr($cmd, 0, 1) =~ /[.\/\\]/) {
+        return $cmd;
+    }
+
     # try to avoid unneccessary PATHEXT checks
     #
     if (exists $Path{$cmd}) {
