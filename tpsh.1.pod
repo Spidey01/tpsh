@@ -85,6 +85,10 @@ used for checking a script for syntax errors without running it.
 
 XXX not implemented yet
 
+=item pathext
+
+When executing commands, perform file extension checks before giving up.
+
 =item reportpipe
 
 Print an additional error message whenever SIGPIPE is received; default off.
