@@ -566,7 +566,7 @@ The B<pwd> built-in command is implemented using the Cwd Perl module, so C<pwd
 -L> likely will behave differently in tpsh, then sh or /bin/pwd.
 
 Operations that rely on time delays, via system calls such as sleep() or
-alarm() may return early, late, or whatever strange IAW behaviour can be
+alarm() may return early, late, or whatever strange behaviour can be
 expected from your Operating System and Perl Distribution. The B<sleep> and
 B<read> built-in commands are a prime example.
 
@@ -578,6 +578,12 @@ own risk.
 
 The PS2 variable is not actually used yet, instead such things are delegated to
 the L<Term::ReadLine> implementation for the time being.
+
+
+Avid users of the GNU Bourne Again SHell (bash) should take note: while tpsh
+implements the B<history> built-in command, no attempt is made to mimic the
+functionality provided bash; use the provided built-ins. This is Terry's
+Portable SHell after all, not a Bourne Again Clone :-P.
 
 =head1 LICENSE
 
