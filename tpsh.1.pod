@@ -56,6 +56,8 @@ effect as C<FOO=BAR; export FOO>.
 
 Enable asynchronous notification of background job completion.
 
+XXX not implemented yet
+
 =item B<-C> noclobber
 
 Do not overwrite existing files with I/O redirection; e.g. C<<cat f1 f2 > f1>>
@@ -66,11 +68,14 @@ becomes an error under noclobber.
 Commands are read from the following argument (string) instead of from standard
 input. Keep in mind that multi-word strings must be quoted in most shells.
 
+XXX not implemented yet
 
 =item B<-E> emacs
 
 Use key bindings for interactive line editing that resemble the L<emacs(1)>
 operating system. (This option counteracts -V)
+
+XXX not implemented yet
 
 =item B<-e> errexit
 
@@ -81,6 +86,8 @@ Because user defined functions and aliases are mealy a form of textual macro,
 the contents of any function is B<not> exempt from testing a commands exit
 status..
 
+XXX not implemented yet
+
 =item B<-f> noglob
 
 Disable filename globing; e.g. C<vi f*> passes the C<f*> to vi, rather then all
@@ -89,6 +96,8 @@ files matching the pattern.
 =item B<-I> ignoreeof
 
 Ignore end of file indicators from input when running in interactive mode. 
+
+XXX not implemented yet
 
 =item B<-i> interactive
 
@@ -124,6 +133,8 @@ command  line arguments left after option parsing).
 
 Use key bindings for interactive line editing that resemble the L<vi(1)> text
 editor. (This option counteracts -E)
+
+XXX not implemented yet
 
 =item B<-v> verbose
 
