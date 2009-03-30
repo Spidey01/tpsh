@@ -13,6 +13,7 @@ use Dumpvalue;
 use File::Basename;
 use File::Glob          ':glob';
 use File::Spec;
+use File::Temp;
 use Getopt::Long;       # do NOT export GetOptionsFrom*
 use Term::ReadLine;
 
@@ -65,6 +66,7 @@ sub echo_bin;
 sub eval_bin;
 sub exit_bin;
 sub export_bin;
+sub fc_bin;
 sub function_bin;
 sub hash_bin;
 sub history_bin;
@@ -218,7 +220,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'exit'         => \&exit_bin,
                  'export'       => \&export_bin,
                  'false'        => sub { warn "Not implemented\n" },
-                 'fc'           => sub { warn "Not implemented\n" },
+                 'fc'           => \&fc_bin,
                  'fg'           => sub { warn "Not implemented\n" },
                  'function'     => \&function_bin,
                  'getopts'      => sub { warn "Not implemented\n" },
@@ -262,7 +264,7 @@ sub init_sh {
     # override warn/die behaviour with the desired output
     #
     $SIG{__WARN__} = \&err_handler;
-    $SIG{__DIE__} = \&death_handler;
+    $SIG{__DIE__}  = \&death_handler;
 
     if (grep { $^O eq $_ } qw(VMS MacOS NetWare beos vos)) {
         warn "$0: Unsupported OS $^O -- YMMV\n";
@@ -1285,6 +1287,215 @@ sub exit_bin {
 
 sub export_bin {
     
+}
+
+sub fc_bin {
+
+    my ($e,$l,$n,$r) = (0,0,0,0);
+    my @lines;
+    my @argv = @_;
+    my @hist = get_history();
+    my %opts = ('e|editor=s'    => \$e,
+                'l|list'        => \$l,
+                'n'             => \$n,
+                'r|reverse'     => \$r,
+       );
+    do_getopt(\@argv, %opts);
+
+    my ($first, $last) = @argv;
+
+    $first ||= ""; $last ||= "";    # darn auto-viv.
+
+    # code refs to save on typing
+    # these functions are handy, but only needed here.
+    #
+    my $pushln = sub {
+        my ($str, $idx) = @_;
+        if ($n) {
+            push @lines, $str;
+        } else {
+            push @lines, "$idx: $str";
+        }
+    };
+    my $println = sub {
+        if ($r) {
+            map { print "$_\n" } reverse @_;
+        } else {
+            map { print "$_\n" } @_;
+        }
+    };
+    my $editln = sub {
+        #
+        # actually edit and re execute the command
+        #
+
+        #
+        # If the OS supports /dev/fd*, use it to avoid passing the filename
+        # to the users editor.
+        #
+        my $devfd;
+        for ("/proc/$$/fd") {
+        #for ("/proc/$$/fd", '/dev/fd') {  <-- doesn't work on fbsd
+            if (-d $_) {
+                $devfd = $_;
+                last;
+            }
+        }
+
+        #
+        # Let the module do the right thing, for us.
+        #
+        File::Temp->safe_level(File::Temp::HIGH);
+        my ($fh, $fn) = File::Temp::tempfile();
+
+        #
+        # write commands to temp file
+        #
+        map { print $fh "$_\n" } $r ? reverse @_ : @_;
+
+        my $file = $devfd ? "${devfd}/".fileno($fh) : $fn;
+
+        resolve_cmd $e, $file;
+
+        #
+        # execute the result as a script in current shell
+        #
+        source_bin($file);
+
+        File::Temp::unlink1($fh, $fn) 
+            or warn "unable to clean up $fn";
+    };
+    my $dofc = sub {
+        if ($l) {
+            $println->(@_);
+        } else {
+            $editln->(@_);
+        }
+    };
+
+    # if we are not listing, we are editing
+    #
+    unless ($l) {
+        $n = 'so skip line numbers';
+    }
+
+    # make sure there is an editor to use
+    #
+    local $ENV{FCEDIT} = $ENV{FCEDIT};
+    if ($e) {
+        $ENV{FCEDIT} = $e;
+    }
+    for my $ed (qw/ FCEDIT EDITOR /) {
+        if (exists $ENV{$ed}) {
+            $e = $ENV{$ed};
+            last;
+        }
+    }
+    unless ($e or $l) {
+        warn "no editor specified";
+        return 0;
+    }
+
+    #
+    # list or edit/re-exec command
+    #
+    unless ($first) {
+        #
+        # just operate on all the history (fc)
+        #
+        my $i = $HistoryNumber - $#hist;
+        for my $ln (@hist) {
+            $pushln->($ln, $i);
+            $i++;
+        }
+        $dofc->(@lines);
+    } else {
+        #
+        # locate the command range to use (fc first [last])
+        #
+        if ($first =~ /^\d/) {
+            #
+            # fc numerical indexes 
+            #
+
+            # XXX 
+            #   user indexes are 1 based, convert to 0 based.
+            #   and abort if out of range.
+            $first--; $first  = int($first);
+            $last--;  $last   = int($last);
+
+            local $@;
+            if ($first > $#hist) {
+                $@ = "history index out of range: $first";
+            }
+            if ($last > $#hist) {
+                $@ = "history index out of range: $last";
+            }
+            goto badidx if $@;
+
+            my @buf = eval {
+                $last > 0 ? @hist[$first..$last]
+                          : $hist[$first];
+            };
+            if ($n) {
+                map { $pushln->($_) } @buf;
+            } else {
+                # we have to manually insert the line numbers
+                #
+                my $k= $first + 1;
+                map { $pushln->($_, $k); $k++ } @buf;
+            }
+            $dofc->(@lines);
+
+          badidx:
+            if ($@) { 
+                print STDERR "fc: ", $@;
+                return 0;
+            }
+        } else {
+            #
+            # fc regexp indexes
+            #
+
+            # check for regexp syntax errors 
+            # XXX we _N_E_E_D_ a global sub for this!!!
+            eval { 
+                local $SIG{__WARN__} = 'IGNORE';
+                local $SIG{__DIE__}  = sub { 
+                    my $msg = join ' ', @_;
+                    $msg =~ s%at (?:.*tpsh) line \d*\.$%\n%;
+                    die "$msg\n"; 
+                };
+                "" =~ /^$first/ or "" =~ /^$last/ 
+            };
+            if ($@) {
+                print STDERR "fc: ", $@;
+                return 0;
+            }
+
+            # locate the first offset by counting backwards and
+            # then walk forward again if we have another regexp
+            #
+            my ($i,$x);
+            for ($i=$#hist; $i < scalar @hist; $i--) {
+                if ($hist[$i] =~ /^$first/) {
+                    $x=$i+1;
+                    $pushln->($hist[$i], $x);
+                    last;
+                }
+            }
+            if ($last) {
+                for ($i++; $i < scalar @hist; $i++) {
+                    $x=$i+1;
+                    $pushln->($hist[$i], $x);
+                    last if $hist[$i] =~ /^$last/;
+                }
+            }
+            $dofc->(@lines);
+        }
+    }
+
+    return 1;
 }
 
 sub function_bin {
