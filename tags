@@ -6,10 +6,12 @@
 !_TAG_PROGRAM_VERSION	5.7	//
 alias_bin	tpsh	/^sub alias_bin {$/;"	s
 bad	tpsh	/^      bad:$/;"	l
+badidx	tpsh	/^          badidx:$/;"	l
 binerr	tpsh	/^sub binerr {$/;"	s
 builtin	tpsh	/^  builtin:$/;"	l
 builtin_bin	tpsh	/^sub builtin_bin {$/;"	s
 cd_bin	tpsh	/^sub cd_bin {$/;"	s
+cls_bin	tpsh	/^sub cls_bin {$/;"	s
 complete_builtin	tpsh	/^sub complete_builtin {$/;"	s
 complete_command	tpsh	/^sub complete_command {$/;"	s
 complete_filename	tpsh	/^sub complete_filename {$/;"	s
@@ -30,6 +32,7 @@ expand_quotes	tpsh	/^sub expand_quotes {$/;"	s
 expand_tilde	tpsh	/^sub expand_tilde {$/;"	s
 export_bin	tpsh	/^sub export_bin {$/;"	s
 fail	tpsh	/^    fail: do {$/;"	l
+fc_bin	tpsh	/^sub fc_bin {$/;"	s
 function_bin	tpsh	/^sub function_bin {$/;"	s
 get_history	tpsh	/^sub get_history {$/;"	s
 handle_prompt	tpsh	/^sub handle_prompt {$/;"	s
