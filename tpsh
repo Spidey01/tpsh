@@ -1583,6 +1583,7 @@ sub history_bin {
     for my $ln (@lines) {
         print STDERR "$i: $ln\n"; $i++;
     }
+    return 1;
 }
 
 sub macro_bin {
