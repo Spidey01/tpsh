@@ -48,6 +48,7 @@ sub expand_aliases;
 sub expand_glob;
 sub exec_pipe;
 sub get_history;
+sub add_history;
 sub binerr;
 sub hsplit;
 sub ifsplit;
@@ -173,12 +174,29 @@ my $Last_Cmd = '';
 my @Last_Line = ();
 
 #
+# Internal history buffer, holds individual command lines sans the '\n'.
+# This is used if the ReadLine module doesn't support history. You should
+# never access this directly, use the main::*_history() functions here.
+# note: generally this is here so things like fc still work with when
+# Term::ReadLine::Stubs is the only read line module available.
+#
+my @History = ();
+
+#
 # In an interactive shell, this holds the number of command lines that have
 # been entered by the user. If you call get_history() to get a list of lines
 # within HISTSIZE, you can find your numerical indexs starting point within 
 # the global history as $#get_history() - $HistoryNumber. 
 #
 my $HistoryNumber = 0;
+
+#
+# Set to a truth value if Term::ReadLine can automatically add history
+# to its internal buffers when getting a line. Other wise, we need to
+# do our own emulation.
+#
+our $ReadLineSupportsHistory = 0;
+
 
 #
 # Reference to our ReadLine interface
@@ -372,17 +390,37 @@ sub init_sh {
     # initialize the readline library
     #
     $Term = Term::ReadLine->new($ENV{SHELL});
-    $ENV{TPSH_READLINE} = $Term->ReadLine();
-    my $attr = $Term->Attribs();
 
-    # attempt to disable the autohistory, it interfers
-    # with our own history manipulation. XXX only works in Zoid!
+    my $attr = $Term->Attribs();
+    my $feat = $Term->Features();
+
     #
-    $attr->{autohistory} = 0;
+    # stupid side-steps for various Term::ReadLine::Packages 
+    #
+    # some packages (Zoid) have problems with Features, others (Perl, Gnu) have
+    # issues with respecting Attribs; so just trap this in an eval.
+    #
+    eval {
+        if ($feat->{autohistory}) {
+            $ReadLineSupportsHistory = "yes";
+
+            # XXX ignored by Stubs and Perl
+            $attr->{autohistory} = 1;
+        }
+    };
+    #
+    # turn off stupid ornamentation
+    # XXX works in Gnu, Zoid;  !Stubs, !Perl
+    #
+    $attr->{ornaments} = 0;
 
     # Setup custom completion function
+    # XXX works for Zoid, Perl, and Gnu (Zoid is best)
     #
     $attr->{completion_function}   = \&do_completion;
+
+    $ENV{TPSH_READLINE} = $Term->ReadLine();
+
 
     # change to the users home directory by default.
     # this will also take care of the OLDPWD/PWD variables.
@@ -453,7 +491,7 @@ sub handle_prompt {
         $ln = $Term->readline($ENV{PS1});
         if (defined $ln and $ln =~ /\S/) {
             $HistoryNumber ++;
-            $Term->addhistory($ln);
+            add_history($ln);
         }
     } else {
         $ln = <>;
@@ -1025,15 +1063,19 @@ sub get_history {
 
     # cache HISTSIZE here, incase it changes during execution
     my $histsize = $ENV{HISTSIZE};
+    my @lines    = ();
 
     # some readline packages might not supply this function, 
     # known: Zoid, Perl, and Gnu do but Stubs doesn't. so 
     # call within an eval to be sure.
     #
-    my @lines = eval { $Term->GetHistory() };
-
-    if ($@) {
-        warn $Term->ReadLine(), " might not support GetHistory()";
+    if ($ReadLineSupportsHistory) {
+        @lines = eval { $Term->GetHistory() };
+        if ($@) {
+            warn $Term->ReadLine(), " might not support GetHistory()",
+        }
+    } else {
+        @lines = @History;
     }
 
     if ( @lines > $histsize) {
@@ -1043,6 +1085,13 @@ sub get_history {
         @lines = reverse @lines;
     }
     return @lines;
+}
+
+sub add_history {
+
+    unless ($ReadLineSupportsHistory) {
+        push @History, @_;
+    }
 }
 
 =pod
