@@ -329,7 +329,6 @@ sub init_sh {
             $ENV{EDITOR} = 'edit';
         }
     }
-    $ENV{FCEDIT}    ||= $ENV{EDITOR};
     $ENV{HISTSIZE}  ||= 512;
     $ENV{IFS}       ||= " \t\n";
     $ENV{PS1}       ||= $pw{uid} != 1 ? '$ ' : '# ';
