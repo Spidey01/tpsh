@@ -458,7 +458,7 @@ sub handle_prompt {
     } else {
         $ln = <>;
     }
-    if (defined($ln) && $Options{xtrace}) {
+    if (defined($ln)) {
         if ($Options{verbose}) {
             print $ln;
             $Options{interactive} ? print "\n" : 0;
