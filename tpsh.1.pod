@@ -52,6 +52,10 @@ command (described later in L</Built-in Commands>.)
 Automatically export variables to the environment; i.e. C<FOO=BAR> has the same
 effect as C<FOO=BAR; export FOO>.
 
+=item B<-A> autohistory
+
+Causes tpsh to load saved history from HISTFILE after processing the users ENV, and to save the shells history to HISTFILE before terminating.
+
 =item B<-b> notify
 
 Enable asynchronous notification of background job completion.
@@ -904,6 +908,13 @@ Portable SHell after all, not a Bourne Again Clone :-P.
 Most things say "meta character" or something similar, I say glob character:
 it keeps it simple. Don't like my notation? Then write your own stinking
 manual :-P.
+
+The way the shells autohistory option is implemented; HISTFILE is loaded after
+the users ENV, so they have a chance to change HISTFILE. Like wise it is saved
+at shell exit through an END block in Perl, and subject to the usual rules that
+implies. Obviously if you turn off the autohistory option before the shell
+loads or during your ENV files, starting the shell with it enabled will do you
+little good ;).
 
 =head1 LICENSE
 
