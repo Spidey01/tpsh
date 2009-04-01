@@ -761,7 +761,7 @@ values if necessary.
 
 =item PATH
 
-The default search path for executables. PATH is a HASHSEP delimited list of
+The default search path for executables. PATH is a HASHSEP separated list of
 directories in which to search. The default value is system dependent.
 
 =item SHELL
@@ -800,7 +800,7 @@ an ENV file to adjust itself based on the current operating system.
 
 =item HASHSEP
 
-Used as the field separator for hash-sep delimited lists. Whenever an internal
+Used as the field separator for hash-sep separated lists. Whenever an internal
 operation accesses such data, the shell may modify this environment variable
 with the corresponding compiled regular expression. The default value of
 hash-sep is system dependent; currently if OSTYPE is C<MSWin32>, C<os2>, or
@@ -875,14 +875,14 @@ These variables effect tpsh's behaviour, but will not be automatically set by tp
 =item ENV
 
 When invoking an interactive shells invocation, the ENV variable is interpreted
-as a HASHSEP delimited list of files to be sourced after any profile scripts.
+as a HASHSEP separated list of files to be sourced after any profile scripts.
 The recommended value is F<${HOME}/.tpshrc>. See L</Invocation>
 
 =item CDPATH
 
 Search path used by the B<cd> and B<chdir> built-in commands, refer to
 L</Built-in Commands> for a description of its side effects. There is no
-default; the value of CDPATH should be a HASHSEP delimited list.
+default; the value of CDPATH should be a HASHSEP separated list.
 
 
 =item HISTFILE
@@ -891,7 +891,7 @@ The file to save history to, and restore history from. There is no default.
 
 =item TPSH_DOTDIR
 
-A PATH like delimited list, specifying the directories to search for F<tpsh_profile>s when starting a login shell. There is no default.
+A PATH like separated list, specifying the directories to search for F<tpsh_profile>s when starting a login shell. There is no default.
 
 =back
 
