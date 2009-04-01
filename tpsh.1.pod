@@ -539,6 +539,26 @@ enough whitespace will be generated for the average display.
 Exit the shell with exit status I<status>, if status is omitted then the exit
 status of the last command is used. Note that I<status> should be an integer.
 
+=item B<fc> [B<-e> I<editor>] [B<-rln>] [I<first>] [I<last>]
+
+Fudged Command. Select the most recently executed commands within the range
+(inclusive) of I<first> and I<liast>. The commands are placed into an editor
+for fudging and executed as a shell script. The default is to use the FCEDIT
+environment variable as the editor, and to fall back on the EDITOR variable
+when it is not set. If the B<-e> option is specified, edit the commands using
+I<editor>. If the B<-r> option is specified, the order of commands is inverted.
+When the B<-l> option is given, list but do not execute the commands. The B<-n>
+option may be used to in conjunction with B<-l> to disable the display of line
+numbers; when editing commands, line numbers are never displayed.
+
+The history index range, I<first> and I<last> may be either integer offsets
+into the history list, or string patterns.  Relative offsets are possible,
+negative indexes count backwards from the current command, thus -1 refers to
+the previous command and +1 to the current. When string indexes are used, the
+shell searches backwards in history until it finds a line starting with
+I<first>, and then walks forward until the previous command or a line starting
+with I<last> is found. 
+
 =item B<function> I<name()> [I<list ...>]
 
 Defines a named macro using syntax that resembles the GNU Bourne Again SHell.
@@ -557,6 +577,15 @@ the B<-r> option is specified, then delete the entire contents of the hash
 table.  Note well that this does I<not> allow you to remove a single command
 from your search PATH, it only manipulates internal data structures used to
 speed up command execution. 
+
+=item B<loadhist> [I<file> ...]
+
+Load saved history from the indicated I<file>s and append it to the shells
+current history. Note that depending on the capabilities of the
+L<Term::ReadLine> module that has been loaded (TPSH_READLINE), you may only be
+able to access loaded history through built-in commands like B<fc>. This is not
+tpsh's fault. If no I<file> is specified, B<loadhist> inspects the current
+value of HISTFILE before giving up.
 
 =item B<macro> I<name(> [<command ...>] I<)>
 
@@ -585,6 +614,12 @@ option. The B<-t> option may be used to specify a timeout in which to abort the
 operation, should the user take their sweet time about pressing CR. The
 I<timeout> value can take an optional C<s>, C<m>, or C<h> suffix to denote
 seconds, minutes, or hours. If no suffix is given, C<s> will be assumed.
+
+=item B<savehist> [I<file>]
+
+Save the current shells history to indicated I<file>, or HISTFILE if no I<file>
+was specified. The history file will be modified, appending the shells current
+history based on the value of HISTSIZE.
 
 =item B<set> [B<-/+abCEefIimVvx>] [B<-/+o> I<longname>] [B<-c> I<string>] [B<--> I<arg ...>]
 
@@ -915,6 +950,12 @@ at shell exit through an END block in Perl, and subject to the usual rules that
 implies. Obviously if you turn off the autohistory option before the shell
 loads or during your ENV files, starting the shell with it enabled will do you
 little good ;).
+
+Currently the B<fc> built-in command handles I<first> and I<last> as array
+subscripts or regular expressions; this means tpsh uses the same array indexing
+behaviour as Perl, and provides the power of regular expressions which may or
+may not be convenient at any given moment. As strings, they are evaluated in
+the following context: C<m/^first/> and C<m/^last/>.
 
 =head1 LICENSE
 
