@@ -49,6 +49,8 @@ sub expand_glob;
 sub exec_pipe;
 sub get_history;
 sub add_history;
+sub load_history;
+sub save_history;
 sub binerr;
 sub hsplit;
 sub ifsplit;
@@ -71,10 +73,12 @@ sub fc_bin;
 sub function_bin;
 sub hash_bin;
 sub history_bin;
+sub loadhist_bin;
 sub macro_bin;
 sub pwd_bin;
 sub read_bin;
 sub rehash_bin;
+sub savehist;
 sub set_bin;
 sub setenv_bin;
 sub setvar_bin;
@@ -97,6 +101,7 @@ sub which_bin;
 #
 my %Options = ( 
     allexport       =>  0,
+    autohistory     =>  0,
     notify          =>  0,
     noclobber       =>  0,
     emacs           =>  1,
@@ -120,6 +125,7 @@ my %Options = (
 #
 my %Setopts = (
     'a|allexport'    =>  \$Options{allexport},
+    'A|autohistory'  =>  \$Options{autohistory},
     'b|notify'       =>  \$Options{notify},
     'C|noclobber'    =>  \$Options{noclobber},
     'E|emacs'        =>  \$Options{emacs},
@@ -245,6 +251,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'hash'         => \&hash_bin,
                  'history'      =>\ &history_bin,
                  'jobs'         => sub { warn "Not implemented\n" },
+                 'loadhist'     => \&loadhist_bin,
                  'local'        => sub { warn "Not implemented\n" },
                  'macro'        => \&macro_bin,
                  'pwd'          => \&pwd_bin,
@@ -252,6 +259,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'readonly'     => sub { warn "Not implemented\n" },
                  'rehash'       => \&rehash_bin,
                  'return'       => sub { warn "Not implemented\n" }, 
+                 'savehist'     => \&savehist_bin,
                  'set'          => \&set_bin,
                  'setenv'       => \&setenv_bin,
                  'setvar'       => \&setvar_bin,
@@ -382,9 +390,6 @@ sub init_sh {
     rehash();
 
     $ENV{'$'} = $$;
-    unless (defined $ENV{TERM}) {
-        warn "UNDEFINED TERMINAL TYPE\n";
-    }
 
     # initialize the readline library
     #
@@ -432,6 +437,14 @@ sub init_sh {
                   source_bin $f or warn "$f: $!";
                 } hsplit $ENV{ENV};
         }
+    }
+
+    if ($Options{autohistory}) {
+        loadhist_bin $ENV{HISTFILE};
+    }
+
+    unless (defined $ENV{TERM}) {
+        warn "UNDEFINED TERMINAL TYPE\n";
     }
 }
 
@@ -620,6 +633,7 @@ sub pexec {
             exit 1;
         }
         exec { $cmds[0] } @cmds;
+        # FIXME /file.ext not exec'able
         warn "NOT REACHED -- CHILD ON ", __FILE__, ':', __LINE__;
         exit $? >> 8;
     }
@@ -1091,6 +1105,59 @@ sub add_history {
     unless ($ReadLineSupportsHistory) {
         push @History, @_;
     }
+}
+
+sub load_history {
+
+    if ($ReadLineSupportsHistory) {
+        eval { 
+            $Term->SetHistory(@_);
+            $HistoryNumber += $#_;
+        };
+        if ($@) {
+            warn $Term->ReadLine(), " might not support GetHistory()",
+        }
+    } else {
+        push @History, @_;
+        $HistoryNumber += $#_;
+    }
+}
+
+sub save_history {
+
+    my $histfile = shift;
+    my $histsize = $ENV{HISTSIZE} || 0;
+    my $fsize    = 0;
+    my $hsize    = 0;
+    my $fh       = undef;
+    my @lines    = ();
+    my @history  = get_history();
+
+    open $fh, '+<', $histfile or 
+    open $fh, '+>', $histfile or return;
+
+    # we must chomp off the end of line markers
+    while (<$fh>) {
+        chomp;
+        push @lines, $_;
+    }
+    
+    $fsize = $.;
+    $hsize = $#lines + $#history +1;
+
+    if ($hsize > $histsize) {
+        # trim the file and rewrite
+        for (0..$hsize-$histsize) {
+            shift @lines;
+        }
+        seek $fh, 0, 0;
+        map { print $fh "$_\n" } (@lines, @history);
+    } else {
+        # just append 
+        map { print $fh "$_\n" } @history;
+    }
+
+    return close $fh;
 }
 
 =pod
@@ -1585,6 +1652,22 @@ sub history_bin {
     return 1;
 }
 
+sub loadhist_bin {
+
+    my @argv  = @_;
+    my @lines = ();
+
+    for my $file (@argv) {
+        open my $fh, '<', $file or warn "loadhist: $!";
+        next if $!;
+        while (<$fh>) {
+            chomp;
+            push @lines, $_;
+        }
+    }
+    load_history @lines;
+}
+
 sub macro_bin {
 
     # name( ... ) == good 
@@ -1698,6 +1781,14 @@ sub read_bin {
 sub rehash_bin {
     rehash;
     return 1;
+}
+
+sub savehist_bin {
+
+    my $histfile = shift || $ENV{HISTFILE} || "";
+
+    save_history $histfile;
+
 }
 
 sub set_bin {
@@ -1867,6 +1958,11 @@ sub which_bin {
     }
 }
 
+END {
+    if ($Options{autohistory}) {
+        savehist_bin $ENV{HISTFILE};
+    }
+}
 
 #
 #----------------------------------------------------------
@@ -1876,6 +1972,6 @@ if (__PACKAGE__ eq 'main') {
     do_getopt(\@ARGV, %Setopts);
     $Options{interactive} = -t *STDIN && !@ARGV ? 1 : 0;
     $Options{stdin}       = @ARGV               ? 1 : 0;
-    init_sh();
+    init_sh(); 
     exit main_loop();
 }
