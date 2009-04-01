@@ -395,6 +395,8 @@ sub init_sh {
     #
     $Term = Term::ReadLine->new($ENV{SHELL});
 
+    $ENV{TPSH_READLINE} = $Term->ReadLine();
+
     my $attr = $Term->Attribs();
     my $feat = $Term->Features();
 
@@ -412,6 +414,11 @@ sub init_sh {
             $attr->{autohistory} = 1;
         }
     };
+    if ($@ and substr($ENV{TPSH_READLINE}, 16) eq 'Zoid') {
+        # band-aid for Zoid
+        $attr->{autohistory} = 1;
+        $ReadLineSupportsHistory = "yes";
+    }
     #
     # turn off stupid ornamentation
     # XXX works in Gnu, Zoid;  !Stubs, !Perl
@@ -422,8 +429,6 @@ sub init_sh {
     # XXX works for Zoid, Perl, and Gnu (Zoid is best)
     #
     $attr->{completion_function}   = \&do_completion;
-
-    $ENV{TPSH_READLINE} = $Term->ReadLine();
 
 
     # change to the users home directory by default.
@@ -1121,6 +1126,7 @@ sub load_history {
         push @History, @_;
         $HistoryNumber += $#_;
     }
+    return 1;
 }
 
 sub save_history {
@@ -1665,7 +1671,7 @@ sub loadhist_bin {
             push @lines, $_;
         }
     }
-    load_history @lines;
+    return load_history @lines;
 }
 
 sub macro_bin {
@@ -1787,8 +1793,7 @@ sub savehist_bin {
 
     my $histfile = shift || $ENV{HISTFILE} || "";
 
-    save_history $histfile;
-
+    return save_history $histfile;
 }
 
 sub set_bin {
