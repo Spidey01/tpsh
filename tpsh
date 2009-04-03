@@ -356,9 +356,14 @@ sub init_sh {
         $ENV{TMP}   ||= $ENV{TMPDIR};
         $ENV{TEMP}  ||= $ENV{TMPDIR};
     } else {
-        $ENV{TMPDIR} ||= $ENV{TMP} || $ENV{TEMP} || "";
+        $ENV{TMPDIR} ||= $ENV{TMP} || $ENV{TEMP};
         $ENV{TMP}    ||= $ENV{TMPDIR};
         $ENV{TEMP}   ||= $ENV{TMPDIR};
+    }
+    # some programs (e.g. nvi) will pop a cork if TMPDIR=""
+    # so delete them all, unless there is a value.
+    unless (defined $ENV{TMPDIR}) {
+        delete @ENV{qw/TMPDIR TMP TEMP/};
     }
 
     # We consider LOGNAME to be the authoritve form of the users name as
