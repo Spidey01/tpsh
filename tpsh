@@ -99,7 +99,7 @@ sub which_bin;
 #
 # Represents command line flags and set -options
 #
-my %Options = ( 
+my %Options = (
     allexport       =>  0,
     autohistory     =>  0,
     notify          =>  0,
@@ -108,7 +108,7 @@ my %Options = (
     errexit         =>  0,
     noglob          =>  0,
     ignoreeof       =>  0,
-    interactive     =>  0, 
+    interactive     =>  0,
     monitor         =>  0,
     noexec          =>  0,
     privileged      =>  0,
@@ -134,10 +134,10 @@ my %Setopts = (
     'I|ignoreeof'    =>  \$Options{ignoreeof},
     'i|interactive'  =>  \$Options{interactive},
     'm|monitor'      =>  \$Options{monitor},
-    'o=s'            =>  sub { 
+    'o=s'            =>  sub {
                              my @opts = keys %Options;
                              for my $o (split /,/, $_[1]) {
-                                 grep /$o/, @opts or 
+                                 grep /$o/, @opts or
                                     die("no such option: $o"), last;
                                  $Options{$o} = 1;
                              }
@@ -237,7 +237,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'cd'           => \&cd_bin,
                  'chdir'        => \&cd_bin,
                  'cls'          => \&cls_bin,
-                 'command'      => sub { warn "Not implemented\n" }, 
+                 'command'      => sub { warn "Not implemented\n" },
                  'echo'         => \&echo_bin,
                  'eval'         => \&eval_bin,
                  'exec',        => \&exec_bin,
@@ -258,7 +258,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'read'         => \&read_bin,
                  'readonly'     => sub { warn "Not implemented\n" },
                  'rehash'       => \&rehash_bin,
-                 'return'       => sub { warn "Not implemented\n" }, 
+                 'return'       => sub { warn "Not implemented\n" },
                  'savehist'     => \&savehist_bin,
                  'set'          => \&set_bin,
                  'setenv'       => \&setenv_bin,
@@ -304,7 +304,7 @@ sub init_sh {
         for my $try (@names) {
             $tried++ unless defined $ENV{$try};
         }
-        die "$0: Unable to find your username" if $tried == @names; 
+        die "$0: Unable to find your username" if $tried == @names;
     };
 
     my ($isWin, $isUnix, %pw);
@@ -312,14 +312,14 @@ sub init_sh {
         ($isWin, $isUnix) = (1, 0);
         require Win32API::Net;
         Win32API::Net::UserGetInfo('', $ENV{USERNAME}, 3, my $href={}) || die $!;
-        %pw = ( name => $href->{name}, 
+        %pw = ( name => $href->{name},
                 homedir => $href->{homeDir} || $ENV{USERPROFILE},
                 uid => $href->{userId} );
         $ENV{LOGNAME} = $pw{name};
     } else {
         ($isUnix, $isWin) = (1, 0);
         require User::pwent;
-        my $pw = User::pwent::getpwnam($ENV{LOGNAME}) 
+        my $pw = User::pwent::getpwnam($ENV{LOGNAME})
             or die "No username specified";
         %pw = ( name => $pw->name, homedir => $pw->dir, uid => $pw->uid, );
     }
@@ -376,7 +376,7 @@ sub init_sh {
 
 
     unless (defined $ENV{PATH}) {
-        $ENV{PATH} = $isUnix ? "/usr/bin:/bin" 
+        $ENV{PATH} = $isUnix ? "/usr/bin:/bin"
                              : "C:/Windows/system32;C:/Windows;" .
                                "C:/Windows/System32/WBem;";
     }
@@ -438,7 +438,7 @@ sub init_sh {
 
     if ($Options{interactive}) {
         if (exists $ENV{ENV}) {
-            map { my $f = sh_eval $_; 
+            map { my $f = sh_eval $_;
                   source_bin $f or warn "$f: $!";
                 } hsplit $ENV{ENV};
         }
@@ -513,7 +513,7 @@ sub handle_prompt {
     } else {
         $ln = <>;
     }
-    if (defined($ln)) {
+    if (defined $ln) {
         if ($Options{verbose}) {
             print $ln;
             $Options{interactive} ? print "\n" : 0;
@@ -594,7 +594,7 @@ sub resolve_cmd {
             while (<$ch>) {
                 print $fp $_;
             }
-            close $ch; close $fp; 
+            close $ch; close $fp;
         }
         return 1;
     }
@@ -626,7 +626,7 @@ sub pexec {
     my    $c    = \$cmds[0];   # save typing
     my    $pid  = fork();
 
-    die "Unable to fork for pexec(\@): $!" 
+    die "Unable to fork for pexec(\@): $!"
         unless defined $pid;
 
     if ($pid) {
@@ -776,12 +776,12 @@ sub complete_filename {
 
     # this is a cheap trick but works well for now
 
-    cd_bin $dirname 
+    cd_bin $dirname
         or warn "$! maybe $dirname was removed by another process?";
 
     my @a = bsd_glob "${basename}*", GLOB_MARK | GLOB_QUOTE | GLOB_TILDE;
 
-    cd_bin $cwd 
+    cd_bin $cwd
         or warn "directory overflow: $!", "maybe $cwd was removed?";
 
     @a = map { "${dirname}/${_}" } @a;
@@ -982,7 +982,7 @@ sub expand_aliases {
 
         # XXX remember the cache stores macro names back-ref'ed !!!
         #
-        grep { 
+        grep {
             if (exists $cache{$_} && $cache{$_} eq $nargv[0]) {
                $nargv[0] = $cache{$nargv[0]};
                last;
@@ -1038,7 +1038,7 @@ sub exec_pipe {
     #     ls | head 1 will kill tpsh!
     #
     local $SIG{PIPE} = sub { warn "$lhs | ${rhs}: $!"
-                                if $Options{reportpipe} 
+                                if $Options{reportpipe}
                            };
     pipe my ($lfd, $rfd) or goto fail;
 
@@ -1115,7 +1115,7 @@ sub add_history {
 sub load_history {
 
     if ($ReadLineSupportsHistory) {
-        eval { 
+        eval {
             $Term->SetHistory(@_);
             $HistoryNumber += $#_;
         };
@@ -1139,7 +1139,7 @@ sub save_history {
     my @lines    = ();
     my @history  = get_history();
 
-    open $fh, '+<', $histfile or 
+    open $fh, '+<', $histfile or
     open $fh, '+>', $histfile or return;
 
     # we must chomp off the end of line markers
@@ -1187,14 +1187,14 @@ sub hsplit {
     # 
     if (ref $$HashSep ne 'Regexp') {
         # trap regexp syntax errors.
-        eval { 
+        eval {
             local $SIG{__WARN__} = 'IGNORE';
-            local $SIG{__DIE__}  = sub { 
+            local $SIG{__DIE__}  = sub {
                 my $msg = join ' ', @_;
                 $msg =~ s/(marked by <-- HERE in)/$1\n/;
                 die $msg, "\n";
             };
-            $$HashSep = qr/$$HashSep/ 
+            $$HashSep = qr/$$HashSep/
         };
         if ($@) {
             warn "syntax error: $@", "\nHASHSEP cleared\n";
@@ -1250,7 +1250,7 @@ sub death_handler {
 }
 
 
-sub sh_eval { 
+sub sh_eval {
     # XXX none of this understands the shells quoting rules
 
     my $ln   = join ' ', expand_glob(@_);
@@ -1267,7 +1267,7 @@ sub update_env {
     my ($var, $val) = @_;
     $val = sh_eval($val);
 
-    return warn "$0: Bad syntax, '$var'\n" 
+    return warn "$0: Bad syntax, '$var'\n"
         if $var =~ /=/; # IEEE Std 1003.1-2004 forbirds = in env-var names
 
     $ENV{$var} = "$val";
@@ -1300,10 +1300,10 @@ sub alias_bin {
     } else {
         # join C-Shell style rhs into a scalar for assignment
         ($lvalue, $rvalue) = (shift @argv, join ' ', @argv);
-    } 
+    }
     unless ($rvalue) {
         if (is_macro $lvalue) {
-            print "'$lvalue' => '$Macros{$lvalue}'\n" 
+            print "'$lvalue' => '$Macros{$lvalue}'\n";
         }
         return 1
     }
@@ -1316,7 +1316,7 @@ sub builtin_bin {
     my $bin = shift;
 
     if (is_builtin $bin) {
-        $Builtins{$bin}->(@_) 
+        $Builtins{$bin}->(@_);
     } else {
         warn "not found: $bin";
     }
@@ -1345,7 +1345,7 @@ sub cd_bin {
             for my $d (hsplit $ENV{CDPATH}) {
                 my $dest = "${d}/$target";
                 if ($target !~ /^[\/.]/) {
-                    $rv = chdir $dest and last; 
+                    $rv = chdir $dest and last;
                 }
             }
         }
@@ -1407,7 +1407,7 @@ sub exit_bin {
 }
 
 sub export_bin {
-    
+
 }
 
 sub fc_bin {
@@ -1483,7 +1483,7 @@ sub fc_bin {
         #
         source_bin($file);
 
-        File::Temp::unlink1($fh, $fn) 
+        File::Temp::unlink1($fh, $fn)
             or warn "unable to clean up $fn";
     };
     my $dofc = sub {
@@ -1569,7 +1569,7 @@ sub fc_bin {
             $dofc->(@lines);
 
           badidx:
-            if ($@) { 
+            if ($@) {
                 print STDERR "fc: ", $@;
                 return 0;
             }
@@ -1580,14 +1580,14 @@ sub fc_bin {
 
             # check for regexp syntax errors 
             # XXX we _N_E_E_D_ a global sub for this!!!
-            eval { 
+            eval {
                 local $SIG{__WARN__} = 'IGNORE';
-                local $SIG{__DIE__}  = sub { 
+                local $SIG{__DIE__}  = sub {
                     my $msg = join ' ', @_;
                     $msg =~ s%at (?:.*tpsh) line \d*\.$%\n%;
-                    die "$msg\n"; 
+                    die "$msg\n";
                 };
-                "" =~ /^$first/ or "" =~ /^$last/ 
+                "" =~ /^$first/ or "" =~ /^$last/
             };
             if ($@) {
                 print STDERR "fc: ", $@;
@@ -1684,7 +1684,7 @@ sub macro_bin {
     my $name = shift @line;
     # macro name(foo == bad
     if ($name =~ /\w*\([\w\(\)\{\}]/) {
-       warn "syntax error: no space after opening parentheses ", 
+       warn "syntax error: no space after opening parentheses ",
             "macro ".join ' ', @_;
         return " ";
     }
@@ -1695,7 +1695,7 @@ sub macro_bin {
     #
     my $endmk = pop @line || '';
     if ($endmk ne ')') {
-        warn "syntax error: no space before closing parentheses ", 
+        warn "syntax error: no space before closing parentheses ",
              "macro ".join ' ', @_;
         return " ";
     }
@@ -1977,6 +1977,6 @@ if (__PACKAGE__ eq 'main') {
     do_getopt(\@ARGV, %Setopts);
     $Options{interactive} = -t *STDIN && !@ARGV ? 1 : 0;
     $Options{stdin}       = @ARGV               ? 1 : 0;
-    init_sh(); 
+    init_sh();
     exit main_loop();
 }
