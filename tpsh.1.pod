@@ -578,6 +578,14 @@ table.  Note well that this does I<not> allow you to remove a single command
 from your search PATH, it only manipulates internal data structures used to
 speed up command execution. 
 
+=item B<history> [I<edit> | I<help> | I<list> | I<load> | I<save> ] [I<args>]
+
+Front end for the B<fc>, B<loadhist>, and B<savehist> commands. C<history edit>
+is a synonym for C<fc>, C<history help> displays a usage message, C<history
+list> is a synonym for C<fc -l>, C<history load> is a synonym for C<loadhist>,
+and C<history save> is a synonym for C<savehist>. I<args> will be passed on to
+the underlaying command, e.g. C<history list 3 4> is the same as C<fc -l 3 4>.
+
 =item B<loadhist> [I<file> ...]
 
 Load saved history from the indicated I<file>s and append it to the shells
