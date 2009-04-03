@@ -1507,7 +1507,7 @@ sub fc_bin {
         $ENV{FCEDIT} = $e;
     }
     for my $ed (qw/ FCEDIT EDITOR /) {
-        if (exists $ENV{$ed}) {
+        if (defined $ENV{$ed}) {
             $e = $ENV{$ed};
             last;
         }
