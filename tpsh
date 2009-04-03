@@ -1649,13 +1649,25 @@ sub hash_bin {
 
 sub history_bin {
 
-    my @lines = get_history();
-    my $i     = $HistoryNumber  - $#lines;
+    my $c;
+    my $cmd  = shift || "";
+    my %cmds = ('edit'  => 'fc %s',
+                'list'  => 'fc -l %s',
+                'load'  => 'loadhist %s',
+                'save'  => 'savehist %s',
+                'help'  => 'history [edit | list | load | save | help] [args]',
+       );
 
-    for my $ln (@lines) {
-        print STDERR "$i: $ln\n"; $i++;
+    if (exists $cmds{$cmd}) {
+        $c = $cmds{$cmd};
+        $c =~ s/%s/join ' ', @_/e;
+    } else {
+        $c = $cmds{list};
+        $cmd ? $c =~ s/%s/$cmd/
+             : $c =~ s/%s//;
     }
-    return 1;
+
+    return eval_bin $c;
 }
 
 sub loadhist_bin {
