@@ -562,6 +562,7 @@ sub tpsh_lex {
 
         foreach $word (@words) {
             next if $word =~ /^$/ or $word =~ /^\s*#/;
+            $word = join ' ', sh_eval $word;
             $word =~ s/\\//g;
             push @stack, $word;
         }
@@ -879,7 +880,7 @@ sub expand_quotes {
                                     push @tokens, $buf;
                        },
                        'def' => sub { my $data = shift;
-                                      push @tokens, $isqu;
+                                      push @tokens, expand_parameters($isqu);
                        },
            );
 
@@ -915,7 +916,7 @@ sub expand_parameters {
     # XXX todo: use a global symbol table or a function to check between 
     # %ENV and %VARS or something like that
     #
-    while ($ln =~ /\$(\w*)\b.*/) {
+    while ($ln =~ /[^\\]+?\$(\w*)\b.*/) {
         my $var = $1;
         if (exists $ENV{$var}) {
             $ln =~ s/\$$var/$ENV{$var}/;
@@ -1253,7 +1254,7 @@ sub sh_eval {
 
     $ln = expand_aliases(@argv);
     $ln = expand_parameters($ln);
-    $ln = expand_tilde($ln);
+    #$ln = expand_tilde($ln);
 
     return wantarray ? ifsplit $ln  : $ln;
 }
