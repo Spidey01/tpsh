@@ -63,7 +63,7 @@ search_path	tpsh	/^sub search_path {$/;"	s
 set_bin	tpsh	/^sub set_bin {$/;"	s
 setenv_bin	tpsh	/^sub setenv_bin {$/;"	s
 setvar_bin	tpsh	/^sub setvar_bin {$/;"	s
-sh_eval	tpsh	/^sub sh_eval { $/;"	s
+sh_eval	tpsh	/^sub sh_eval {$/;"	s
 sleep_bin	tpsh	/^sub sleep_bin {$/;"	s
 source_bin	tpsh	/^sub source_bin {$/;"	s
 test_bin	tpsh	/^sub test_bin {$/;"	s
