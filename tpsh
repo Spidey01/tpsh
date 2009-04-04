@@ -28,6 +28,7 @@ use Term::ReadLine;
 sub init_sh;
 sub do_getop;
 sub main_loop;
+sub tpsh_parse;
 sub tpsh_lex;
 sub resolve_cmd;
 sub pexec;
@@ -504,7 +505,11 @@ Program main loop
 =cut
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
-        tpsh_lex $cmdln or warn "bad lex from main: $cmdln";
+        my @buf;
+        push @buf, tpsh_parse($cmdln);
+        @buf = tpsh_lex @buf;
+
+        resolve_cmd(@buf);
     }
 }
 
@@ -536,19 +541,33 @@ sub handle_prompt {
     return $ln;
 }
 
+sub tpsh_parse {
+    # parse this into tokens
+    #
+    #   cmd [args]
+    #   cmd [args] |, | cmd [args], ...
+    #   ..., > words ...
+
+    my $line = shift;
+
+    expand_quotes($line);
+
+}
+
 sub tpsh_lex {
 
-        my $cmdln = shift;
-        my @argv;
-        return 1 if $cmdln =~ /^$/ or $cmdln =~ /^\s*#/;
-        if ($cmdln =~ /([\'\"\`])/) {
-            @argv = expand_quotes($1, $cmdln)
-        } else {
-            @argv = sh_eval($cmdln);
-        }
-        return unless @argv;
+        my $word;
+        my @words = @_;
+        my @stack;
 
-        resolve_cmd(@argv);
+        foreach $word (@words) {
+            next if $word =~ /^$/ or $word =~ /^\s*#/;
+            $word =~ s/\\//g;
+            push @stack, $word;
+        }
+
+
+        return @stack;
 }
 
 sub resolve_cmd {
@@ -716,7 +735,7 @@ sub search_path {
 
 sub rehash {
     for my $dir (reverse hsplit $ENV{PATH}) {
-        print "hashing $dir\n";
+        print "hashing $dir\n" if $Options{verbose};
         opendir my $dh, $dir 
             or warn "Unable to access $dir; skipping in \$PATH\n";
         for my $prog (readdir $dh) {
@@ -812,98 +831,67 @@ sub complete_builtin {
 
 sub expand_quotes {
 
-    my ($quote, $cmdln)     = @_;
-    my ($start, $mid, $end) = (0, 1, 2);
+    my $ln          = join ' ', @_;
+    my @tokens      = ();   # parsed tokens to return
 
-    # these subs do the actual expansion work, and will be passed the string
-    # found within the quotes as it's sole arugment.
-    #
-    my %evals = ('"' => sub {
-                       chomp (my $s = expand_parameters(join ' ', @_));
-                       return $s;
-                 },
-                 "'" => sub {
-                       return join ' ', @_;
-                 },
-                 '`' => sub {
-                       open my $cmd, '-|', @_ or warn $!;
-                       my $buf;
-                       $buf .= $_ while readline $cmd;
-                       close $cmd;
-                       return $buf;
-                 }
-    );
+    unless ($ln =~ /([^\\]+?)([\'\"\`])(.*) ([^\\]?)(\2)(.*) /x) {
+        #
+        # just feed back the fields if no quotes
+        #
+        # XXX this needs be made to error out on unclosed quotes
+        #
+        return ifsplit $ln;
+    } else {
+        #
+        # example 
+        #
+        # echo -'--hi bye--'- 2
+        #    $1-$2--$3$4--$5-$6
+        #
+        # 1 and 6 are not quoted with the same quote
+        # 2 and 5 are the quote pair
+        # 3 and 4 is the content between them (e.g. $3$4)
+        # the content of 6 may contain quotes.
+        #
+        #
 
-    #
-    # The stack will be returned as an argument vector, containing
-    # the expanded elements of "command line"
-    #
-    my @stack;
+        # use 'qu' as slang for 'quote[ed]' here.
+        my $qu      = $2;
+        my $unqu    = $1;
+        my $isqu    = "$3$4";
+        my $mayqu   = $6;
 
-    #
-    # $push->(0, sh_eval it)
-    # $push->(1, expand the quotes)
-    #
-    # pushes data onto the stack after expansion.
-    # Don't push onto @stack outside this helper.
-    #
-    my $push = sub {
+        # 
+        # delegate the expansion to here by quote or 'def'ault result.
+        #
+        my %quotes  = ("'" => sub { my $data = shift;
+                                    push @tokens, quotemeta $data;
+                       },
+                       '"' => sub { my $data = shift;
+                                    $data    = expand_parameters($data);
+                                    push @tokens, quotemeta($data);
+                       },
+                       '`' => sub { my $data = shift;
+                                    open my $cmd, '-|', $data or warn $!;
+                                    my $buf;
+                                    $buf .= $_ while readline $cmd;
+                                    close $cmd;
+                                    push @tokens, $buf;
+                       },
+                       'def' => sub { my $data = shift;
+                                      push @tokens, $isqu;
+                       },
+           );
 
-        my ($wanteval, @data) = @_;
+        push @tokens, $unqu;
 
-        if ($wanteval) {
-            push @stack, $evals{$quote}->(@data);
-        } else {
-            push @stack, ifsplit sh_eval(@data);
-        }
-    };
+        exists $quotes{$qu} ?  $quotes{$qu}->($isqu)
+                            :  $quotes{def}->($isqu);
 
-    #
-    # offsets into @argv will be equal to:
-    #
-    # start:     null or words
-    # middle:    quoted words
-    # end:       null or words
-    #
-    # Only the '$mid' offset will ever contain the quoted words. 
-    # the others contain unquoted words before or after the quoted ones, or are
-    # null values ('' or undef).
-    #
-    my @argv = split /$quote/, $cmdln, 3;
+        push @tokens, grep !/^\s*$/, tpsh_parse $mayqu;
 
-
-    #
-    # process the argument vector, pushing onto return stack
-    #
-
-    if (defined $argv[$start]) {
-        # words before any quotes
-        $push->(0, $argv[$start]);
+        return @tokens;
     }
-
-    if (defined $argv[$mid]) { 
-        # expand the quotes
-
-        if (exists $evals{$quote}) {
-            print "expansion: ";
-            print $quote, $evals{"$quote"}->($argv[$mid]), $quote, "\n";
-            $push->(1, $argv[$mid]);
-        } else {
-            print "no expansion";
-            warn "this line should never be reached!";
-            $push->(0, $argv[$mid]);
-        }
-    }
-
-    if (defined $argv[$end] and $argv[$end] ne '') {
-        # there are words after the quotes
-        $push->(0, $argv[$end]);
-    }
-
-    # make sure no null elements have been pushed, other wise
-    # things like tpsh> ls "foo bar" ham spam eggs will not work
-    #
-    return grep { $_ !~ /^$/ } @stack;
 }
 
 # handle tilde expansions
@@ -1397,7 +1385,7 @@ sub eval_bin {
 
     my $args = join ' ', @_;
     return eval {
-        tpsh_lex $args or warn "syntax error: $args";
+        tpsh_parse $args or warn "syntax error: $args";
     };
 }
 
@@ -1880,7 +1868,7 @@ sub source_bin {
         for my $file (@args) {
             open my $fh, '<', $file     or die "${file}: $!\n";
             while (defined(my $ln = <$fh>)) {
-                tpsh_lex $ln            or warn "bad lex: $ln";
+                tpsh_parse $ln            or warn "bad lex: $ln";
             }
         }
     };
@@ -1996,9 +1984,12 @@ if (__PACKAGE__ eq 'main') {
     do_getopt(\@ARGV, %Setopts);
     $Options{interactive} = -t *STDIN && !@ARGV ? 1 : 0;
     $Options{stdin}       = @ARGV               ? 1 : 0;
+    if ($Options{cmdstr}) {
+        $Options{interactive} = 0;
+    }
     init_sh();
     if ($Options{cmdstr}) {
-        exit tpsh_lex $Options{cmdstr};
+        exit tpsh_parse $Options{cmdstr};
     }
     exit main_loop();
 }
