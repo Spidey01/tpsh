@@ -588,7 +588,7 @@ sub tpsh_lex {
     #
     my $strbuf;
     my @nstack;
-    for my $s ((@stack, ';')) {
+    for my $s (ifsplit (@stack, ';')) {
         unless ($s =~ /^[;\|]$/) {
             #
             # handle async operator
@@ -604,7 +604,6 @@ sub tpsh_lex {
             # handle pipe operator
             #
             if ($s eq '|') {
-                print "$strbuf %$s% or %$s% $strbuf ?\n";
                 $strbuf .= " |";
             }
             push @nstack, $strbuf;
