@@ -69,6 +69,7 @@ source_bin	tpsh	/^sub source_bin {$/;"	s
 test_bin	tpsh	/^sub test_bin {$/;"	s
 times_bin	tpsh	/^sub times_bin {$/;"	s
 tpsh_lex	tpsh	/^sub tpsh_lex {$/;"	s
+tpsh_parse	tpsh	/^sub tpsh_parse {$/;"	s
 trap_bin	tpsh	/^sub trap_bin {$/;"	s
 type_bin	tpsh	/^sub type_bin {$/;"	s
 unalias_bin	tpsh	/^sub unalias_bin {$/;"	s
