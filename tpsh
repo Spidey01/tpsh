@@ -507,9 +507,11 @@ sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
         my @buf;
         push @buf, tpsh_parse($cmdln);
+        #print "PARSER_RET:\n"; map { print "\tTOKEN: |$_|\n" } @buf;
         @buf = tpsh_lex @buf;
+        print "LEXER_RET:\n"; map { print "\tTOKEN: ^$_^\n" } @buf;
 
-        resolve_cmd(@buf);
+        #resolve_cmd(@buf);
     }
 }
 
@@ -548,27 +550,70 @@ sub tpsh_parse {
     #   cmd [args] |, | cmd [args], ...
     #   ..., > words ...
 
-    my $line = shift;
+    my $line  = shift;
+    my @stack = expand_quotes($line);
+    my @nstack;
 
-    expand_quotes($line);
+    foreach my $word (@stack) {
+        my @buf = split /([^\\]+?)([;\&\|])(.*)/, $word;
+        if ($#buf) {
+            push @nstack, grep !/^$/, @buf;
+        } else {
+            push @nstack, $word;
+        }
+    }
 
+    return @nstack;
 }
 
 sub tpsh_lex {
 
-        my $word;
-        my @words = @_;
-        my @stack;
+    my $word;
+    my @words = @_;
+    my @stack;
 
-        foreach $word (@words) {
-            next if $word =~ /^$/ or $word =~ /^\s*#/;
-            $word = join ' ', sh_eval $word;
-            $word =~ s/\\//g;
-            push @stack, $word;
+    #
+    # handle expansions of tokens
+    #
+    foreach $word (@words) {
+        next if $word =~ /^$/ or $word =~ /^\s*#/;
+        $word = join ' ', sh_eval $word;
+        $word =~ s/\\//g;
+        push @stack, $word;
+    }
+
+    #
+    # rejoin the tokens into the commands
+    #
+    # XXX this is ugly but effective.
+    #
+    my $strbuf;
+    my @nstack;
+    for my $s ((@stack, ';')) {
+        unless ($s =~ /^[;\|]$/) {
+            #
+            # handle async operator
+            #
+            if ($s eq '&') {
+                push @nstack, "$strbuf $s";
+                $strbuf = "";
+            } else {
+                $strbuf .= "$s ";
+            }
+        } else {
+            #
+            # handle pipe operator
+            #
+            if ($s eq '|') {
+                print "$strbuf %$s% or %$s% $strbuf ?\n";
+                $strbuf .= " |";
+            }
+            push @nstack, $strbuf;
+            $strbuf = "";
         }
+    }
 
-
-        return @stack;
+    return grep !/^$/, @nstack;
 }
 
 sub resolve_cmd {
@@ -835,7 +880,7 @@ sub expand_quotes {
     my $ln          = join ' ', @_;
     my @tokens      = ();   # parsed tokens to return
 
-    unless ($ln =~ /([^\\]+?)([\'\"\`])(.*) ([^\\]?)(\2)(.*) /x) {
+    unless ($ln =~ /(.+?[^\\]+?)([\'\"\`])(.*) ([^\\]?)(\2)(.*) /x) {
         #
         # just feed back the fields if no quotes
         #
