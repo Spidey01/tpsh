@@ -578,7 +578,6 @@ sub tpsh_lex {
     foreach $word (@words) {
         next if $word =~ /^$/ or $word =~ /^\s*#/;
         $word = join ' ', sh_eval $word;
-        $word =~ s/\\//g;
         push @stack, $word;
     }
 
@@ -613,7 +612,12 @@ sub tpsh_lex {
         }
     }
 
-    return grep !/^$/, @nstack;
+    #
+    # remove quoting
+    #
+    @stack = map { $_ =~ s/\\//g; $_ } @nstack;
+
+    return grep !/^$/, @stack;
 }
 
 sub resolve_cmd {
