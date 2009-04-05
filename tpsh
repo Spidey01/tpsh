@@ -506,12 +506,14 @@ Program main loop
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
         my @buf;
-        push @buf, tpsh_parse($cmdln);
-        #print "PARSER_RET:\n"; map { print "\tTOKEN: |$_|\n" } @buf;
-        @buf = tpsh_lex @buf;
-        print "LEXER_RET:\n"; map { print "\tTOKEN: ^$_^\n" } @buf;
 
-        #resolve_cmd(@buf);
+        #
+        # parse into tokens and stream them back after processing
+        #
+        push @buf, tpsh_parse($cmdln);
+        @buf = tpsh_lex @buf;
+
+        map { resolve_cmd @$_ } @buf;
     }
 }
 
@@ -551,75 +553,101 @@ sub tpsh_parse {
     #   ..., > words ...
 
     my $line  = shift;
-    my @stack = expand_quotes($line);
-    my @nstack;
+    my @stack;
 
-    foreach my $word (@stack) {
+    foreach my $word (expand_quotes($line)) {
         my @buf = split /([^\\]+?)([;\&\|])(.*)/, $word;
         if ($#buf) {
-            push @nstack, grep !/^$/, @buf;
+            push @stack, grep !/^$/, @buf;
         } else {
-            push @nstack, $word;
+            push @stack, $word;
         }
     }
 
-    return @nstack;
+    return @stack;
 }
 
 sub tpsh_lex {
 
-    my $word;
+    # XXX this is ugly but effective: most of the sub needs refactoring.
+
+    my $strbuf;
     my @words = @_;
     my @stack;
+    my @queue;
 
     #
-    # handle expansions of tokens
+    # rejoin the tokens into the commands as a stack of args
     #
-    foreach $word (@words) {
-        next if $word =~ /^$/ or $word =~ /^\s*#/;
-        $word = join ' ', sh_eval $word;
-        push @stack, $word;
-    }
-
-    #
-    # rejoin the tokens into the commands
-    #
-    # XXX this is ugly but effective.
-    #
-    my $strbuf;
-    my @nstack;
-    for my $s (ifsplit (@stack, ';')) {
+    for my $s (ifsplit (@words, ';')) {
         unless ($s =~ /^[;\|]$/) {
             #
             # handle async operator
             #
             if ($s eq '&') {
-                push @nstack, "$strbuf $s";
-                $strbuf = "";
+                push @$strbuf, $s;
+                push @stack, $strbuf;
+                $strbuf = ();
             } else {
-                $strbuf .= "$s ";
+                push @$strbuf, "$s ";
             }
         } else {
             #
             # handle pipe operator
             #
             if ($s eq '|') {
-                $strbuf .= " |";
+                push @$strbuf, " |";
             }
-            push @nstack, $strbuf;
-            $strbuf = "";
+            push @stack, $strbuf;
+            $strbuf = ();
         }
     }
 
-    #
-    # remove quoting
-    #
-    @stack = map { $_ =~ s/\\//g; $_ } @nstack;
 
-    return grep !/^$/, @stack;
+    #
+    # reconsitute the argument vector from the token stream.
+    # The queue will contain array refs to the argument vectors
+    # ready for resolve_cmd to use.
+    #
+    $strbuf = "";
+    for my $ref (@stack) {
+        my @tokens;
+        for my $tok (@$ref) {
+
+            # XXX s/\s/the value from ifsplit/g
+            if ($tok =~ m/\\\s*$/) {
+                # escaped whitespace needs to be appended
+                #
+                $strbuf .= $tok;
+            } else {
+                if ($tok =~ /\s$/ and $strbuf) {
+                    # left join token onto the buffer
+                    # e.g. 'foo\ bar ' -> push 'foo\ bar'
+                    #
+                    chop $tok;
+                    push @tokens, "$strbuf $tok";
+                } else {
+                    # buffer is full; append with current token
+                    # 'foo\ bar', 'tok ' -> push 'foo\ bar', 'tok'
+                    #
+                    chop $tok;
+                    $strbuf =~ /^$/ ? push @tokens, $tok
+                                    : push @tokens, $strbuf, $tok;
+                }
+                $strbuf = "";
+            }
+        }
+        push @queue, [@tokens];
+    }
+
+    # strip out the [back]quotes
+    #
+    @queue = map { [map { $_ =~ s/\\//g;  $_ } @$_] } @queue;
+    return @queue;
 }
 
 sub resolve_cmd {
+
     local $!;
     my ($cmd, @buf)   = (ifsplit shift @_);
     my @argv;  push @argv, @buf, @_;
@@ -882,14 +910,38 @@ sub expand_quotes {
 
     my $ln          = join ' ', @_;
     my @tokens      = ();   # parsed tokens to return
+    # 
+    # delegate the expansion to here by quote or 'def'ault result.
+    #
+    my %quotes  = ("'" => sub { my $data = shift;
+                                push @tokens, quotemeta $data;
+                   },
+                   '"' => sub { my $data = shift;
+                                $data    = expand_parameters($data);
+                                push @tokens, quotemeta($data);
+                   },
+                   '`' => sub { my $data = shift;
+                                open my $cmd, '-|', $data or warn $!;
+                                my $buf;
+                                $buf .= $_ while readline $cmd;
+                                close $cmd;
+                                push @tokens, $buf;
+                   },
+                   'def' => sub { my $data = shift; 
+                                  push @tokens, ifsplit expand_parameters(
+                                      scalar expand_aliases(
+                                          expand_glob($data)));
+                   },
+       );
 
     unless ($ln =~ /(.+?[^\\]+?)([\'\"\`])(.*) ([^\\]?)(\2)(.*) /x) {
         #
-        # just feed back the fields if no quotes
+        # just feed back the expanded fields if no quotes
         #
         # XXX this needs be made to error out on unclosed quotes
         #
-        return ifsplit $ln;
+        $quotes{def}->($ln);
+        return @tokens;
     } else {
         #
         # example 
@@ -910,34 +962,13 @@ sub expand_quotes {
         my $isqu    = "$3$4";
         my $mayqu   = $6;
 
-        # 
-        # delegate the expansion to here by quote or 'def'ault result.
-        #
-        my %quotes  = ("'" => sub { my $data = shift;
-                                    push @tokens, quotemeta $data;
-                       },
-                       '"' => sub { my $data = shift;
-                                    $data    = expand_parameters($data);
-                                    push @tokens, quotemeta($data);
-                       },
-                       '`' => sub { my $data = shift;
-                                    open my $cmd, '-|', $data or warn $!;
-                                    my $buf;
-                                    $buf .= $_ while readline $cmd;
-                                    close $cmd;
-                                    push @tokens, $buf;
-                       },
-                       'def' => sub { my $data = shift;
-                                      push @tokens, expand_parameters($isqu);
-                       },
-           );
 
         push @tokens, $unqu;
 
         exists $quotes{$qu} ?  $quotes{$qu}->($isqu)
                             :  $quotes{def}->($isqu);
 
-        push @tokens, grep !/^\s*$/, tpsh_parse $mayqu;
+        push @tokens, grep !/^\s*$/, expand_quotes $mayqu;
 
         return @tokens;
     }
