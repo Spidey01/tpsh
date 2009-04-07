@@ -513,7 +513,7 @@ sub main_loop {
         push @buf, tpsh_parse($cmdln);
         @buf = tpsh_lex @buf;
 
-        map { resolve_cmd @$_ } @buf;
+        map { resolve_cmd @$_ if defined @$_ } @buf;
     }
 }
 
@@ -934,7 +934,7 @@ sub expand_quotes {
                    },
        );
 
-    unless ($ln =~ /(.+?[^\\]+?)([\'\"\`])(.*) ([^\\]?)(\2)(.*) /x) {
+    unless ($ln =~ /(.+?[^\\]+?)([\'\"\`])(.*?) ([^\\]?)(\2)(.*) /x) {
         #
         # just feed back the expanded fields if no quotes
         #
@@ -961,6 +961,7 @@ sub expand_quotes {
         my $unqu    = $1;
         my $isqu    = "$3$4";
         my $mayqu   = $6;
+        print "expand_quotes $qu: $unqu | $isqu | $mayqu\n";
 
 
         push @tokens, $unqu;
