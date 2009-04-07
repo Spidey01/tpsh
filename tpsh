@@ -934,11 +934,13 @@ sub expand_quotes {
                    },
        );
 
-    unless ($ln =~ /(.+?[^\\]+?)([\'\"\`])(.*?) ([^\\]?)(\2)(.*) /x) {
+    # I can read this perfectly fine, maybe some can't so here's better
+    # example of the expression -- Terry.
+    #
+    #                unqu    start quote      isqu   end quote   mayqu
+    unless ($ln =~ /(.+?) (?<!\\) ([\'\"\`]) (.*?)  (?<!\\)(\2) (.*) /x) {
         #
         # just feed back the expanded fields if no quotes
-        #
-        # XXX this needs be made to error out on unclosed quotes
         #
         $quotes{def}->($ln);
         return @tokens;
@@ -947,20 +949,19 @@ sub expand_quotes {
         # example 
         #
         # echo -'--hi bye--'- 2
-        #    $1-$2--$3$4--$5-$6
+        #    $1-$2--$3--$4-$5
         #
-        # 1 and 6 are not quoted with the same quote
-        # 2 and 5 are the quote pair
-        # 3 and 4 is the content between them (e.g. $3$4)
-        # the content of 6 may contain quotes.
+        # 1 and 5 are not quoted with the same quote
+        # 2 and 4 are the current quotes
+        # 3 is the content between them (e.g. $2$3$2)
+        # the content of 5 may or may not contain external quotes.
         #
         #
-
         # use 'qu' as slang for 'quote[ed]' here.
         my $qu      = $2;
         my $unqu    = $1;
-        my $isqu    = "$3$4";
-        my $mayqu   = $6;
+        my $isqu    = $3;
+        my $mayqu   = $5;
         print "expand_quotes $qu: $unqu | $isqu | $mayqu\n";
 
 
