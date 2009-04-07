@@ -128,7 +128,7 @@ my %Setopts = (
     'a|allexport'    =>  \$Options{allexport},
     'A|autohistory'  =>  \$Options{autohistory},
     'b|notify'       =>  \$Options{notify},
-    'c=s'           =>  \$Options{cmdstr},
+    'c=s'            =>  \$Options{cmdstr},
     'C|noclobber'    =>  \$Options{noclobber},
     'E|emacs'        =>  \$Options{emacs},
     'e|errexit'      =>  \$Options{errexit},
