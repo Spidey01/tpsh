@@ -964,7 +964,7 @@ sub expand_quotes {
         print "expand_quotes $qu: $unqu | $isqu | $mayqu\n";
 
 
-        push @tokens, $unqu;
+        $quotes{def}->($unqu) if $unqu !~ /^\s*$/;
 
         exists $quotes{$qu} ?  $quotes{$qu}->($isqu)
                             :  $quotes{def}->($isqu);
