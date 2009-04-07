@@ -996,7 +996,7 @@ sub expand_parameters {
     # XXX todo: use a global symbol table or a function to check between 
     # %ENV and %VARS or something like that
     #
-    while ($ln =~ /[^\\]+?\$(\w*)\b.*/) {
+    while ($ln =~ /(?<!\\)\$(\w*)/) {
         my $var = $1;
         if (exists $ENV{$var}) {
             $ln =~ s/\$$var/$ENV{$var}/;
