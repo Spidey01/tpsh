@@ -446,8 +446,9 @@ sub init_sh {
 
     if ($Options{interactive}) {
         if (exists $ENV{ENV}) {
-            map { my $f = sh_eval $_;
-                  source_bin $f or warn "$f: $!";
+            map { 
+                    my $f = sh_eval $_;
+                    source_bin $f or warn "$f: $!";
                 } hsplit $ENV{ENV};
         }
     }
@@ -505,15 +506,7 @@ Program main loop
 =cut
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
-        my @buf;
-
-        #
-        # parse into tokens and stream them back after processing
-        #
-        push @buf, tpsh_parse($cmdln);
-        @buf = tpsh_lex @buf;
-
-        map { resolve_cmd @$_ if defined @$_ } @buf;
+        map { resolve_cmd @$_ if defined @$_ } sh_eval $cmdln;
     }
 }
 
@@ -1328,16 +1321,11 @@ sub death_handler {
 
 
 sub sh_eval {
-    # XXX none of this understands the shells quoting rules
 
-    my $ln   = join ' ', expand_glob(@_);
-    my @argv = ifsplit $ln;
+    my $line   = join '', @_;
+    my @data   = tpsh_lex tpsh_parse($line);
 
-    $ln = expand_aliases(@argv);
-    $ln = expand_parameters($ln);
-    #$ln = expand_tilde($ln);
-
-    return wantarray ? ifsplit $ln  : $ln;
+    return wantarray ? @data : join ' ', map { join ' ', @$_ } @data;
 }
 
 sub update_env {
@@ -1467,7 +1455,7 @@ sub eval_bin {
 
     my $args = join ' ', @_;
     return eval {
-        tpsh_parse $args or warn "syntax error: $args";
+        resolve_cmd scalar sh_eval $args or warn "syntax error: $args";
     };
 }
 
@@ -1950,7 +1938,7 @@ sub source_bin {
         for my $file (@args) {
             open my $fh, '<', $file     or die "${file}: $!\n";
             while (defined(my $ln = <$fh>)) {
-                tpsh_parse $ln            or warn "bad lex: $ln";
+                map { resolve_cmd @$_ if defined @$_ } sh_eval $ln;
             }
         }
     };
@@ -2071,7 +2059,7 @@ if (__PACKAGE__ eq 'main') {
     }
     init_sh();
     if ($Options{cmdstr}) {
-        exit tpsh_parse $Options{cmdstr};
+        exit resolve_cmd scalar sh_eval $Options{cmdstr};
     }
     exit main_loop();
 }
