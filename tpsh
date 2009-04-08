@@ -1359,7 +1359,7 @@ sub alias_bin {
     my @argv = @_;
     my ($lvalue, $rvalue);
 
-    if (grep /=/, @argv) {
+    if (grep /\w=/, @argv) {
         # split Bourne style into C-Shell for easier assignment
         ($lvalue, $rvalue) = split /=/, join(' ', @argv), 2;
     } else {
