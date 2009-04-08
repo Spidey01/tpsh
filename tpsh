@@ -197,7 +197,7 @@ my @History = ();
 # within HISTSIZE, you can find your numerical indexs starting point within 
 # the global history as $#get_history() - $HistoryNumber. 
 #
-my $HistoryNumber = 0;
+my $HistoryNumber = 1;
 
 #
 # Set to a truth value if Term::ReadLine can automatically add history
