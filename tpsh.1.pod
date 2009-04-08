@@ -965,6 +965,16 @@ behaviour as Perl, and provides the power of regular expressions which may or
 may not be convenient at any given moment. As strings, they are evaluated in
 the following context: C<m/^first/> and C<m/^last/>.
 
+The syntax of the B<alias> command is strange. It is generally impossible to
+create a named macro with B<alias>: such as C<x=> by escaping the equal sign
+with a backslash. A C-Shell style alias may contain an equal sign in the
+definition, e.g. C<x =y z> because the Bourne shell syntax requires the equal
+sign to follow a valid identifier. Thus any attempt at creating a macro like
+C<x\= y z> shall have undefined results; and generally will NOT do what you
+normally would expect.  Note: zsh also treats attempts to escape the equal sign
+funny, but not quite in the same way as tpsh.
+
+
 =head1 LICENSE
 
 

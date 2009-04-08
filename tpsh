@@ -28,6 +28,7 @@ use Term::ReadLine;
 sub init_sh;
 sub do_getop;
 sub main_loop;
+sub tpsh_parse;
 sub tpsh_lex;
 sub resolve_cmd;
 sub pexec;
@@ -196,7 +197,7 @@ my @History = ();
 # within HISTSIZE, you can find your numerical indexs starting point within 
 # the global history as $#get_history() - $HistoryNumber. 
 #
-my $HistoryNumber = 0;
+my $HistoryNumber = 1;
 
 #
 # Set to a truth value if Term::ReadLine can automatically add history
@@ -504,7 +505,7 @@ Program main loop
 =cut
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
-        tpsh_lex $cmdln or warn "bad lex from main: $cmdln";
+        map { resolve_cmd @$_ if defined @$_ } sh_eval $cmdln;
     }
 }
 
@@ -536,22 +537,109 @@ sub handle_prompt {
     return $ln;
 }
 
+sub tpsh_parse {
+    # parse this into tokens
+    #
+    #   cmd [args]
+    #   cmd [args] |, | cmd [args], ...
+    #   ..., > words ...
+
+    my $line  = shift;
+    my @stack;
+
+    foreach my $word (expand_quotes($line)) {
+        my @buf = split /([^\\]+?)([;\&\|])(.*)/, $word;
+        if ($#buf) {
+            push @stack, grep !/^$/, @buf;
+        } else {
+            push @stack, $word;
+        }
+    }
+
+    return @stack;
+}
+
 sub tpsh_lex {
 
-        my $cmdln = shift;
-        my @argv;
-        return 1 if $cmdln =~ /^$/ or $cmdln =~ /^\s*#/;
-        if ($cmdln =~ /([\'\"\`])/) {
-            @argv = expand_quotes($1, $cmdln)
-        } else {
-            @argv = sh_eval($cmdln);
-        }
-        return unless @argv;
+    # XXX this is ugly but effective: most of the sub needs refactoring.
 
-        resolve_cmd(@argv);
+    my $strbuf;
+    my @words = @_;
+    my @stack;
+    my @queue;
+
+    #
+    # rejoin the tokens into the commands as a stack of args
+    #
+    for my $s (ifsplit (@words, ';')) {
+        unless ($s =~ /^[;\|]$/) {
+            #
+            # handle async operator
+            #
+            if ($s eq '&') {
+                push @$strbuf, $s;
+                push @stack, $strbuf;
+                $strbuf = ();
+            } else {
+                push @$strbuf, "$s ";
+            }
+        } else {
+            #
+            # handle pipe operator
+            #
+            if ($s eq '|') {
+                push @$strbuf, " |";
+            }
+            push @stack, $strbuf;
+            $strbuf = ();
+        }
+    }
+
+
+    #
+    # reconsitute the argument vector from the token stream.
+    # The queue will contain array refs to the argument vectors
+    # ready for resolve_cmd to use.
+    #
+    $strbuf = "";
+    for my $ref (@stack) {
+        my @tokens;
+        for my $tok (@$ref) {
+
+            # XXX s/\s/the value from ifsplit/g
+            if ($tok =~ m/\\\s*$/) {
+                # escaped whitespace needs to be appended
+                #
+                $strbuf .= $tok;
+            } else {
+                if ($tok =~ /\s$/ and $strbuf) {
+                    # left join token onto the buffer
+                    # e.g. 'foo\ bar ' -> push 'foo\ bar'
+                    #
+                    chop $tok;
+                    push @tokens, "$strbuf $tok";
+                } else {
+                    # buffer is full; append with current token
+                    # 'foo\ bar', 'tok ' -> push 'foo\ bar', 'tok'
+                    #
+                    chop $tok;
+                    $strbuf =~ /^$/ ? push @tokens, $tok
+                                    : push @tokens, $strbuf, $tok;
+                }
+                $strbuf = "";
+            }
+        }
+        push @queue, [@tokens];
+    }
+
+    # strip out the [back]quotes
+    #
+    @queue = map { [map { $_ =~ s/\\//g;  $_ } @$_] } @queue;
+    return @queue;
 }
 
 sub resolve_cmd {
+
     local $!;
     my ($cmd, @buf)   = (ifsplit shift @_);
     my @argv;  push @argv, @buf, @_;
@@ -716,7 +804,7 @@ sub search_path {
 
 sub rehash {
     for my $dir (reverse hsplit $ENV{PATH}) {
-        print "hashing $dir\n";
+        print "hashing $dir\n" if $Options{verbose};
         opendir my $dh, $dir 
             or warn "Unable to access $dir; skipping in \$PATH\n";
         for my $prog (readdir $dh) {
@@ -812,98 +900,72 @@ sub complete_builtin {
 
 sub expand_quotes {
 
-    my ($quote, $cmdln)     = @_;
-    my ($start, $mid, $end) = (0, 1, 2);
+    my $ln          = join ' ', @_;
+    my @tokens      = ();   # parsed tokens to return
+    # 
+    # delegate the expansion to here by quote or 'def'ault result.
+    #
+    my %quotes  = ("'" => sub { my $data = shift;
+                                push @tokens, quotemeta $data;
+                   },
+                   '"' => sub { my $data = shift;
+                                $data    = expand_parameters($data);
+                                push @tokens, quotemeta($data);
+                   },
+                   '`' => sub { my $data = shift;
+                                open my $cmd, '-|', $data or warn $!;
+                                my $buf;
+                                $buf .= $_ while readline $cmd;
+                                close $cmd;
+                                push @tokens, $buf;
+                   },
+                   'def' => sub { my $data = shift; 
+                                  push @tokens, ifsplit expand_parameters(
+                                      scalar expand_aliases(
+                                          expand_glob($data)));
+                   },
+       );
 
-    # these subs do the actual expansion work, and will be passed the string
-    # found within the quotes as it's sole arugment.
+    # I can read this perfectly fine, maybe some can't so here's better
+    # example of the expression -- Terry.
     #
-    my %evals = ('"' => sub {
-                       chomp (my $s = expand_parameters(join ' ', @_));
-                       return $s;
-                 },
-                 "'" => sub {
-                       return join ' ', @_;
-                 },
-                 '`' => sub {
-                       open my $cmd, '-|', @_ or warn $!;
-                       my $buf;
-                       $buf .= $_ while readline $cmd;
-                       close $cmd;
-                       return $buf;
-                 }
-    );
-
-    #
-    # The stack will be returned as an argument vector, containing
-    # the expanded elements of "command line"
-    #
-    my @stack;
-
-    #
-    # $push->(0, sh_eval it)
-    # $push->(1, expand the quotes)
-    #
-    # pushes data onto the stack after expansion.
-    # Don't push onto @stack outside this helper.
-    #
-    my $push = sub {
-
-        my ($wanteval, @data) = @_;
-
-        if ($wanteval) {
-            push @stack, $evals{$quote}->(@data);
-        } else {
-            push @stack, ifsplit sh_eval(@data);
-        }
-    };
-
-    #
-    # offsets into @argv will be equal to:
-    #
-    # start:     null or words
-    # middle:    quoted words
-    # end:       null or words
-    #
-    # Only the '$mid' offset will ever contain the quoted words. 
-    # the others contain unquoted words before or after the quoted ones, or are
-    # null values ('' or undef).
-    #
-    my @argv = split /$quote/, $cmdln, 3;
+    #                unqu    start quote      isqu   end quote   mayqu
+    unless ($ln =~ /(.+?) (?<!\\) ([\'\"\`]) (.*?)  (?<!\\)(\2) (.*) /x) {
+        #
+        # just feed back the expanded fields if no quotes
+        #
+        $quotes{def}->($ln);
+        return @tokens;
+    } else {
+        #
+        # example 
+        #
+        # echo -'--hi bye--'- 2
+        #    $1-$2--$3--$4-$5
+        #
+        # 1 and 5 are not quoted with the same quote
+        # 2 and 4 are the current quotes
+        # 3 is the content between them (e.g. $2$3$2)
+        # the content of 5 may or may not contain external quotes.
+        #
+        #
+        # use 'qu' as slang for 'quote[ed]' here.
+        my $qu      = $2;
+        my $unqu    = $1;
+        my $isqu    = $3;
+        my $mayqu   = $5;
+        print "expand_quotes $qu: $unqu | $isqu | $mayqu\n";
 
 
-    #
-    # process the argument vector, pushing onto return stack
-    #
+        $quotes{def}->($unqu) if $unqu !~ /^\s*$/;
 
-    if (defined $argv[$start]) {
-        # words before any quotes
-        $push->(0, $argv[$start]);
+        exists $quotes{$qu} ?  $quotes{$qu}->($isqu)
+                            :  $quotes{def}->($isqu);
+
+        push @tokens, grep !/^\s*$/, expand_quotes $mayqu;
+
+        return @tokens;
     }
-
-    if (defined $argv[$mid]) { 
-        # expand the quotes
-
-        if (exists $evals{$quote}) {
-            print "expansion: ";
-            print $quote, $evals{"$quote"}->($argv[$mid]), $quote, "\n";
-            $push->(1, $argv[$mid]);
-        } else {
-            print "no expansion";
-            warn "this line should never be reached!";
-            $push->(0, $argv[$mid]);
-        }
-    }
-
-    if (defined $argv[$end] and $argv[$end] ne '') {
-        # there are words after the quotes
-        $push->(0, $argv[$end]);
-    }
-
-    # make sure no null elements have been pushed, other wise
-    # things like tpsh> ls "foo bar" ham spam eggs will not work
-    #
-    return grep { $_ !~ /^$/ } @stack;
 }
 
 # handle tilde expansions
@@ -927,7 +989,7 @@ sub expand_parameters {
     # XXX todo: use a global symbol table or a function to check between 
     # %ENV and %VARS or something like that
     #
-    while ($ln =~ /\$(\w*)\b.*/) {
+    while ($ln =~ /(?<!\\)\$(\w*)/) {
         my $var = $1;
         if (exists $ENV{$var}) {
             $ln =~ s/\$$var/$ENV{$var}/;
@@ -1258,16 +1320,11 @@ sub death_handler {
 
 
 sub sh_eval {
-    # XXX none of this understands the shells quoting rules
 
-    my $ln   = join ' ', expand_glob(@_);
-    my @argv = ifsplit $ln;
+    my $line   = join '', @_;
+    my @data   = tpsh_lex tpsh_parse($line);
 
-    $ln = expand_aliases(@argv);
-    $ln = expand_parameters($ln);
-    $ln = expand_tilde($ln);
-
-    return wantarray ? ifsplit $ln  : $ln;
+    return wantarray ? @data : join ' ', map { join ' ', @$_ } @data;
 }
 
 sub update_env {
@@ -1301,7 +1358,7 @@ sub alias_bin {
     my @argv = @_;
     my ($lvalue, $rvalue);
 
-    if (grep /=/, @argv) {
+    if (grep /\w=/, @argv) {
         # split Bourne style into C-Shell for easier assignment
         ($lvalue, $rvalue) = split /=/, join(' ', @argv), 2;
     } else {
@@ -1397,7 +1454,7 @@ sub eval_bin {
 
     my $args = join ' ', @_;
     return eval {
-        tpsh_lex $args or warn "syntax error: $args";
+        resolve_cmd scalar sh_eval $args or warn "syntax error: $args";
     };
 }
 
@@ -1880,7 +1937,7 @@ sub source_bin {
         for my $file (@args) {
             open my $fh, '<', $file     or die "${file}: $!\n";
             while (defined(my $ln = <$fh>)) {
-                tpsh_lex $ln            or warn "bad lex: $ln";
+                map { resolve_cmd @$_ if defined @$_ } sh_eval $ln;
             }
         }
     };
@@ -1996,9 +2053,12 @@ if (__PACKAGE__ eq 'main') {
     do_getopt(\@ARGV, %Setopts);
     $Options{interactive} = -t *STDIN && !@ARGV ? 1 : 0;
     $Options{stdin}       = @ARGV               ? 1 : 0;
+    if ($Options{cmdstr}) {
+        $Options{interactive} = 0;
+    }
     init_sh();
     if ($Options{cmdstr}) {
-        exit tpsh_lex $Options{cmdstr};
+        exit resolve_cmd scalar sh_eval $Options{cmdstr};
     }
     exit main_loop();
 }
