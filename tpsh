@@ -596,17 +596,16 @@ sub tpsh_lex {
     }
 
     #
-    # Reconsitute the word lists into proper argument vectors.
+    # Reconsitute the word lists into proper argument vectors,
+    # and strip out the [back]quotes where found.
     #
     #   ( [cmd1, arg list, ...], [cmd2, arg list, ...] )
     #
-    @queue = map { [argv_rejoin @$_] } @queue;
-
-    #
-    # strip out the [back]quotes
-    #
-    @queue = map { [map { $_ =~ s/\\//g;  $_ } @$_] } @queue;
-    return @queue;
+    return map { 
+               [map { $_ =~ s/\\//g;  $_ } @$_] 
+           } map { 
+               [argv_rejoin @$_] 
+           } @queue;
 }
 
 sub argv_rejoin {
