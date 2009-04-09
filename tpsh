@@ -612,29 +612,22 @@ sub tpsh_lex {
     for my $ref (@stack) {
         my @tokens;
         for my $tok (@$ref) {
-
             # XXX s/\s/the value from ifsplit/g
-            if ($tok =~ m/\\\s*$/) {
-                # escaped whitespace needs to be appended
+            if ($tok =~ /\s$/ and $strbuf) {
+                # left join token onto the buffer
+                # e.g. 'foo\ bar ' -> push 'foo\ bar'
                 #
-                $strbuf .= $tok;
+                chop $tok;
+                push @tokens, $strbuf.$tok;
             } else {
-                if ($tok =~ /\s$/ and $strbuf) {
-                    # left join token onto the buffer
-                    # e.g. 'foo\ bar ' -> push 'foo\ bar'
-                    #
-                    chop $tok;
-                    push @tokens, "$strbuf $tok";
-                } else {
-                    # buffer is full; append with current token
-                    # 'foo\ bar', 'tok ' -> push 'foo\ bar', 'tok'
-                    #
-                    chop $tok;
-                    $strbuf =~ /^$/ ? push @tokens, $tok
-                                    : push @tokens, $strbuf, $tok;
-                }
-                $strbuf = "";
+                # buffer is full; append with current token
+                # 'foo\ bar', 'tok ' -> push 'foo\ bar', 'tok'
+                #
+                chop $tok;
+                $strbuf =~ /^$/ ? push @tokens, $tok
+                                : push @tokens, $strbuf, $tok;
             }
+            $strbuf = "";
         }
         push @queue, [@tokens];
     }
@@ -1474,7 +1467,7 @@ sub echo_bin {
     my @words = @_;
 
     for ($i=0; $i < scalar @words; $i++) {
-        print $i < $#words ? "$words[$i] |" : $words[$i];
+        print $i < $#words ? "$words[$i] " : $words[$i];
     }
 
     return $i + print "\n";
