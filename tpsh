@@ -576,37 +576,32 @@ sub tpsh_lex {
     my @queue;
 
     #
-    # rejoin the tokens into the commands as a stack of args
+    # Rejoin the tokens into a stack of [ command word lists ].
+    #
+    #   ( [cmd1, arg, list, ...], [cmd2, arg, list, ...] )
+    #
+    # Note that a ';', '&', and '|' does terminate the command but 
+    # the '&' and '|' operators must be retained in word list as
+    # a trailing word; so things like resolve_cmd() can handle the
+    # operators correctly.
     #
     for my $s (ifsplit (@words, ';')) {
-        unless ($s =~ /^[;\|]$/) {
-            #
-            # handle async operator
-            #
-            if ($s eq '&') {
+        if ($s eq ';' or $s eq '|' or $s eq '&') {
+            unless ($s eq ';') {
                 push @$strbuf, $s;
-                push @stack, $strbuf;
-                $strbuf = [];
-            } else {
-                push @$strbuf, "$s ";
-            }
-        } else {
-            #
-            # handle pipe operator
-            #
-            if ($s eq '|') {
-                push @$strbuf, '|';
             }
             push @stack, $strbuf;
             $strbuf = ();
+        } else {
+            push @$strbuf, "$s ";
         }
     }
 
 
     #
-    # reconsitute the argument vector from the token stream.
-    # The queue will contain array refs to the argument vectors
-    # ready for resolve_cmd to use.
+    # Reconsitute the argument vectors from the @stack.
+    #
+    #   ( [cmd1, arg list, ...], [cmd2, arg list, ...] )
     #
     $strbuf = "";
     for my $ref (@stack) {
@@ -637,6 +632,7 @@ sub tpsh_lex {
     @queue = map { [map { $_ =~ s/\\//g;  $_ } @$_] } @queue;
     return @queue;
 }
+
 
 =pod
 
