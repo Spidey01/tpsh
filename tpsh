@@ -586,7 +586,7 @@ sub tpsh_lex {
             if ($s eq '&') {
                 push @$strbuf, $s;
                 push @stack, $strbuf;
-                $strbuf = ();
+                $strbuf = [];
             } else {
                 push @$strbuf, "$s ";
             }
@@ -595,7 +595,7 @@ sub tpsh_lex {
             # handle pipe operator
             #
             if ($s eq '|') {
-                push @$strbuf, " |";
+                push @$strbuf, '|';
             }
             push @stack, $strbuf;
             $strbuf = ();
@@ -623,7 +623,7 @@ sub tpsh_lex {
                 # buffer is full; append with current token
                 # 'foo\ bar', 'tok ' -> push 'foo\ bar', 'tok'
                 #
-                chop $tok;
+                chop $tok unless $tok !~ /\s$/;
                 $strbuf =~ /^$/ ? push @tokens, $tok
                                 : push @tokens, $strbuf, $tok;
             }
