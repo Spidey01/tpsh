@@ -1470,8 +1470,14 @@ sub cls_bin {
 
 sub echo_bin {
 
-    print map { "$_ " } @_;
-    print "\n";
+    my $i;
+    my @words = @_;
+
+    for ($i=0; $i < scalar @words; $i++) {
+        print $i < $#words ? "$words[$i] |" : $words[$i];
+    }
+
+    return $i + print "\n";
 }
 
 sub eval_bin {
