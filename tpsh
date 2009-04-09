@@ -36,6 +36,7 @@ sub do_getop;
 sub main_loop;
 sub tpsh_parse;
 sub tpsh_lex;
+sub argv_rejoin;
 sub resolve_cmd;
 sub pexec;
 sub search_path;
@@ -568,21 +569,18 @@ sub tpsh_parse {
 
 sub tpsh_lex {
 
-    # XXX this is ugly but effective: most of the sub needs refactoring.
-
     my $strbuf;
     my @words = @_;
-    my @stack;
     my @queue;
 
     #
-    # Rejoin the tokens into a stack of [ command word lists ].
+    # Rejoin the tokens into a command queue of [ word lists ]. 
     #
     #   ( [cmd1, arg, list, ...], [cmd2, arg, list, ...] )
     #
-    # Note that a ';', '&', and '|' does terminate the command but 
-    # the '&' and '|' operators must be retained in word list as
-    # a trailing word; so things like resolve_cmd() can handle the
+    # Note that the ';', '&', and '|' symbols terminate commands but 
+    # the the '&' and '|' operators must be retained in word list as 
+    # a trailing word; so things like resolve_cmd() can handle the 
     # operators correctly.
     #
     for my $s (ifsplit (@words, ';')) {
@@ -590,49 +588,51 @@ sub tpsh_lex {
             unless ($s eq ';') {
                 push @$strbuf, $s;
             }
-            push @stack, $strbuf;
+            push @queue, $strbuf;
             $strbuf = ();
         } else {
             push @$strbuf, "$s ";
         }
     }
 
-
     #
-    # Reconsitute the argument vectors from the @stack.
+    # Reconsitute the word lists into proper argument vectors.
     #
     #   ( [cmd1, arg list, ...], [cmd2, arg list, ...] )
     #
-    $strbuf = "";
-    for my $ref (@stack) {
-        my @tokens;
-        for my $tok (@$ref) {
-            # XXX s/\s/the value from ifsplit/g
-            if ($tok =~ /\s$/ and $strbuf) {
-                # left join token onto the buffer
-                # e.g. 'foo\ bar ' -> push 'foo\ bar'
-                #
-                chop $tok;
-                push @tokens, $strbuf.$tok;
-            } else {
-                # buffer is full; append with current token
-                # 'foo\ bar', 'tok ' -> push 'foo\ bar', 'tok'
-                #
-                chop $tok unless $tok !~ /\s$/;
-                $strbuf =~ /^$/ ? push @tokens, $tok
-                                : push @tokens, $strbuf, $tok;
-            }
-            $strbuf = "";
-        }
-        push @queue, [@tokens];
-    }
+    @queue = map { [argv_rejoin @$_] } @queue;
 
+    #
     # strip out the [back]quotes
     #
     @queue = map { [map { $_ =~ s/\\//g;  $_ } @$_] } @queue;
     return @queue;
 }
 
+sub argv_rejoin {
+
+    my $strbuf = "";
+    my @argv = @_;
+    my @tokens;
+    for my $tok (@argv) {
+        if ($tok =~ /\s$/ and $strbuf) {
+            # left join token onto the buffer
+            # e.g. 'foo\ bar ' -> push 'foo\ bar'
+            #
+            chop $tok;
+            push @tokens, $strbuf.$tok;
+        } else {
+            # buffer is full; append with current token
+            # 'foo\ bar', 'tok ' -> push 'foo\ bar', 'tok'
+            #
+            chop $tok unless $tok !~ /\s$/;
+            $strbuf =~ /^$/ ? push @tokens, $tok
+                            : push @tokens, $strbuf, $tok;
+        }
+        $strbuf = "";
+    }
+    return @tokens;
+}
 
 =pod
 
