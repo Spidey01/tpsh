@@ -14,9 +14,15 @@ use File::Basename;
 use File::Glob          ':glob';
 use File::Spec;
 use File::Temp;
+use FindBin;
 use Getopt::Long;       # do NOT export GetOptionsFrom*
 use Term::ReadLine;
 
+#
+# override $0 for the entire script
+#
+FindBin::again(); 
+local $0 = File::Spec->catfile($FindBin::Bin, $FindBin::Script);
 
 #----------------------------------------------------------
 #                Subroutine Prototypes
@@ -290,13 +296,14 @@ sub init_sh {
     # handle default initializations for the environment
     # XXX this is a _huge_ ass sub
 
+
     # override warn/die behaviour with the desired output
     #
     $SIG{__WARN__} = \&err_handler;
     $SIG{__DIE__}  = \&death_handler;
 
     if (grep { $^O eq $_ } qw(VMS MacOS NetWare beos vos)) {
-        warn "$0: Unsupported OS $^O -- YMMV\n";
+        warn "Unsupported OS $^O -- YMMV\n";
     }
 
     # if none of the accepted UNIX / NT login names are found in the
@@ -307,7 +314,7 @@ sub init_sh {
         for my $try (@names) {
             $tried++ unless defined $ENV{$try};
         }
-        die "$0: Unable to find your username" if $tried == @names;
+        die "Unable to find your username" if $tried == @names;
     };
 
     my ($isWin, $isUnix, %pw);
@@ -638,21 +645,32 @@ sub tpsh_lex {
     return @queue;
 }
 
+=pod
+
+resolve_cmd SCALAR
+resolve_cmd LIST
+
+resolve and execute command. If only a single scalar expression is given; split it into fields... list blah blah.
+
+=cut
+
 sub resolve_cmd {
 
     local $!;
-    my ($cmd, @buf)   = (ifsplit shift @_);
-    my @argv;  push @argv, @buf, @_;
-    my $cmdln = join ' ', $cmd, @argv;
-    $Last_Cmd = $cmdln;
+    my @argv  = $#_ ? @_ : ifsplit @_;
+    my $cmd   = $argv[0];
+    my $cmdln = join ' ', @argv;
+    my $op    = $argv[-2];
+
 
     # skip the I/O tricks when command is the macro built-in
-    goto builtin if $cmd =~ /^macro/;
+    goto builtin if $cmd =~ /^macro$/;
 
     # test if it's a pipe
     #
   pipe:
     if ($cmdln =~ /([^|]*) \| ([^|]*)/) {
+        return warn "\nPipes are currently disabled, sorry!\n";
         return exec_pipe $1, $2 || warn "bad pipe: $!\n";
     }
 
@@ -665,11 +683,15 @@ sub resolve_cmd {
     # Note: >> must come before > in order for append mode to work.
     #
   redirect:
-    if ($cmdln =~ /([^><]*) \s* (>>|>|<) \s* (.*)/x) {
-        return warn "Bad syntax: $cmdln"
-            unless defined $1 and defined $2 and defined $3;
-        my ($ch, $commd, $op, $file) = (undef, $1, $2, $3);
-
+    if (defined $op and $op =~ /(\d+)?(>>|>|<)/) {
+        my ($ch, $fd, $op, $file) = (undef, $1, $2, $argv[-1]);
+        $cmd                      = join ' ', @argv[0..$#argv-2];
+        unless (defined $fd) {
+            #
+            # assign a default file descriptor based on $op
+            #
+            $fd = fileno STDIN;
+        }
         if ($Options{noclobber}) {
             if ( $op eq '>' and -e $file) {
                 warn "'$file' already exists",
@@ -680,12 +702,12 @@ sub resolve_cmd {
         open my $fp, $op, $file or return binerr "Can't open $file: $!";
 
         if ($op eq '<') {
-            open $ch, '|-', $commd;
+            open $ch, '|-', $cmd;
             while (<$fp>) {
                 print $ch $_;
             }
         } else {
-            open $ch, '-|', $commd;
+            open $ch, '-|', $cmd;
             while (<$ch>) {
                 print $fp $_;
             }
@@ -698,8 +720,8 @@ sub resolve_cmd {
     # built in command
     #
   builtin:
-    is_builtin($cmd) ?  return $Builtins{$cmd}->(@argv)
-                     :  return pexec($cmd, @argv);
+    is_builtin($cmd) ?  return $Builtins{$cmd}->(@argv[1..$#argv])
+                     :  return pexec(@argv);
 }
 
 =pod 
@@ -1304,7 +1326,8 @@ sub is_builtin {
 
 sub err_handler {
 
-    my $msg = join( ' ', @_);
+    local $0 = basename $0;
+    my $msg  = join( ' ', @_);
 
     $msg =~ s/ at $0 line .*\n//;
     print STDERR "$0: $msg\n";
@@ -1312,7 +1335,8 @@ sub err_handler {
 
 sub death_handler {
 
-    my $msg = join( ' ', @_);
+    local $0 = basename $0;
+    my $msg  = join( ' ', @_);
 
     $msg =~ s/ at $0 line .*\n//;
     die "$0: ${msg}, stopping tpsh\n";
@@ -1331,7 +1355,7 @@ sub update_env {
     my ($var, $val) = @_;
     $val = sh_eval($val);
 
-    return warn "$0: Bad syntax, '$var'\n"
+    return warn "Bad syntax, '$var'\n"
         if $var =~ /=/; # IEEE Std 1003.1-2004 forbirds = in env-var names
 
     $ENV{$var} = "$val";
