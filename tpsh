@@ -514,6 +514,7 @@ Program main loop
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
         map { resolve_cmd @$_ if defined @$_ } sh_eval $cmdln;
+
     }
 }
 
@@ -613,22 +614,26 @@ sub argv_rejoin {
     my $strbuf = "";
     my @argv = @_;
     my @tokens;
+    my $ifs = defined $ENV{IFS} ? qr/[$ENV{IFS}]/ : qr/\s/;
+
     for my $tok (@argv) {
-        if ($tok =~ /\s$/ and $strbuf) {
-            # left join token onto the buffer
-            # e.g. 'foo\ bar ' -> push 'foo\ bar'
-            #
-            chop $tok;
-            push @tokens, $strbuf.$tok;
-        } else {
-            # buffer is full; append with current token
-            # 'foo\ bar', 'tok ' -> push 'foo\ bar', 'tok'
-            #
-            chop $tok unless $tok !~ /\s$/;
-            $strbuf =~ /^$/ ? push @tokens, $tok
-                            : push @tokens, $strbuf, $tok;
+        if ($tok =~ /\\$ifs$/ or $strbuf) {
+            # partial argument, left join into strbuf
+            chop $tok unless $tok =~ //;
+            $strbuf .= $tok;
         }
-        $strbuf = "";
+        if ($tok !~ // and $strbuf) {
+                # we hit end of tok's to append to strbuf
+                # and therefore have the entire argument.
+                push @tokens, $strbuf;
+                $strbuf = "";
+                next;
+        }
+        unless ($strbuf) {
+            # a stand alone argument, e.g. echo or z in `echo "x y" z`
+            chop $tok;
+            push @tokens, $tok;
+        }
     }
     return @tokens;
 }
@@ -649,7 +654,6 @@ sub resolve_cmd {
     my $cmd   = $argv[0];
     my $cmdln = join ' ', @argv;
     my $op    = $argv[-2];
-
 
     # skip the I/O tricks when command is the macro built-in
     goto builtin if $cmd =~ /^macro$/;
@@ -1335,6 +1339,16 @@ sub sh_eval {
 
     my $line   = join '', @_;
     my @data   = tpsh_lex tpsh_parse($line);
+
+=pod
+    { 
+        my $x=0; 
+        map { 
+            map { print "argv[$x] = $_\n"; $x++; } @$_; 
+            #print "argv[$x] = $_\n"; $x++;
+        } @data 
+    };
+=cut
 
     return wantarray ? @data : join ' ', map { join ' ', @$_ } @data;
 }
