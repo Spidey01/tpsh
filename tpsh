@@ -514,7 +514,6 @@ Program main loop
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
         map { resolve_cmd @$_ if defined @$_ } sh_eval $cmdln;
-
     }
 }
 
@@ -675,15 +674,9 @@ sub resolve_cmd {
     # Note: >> must come before > in order for append mode to work.
     #
   redirect:
-    if (defined $op and $op =~ /(\d+)?(>>|>|<)/) {
-        my ($ch, $fd, $op, $file) = (undef, $1, $2, $argv[-1]);
-        $cmd                      = join ' ', @argv[0..$#argv-2];
-        unless (defined $fd) {
-            #
-            # assign a default file descriptor based on $op
-            #
-            $fd = fileno STDIN;
-        }
+    if (defined $op and $op =~ /^(>>|>|<)$/) {
+        my ($ch, $op, $file) = (undef, $1, $argv[-1]);
+        $cmd                 = join ' ', @argv[0..$#argv-2];
         if ($Options{noclobber}) {
             if ( $op eq '>' and -e $file) {
                 warn "'$file' already exists",
