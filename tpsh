@@ -867,9 +867,21 @@ sub do_completion {
 }
 
 sub complete_filename {
-    my $word     = expand_parameters(expand_glob(shift));
-    my $basename = basename($word);
-    my $dirname  = dirname($word);
+    #
+    # File::Basename will pop a cork if the $word is bad; so use eval{} here.
+    # Likewise expand_glob() / bsd_glob() can cause some heartache; so use
+    # the old expand_tilde() function built into tpsh for this.
+    #
+    my ($word, $basename, $dirname);
+    eval { 
+        $word     = expand_parameters(expand_tilde(shift));
+        $basename = basename($word);
+        $dirname  = dirname($word);
+    }; if ($@) {
+        # should never be reached...
+        warn "\n completion error \n";
+    }
+
     my $cwd      = $ENV{PWD};
     if ($word =~ /\/$/) {
         # make sure we complete what's in the child dir
