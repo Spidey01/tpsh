@@ -1326,7 +1326,7 @@ sub err_handler {
     local $0 = basename $0;
     my $msg  = join( ' ', @_);
 
-    $msg =~ s/ at $0 line .*\n//;
+    $msg =~ s/ at (?:.*\/tpsh) line .*\n//;
     print STDERR "$0: $msg\n";
 }
 
