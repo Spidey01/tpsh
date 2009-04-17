@@ -126,11 +126,12 @@ my %Options = (
     vi              =>  0,
     verbose         =>  0,
     xtrace          =>  0,
+    # CLEAN
     cmdstr          =>  '', # used for tpsh -c "str"; do not document as set -o
 );
 
 #
-# Hash for updating %Options through Getopt::Long
+# Hash for updating %Options through Getopt::Long / do_getopt()
 #
 my %Setopts = (
     'a|allexport'    =>  \$Options{allexport},
@@ -170,14 +171,14 @@ my %Setopts = (
 # init_sh will initialize and compile this as a regular expression appropirate
 # for the users operating system, i.e. ':' or ':'.
 #
-# You should use hsplit(LIST) instead of directly using split 
+# You should use hsplit(LIST) instead of directly using this with split 
 #
 my $HashSep = \$ENV{HASHSEP};
 
 #
 # Introspector / debugging aid -- will be initialized in init_sh()
 #
-my $Dumper = undef;
+my $Dumper = new Dumpvalue;
 
 #
 # Holds the last executed command, usually built in.
@@ -194,7 +195,7 @@ my @Last_Line = ();
 # This is used if the ReadLine module doesn't support history. You should
 # never access this directly, use the main::*_history() functions here.
 # note: generally this is here so things like fc still work with when
-# Term::ReadLine::Stubs is the only read line module available.
+# Term::ReadLine::Stubs is the only readline module available.
 #
 my @History = ();
 
@@ -227,8 +228,8 @@ my $Term;
 my %Path = ();
 
 #
-# A hash of the users aliases in alias => expression format.
-# The aliases are kept separate from %Builtins, so the user
+# A hash of the users macros in macro => expression format.
+# The macros are kept separate from %Builtins, so the user
 # can _not_ clobber builtin commands; only mask them.
 #
 my %Macros = ();
@@ -335,9 +336,6 @@ sub init_sh {
         %pw = ( name => $pw->name, homedir => $pw->dir, uid => $pw->uid, );
     }
 
-
-    # XXX test this on Windows
-    $Dumper = new Dumpvalue;
 
     # These are defaults for our own internal variables
     #
@@ -452,6 +450,8 @@ sub init_sh {
     #
     $Builtins{chdir}->($ENV{HOME});
 
+    # process the users ENV files
+    #
     if ($Options{interactive}) {
         if (exists $ENV{ENV}) {
             map { my $f = sh_eval $_;
@@ -485,6 +485,7 @@ sub do_getopt {
 
     if ($ver lt '2.29') {
         # We've got to draw the line somewhere 
+        # XXX don't use warn, it may not be overridden yet
         #
         print STDERR "Getopt::Long version $ver is just to old... bye\n";
         sleep 10; die "Please update your Getopt::Long\n";
@@ -508,14 +509,28 @@ sub do_getopt {
 
 main_loop()
 
-Program main loop
+This is basically the core Read, Eval, Print, Loop. 
+Keep it nice and tight, most things belong in subroutines.
 
 =cut
+
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
         map { resolve_cmd @$_ if defined @$_ } sh_eval $cmdln;
     }
 }
+
+=pod
+
+handle_prompt()
+
+return a line of input from the user or a script; may return any value that
+Term::ReadLine::readline or CORE::readline.
+
+This function will automatically handle updating history, displaying traces,
+etc where appropriate. See also sh_eval() and source_bin().
+
+=cut
 
 sub handle_prompt {
     my $ln = "";
