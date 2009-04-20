@@ -126,8 +126,12 @@ my %Options = (
     vi              =>  0,
     verbose         =>  0,
     xtrace          =>  0,
-    # CLEAN
-    cmdstr          =>  '', # used for tpsh -c "str"; do not document as set -o
+    #
+    # This next option is used for things like tpsh -c "str"; do not document 
+    # this as a set -/+o option
+    # because it should never be used that way!
+    #
+    cmdstr          =>  '',
 );
 
 #
@@ -176,7 +180,7 @@ my %Setopts = (
 my $HashSep = \$ENV{HASHSEP};
 
 #
-# Introspector / debugging aid -- will be initialized in init_sh()
+# Introspector / debugging aid.
 #
 my $Dumper = new Dumpvalue;
 
@@ -561,11 +565,6 @@ sub handle_prompt {
 }
 
 sub tpsh_parse {
-    # parse this into tokens
-    #
-    #   cmd [args]
-    #   cmd [args] |, | cmd [args], ...
-    #   ..., > words ...
 
     my $line  = shift;
     my @stack;
@@ -1035,7 +1034,6 @@ sub expand_parameters {
     return $ln;
 }
 
-# expand aliases
 sub expand_aliases {
 
     my @argv = @_;
@@ -1059,7 +1057,11 @@ sub expand_aliases {
     #
     # notes:
     #
-    #   the %cache stores back refs, i.e. y => x, x => z, z => y
+    #   the %cache stores expansions in reverse order, i.e. 
+    #
+    #                   y => x, x => z, z => y
+    #   not
+    #                   x => y, z => x, y => z
     #
     #   macros may expand to commands with spaces, so the expansions
     #   must under go the (cmd, args, ...) treatment with ifsplit.
@@ -1083,7 +1085,7 @@ sub expand_aliases {
         @nargv  = (ifsplit(shift @nargv), @nargv);
         $cache{(ifsplit($$a))[0]} = $p;
 
-        # XXX remember the cache stores macro names back-ref'ed !!!
+        # XXX remember the cache stores macro names in reverse order !!!
         #
         grep {
             if (exists $cache{$_} && $cache{$_} eq $nargv[0]) {
@@ -1097,8 +1099,6 @@ sub expand_aliases {
     return wantarray ? @nargv : join ' ', @nargv;
 }
 
-# returns " " on error
-#
 sub expand_glob {
 
     return @_ if $Options{noglob};
@@ -1138,7 +1138,7 @@ sub exec_pipe {
     }
 
     # XXX we must trap SIGPIPE or things like 
-    #     ls | head 1 will kill tpsh!
+    #     goodcmd | badcmd can kill tpsh!
     #
     local $SIG{PIPE} = sub { warn "$lhs | ${rhs}: $!"
                                 if $Options{reportpipe}
@@ -1360,16 +1360,6 @@ sub sh_eval {
     my $line   = join '', @_;
     my @data   = tpsh_lex tpsh_parse($line);
 
-=pod
-    { 
-        my $x=0; 
-        map { 
-            map { print "argv[$x] = $_\n"; $x++; } @$_; 
-            #print "argv[$x] = $_\n"; $x++;
-        } @data 
-    };
-=cut
-
     return wantarray ? @data : join ' ', map { join ' ', @$_ } @data;
 }
 
@@ -1389,6 +1379,8 @@ sub update_env {
 alias_bin
 alias_bin EXPR
 alias_bin LIST
+
+XXX this pod needs to be updated
 
 When given a scalar expression, it will be split on '=' and create an alias for
 the left hand side, to the right hand side: this supports the Bourne Shell
@@ -1482,7 +1474,7 @@ sub cls_bin {
 
     if ($@) {
         # assume Term::Cap croaked
-        my $LINES = $ENV{LINES} ? $ENV{LINES} : 50;
+        my $LINES = $ENV{LINES} ? $ENV{LINES} : 75;
         for (my $n=0; $n < $LINES; $n++) {
             print "\r\n";
         }

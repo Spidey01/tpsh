@@ -393,6 +393,8 @@ Several features of other shells are considered by tpsh, to be a form of
 command "Macro" for logical reasons (read: Terry's brain works this way). There
 are 4 kinds of command macro, aliases, functions, and groups.
 
+XXX positional parameters are NOT implemented yet!
+
 =head3 Anonymous Macros
 
 An anonymous macro may be defined with the following syntax:
