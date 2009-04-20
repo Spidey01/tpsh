@@ -135,9 +135,9 @@ my %Options = (
 );
 
 #
-# Hash for updating %Options through Getopt::Long / do_getopt()
+# Hashref for updating %Options through Getopt::Long / do_getopt()
 #
-my %Setopts = (
+my $Setopts = {
     'a|allexport'    =>  \$Options{allexport},
     'A|autohistory'  =>  \$Options{autohistory},
     'b|notify'       =>  \$Options{notify},
@@ -167,7 +167,7 @@ my %Setopts = (
     #'h'              =>   \&pod2usage(-verbose => 0, -exitval => 1),
     #'help'           =>   \&pod2usage(-verbose => 1, -exitval => 1),
     #'m|man'          =>   \&pod2usage(-verbose => 3, -exitval => 0),
-);
+};
 
 
 #
@@ -473,9 +473,31 @@ sub init_sh {
     }
 }
 
+=pod
+
+do_getopt ARRAYREF, HASHREF
+do_getopt ARRAYREF, HASHREF, ARRAYREF
+
+do_getopt is a wrapper around the Getopt::Long perl module; it has the same
+return value as the modules GetOptions() function.  The first argument is
+expected to be a reference to an array value, corresponding to the ARGument
+Vector to be parsed; it will be modified as expected. The second argument is a
+reference to a hash containing the arguments for Getopt::Long::GetOptions.  The
+third argument is assumed to be a reference to an array, which will be passed
+to Getopt::Long::Configure(); if omiited, sane default values will be used.
+
+Normal usage:   do_getopt(\@argv, $opts);
+Advanced usage: do_getopt(\@argv, $opts, $conf);
+
+=cut
+
 sub do_getopt {
 
-    my ($argv, %opthash) = @_;
+    my ($argv, $opthash, $optconf) = @_;
+
+    unless (!defined $optconf) {
+        @$optconf = ('gnu_getopt', 'getopt_compat');
+    }
 
     # this is a bandaid for systems with an older Getopt::Long module
     # OpenBSD 4.5 Release for example. Comparing with floats are not
@@ -484,8 +506,7 @@ sub do_getopt {
     my $ver = $Getopt::Long::VERSION_STRING ? $Getopt::Long::VERSION_STRING
                                             : "$Getopt::Long::VERSION";
 
-	Getopt::Long::Configure('gnu_getopt', 'getopt_compat',
-                            'auto_version', 'auto_help');
+	Getopt::Long::Configure(@$optconf);
 
     if ($ver lt '2.29') {
         # We've got to draw the line somewhere 
@@ -500,12 +521,12 @@ sub do_getopt {
         #
         my @oldargv = @ARGV;
         @ARGV = @$argv;
-        my $ret = GetOptions(%opthash);
+        my $ret = GetOptions(%$opthash);
         @$argv = @ARGV;
         @ARGV = @oldargv;
         return $ret;
     } else {
-        return Getopt::Long::GetOptionsFromArray($argv, %opthash);
+        return Getopt::Long::GetOptionsFromArray($argv, %$opthash);
     }
 }
 
@@ -1522,12 +1543,12 @@ sub fc_bin {
     my @lines;
     my @argv = @_;
     my @hist = get_history();
-    my %opts = ('e|editor=s'    => \$e,
+    my $opts = {'e|editor=s'    => \$e,
                 'l|list'        => \$l,
                 'n'             => \$n,
                 'r|reverse'     => \$r,
-       );
-    do_getopt(\@argv, %opts);
+       };
+    do_getopt(\@argv, $opts);
 
     my ($first, $last) = @argv;
 
@@ -1842,12 +1863,12 @@ sub read_bin {
     my ($prmpt, $time);
     my $line = "";
     my @argv = @_;
-    my %opts = ( 'p=s' => \$prmpt,
+    my $opts = { 'p=s' => \$prmpt,
                  't=s' => \$time,
                  'e'   => sub { "no-op" },
-               );
+       };
 
-    do_getopt(\@argv, %opts);
+    do_getopt(\@argv, $opts);
     unless (@argv) {
         warn "I can't read into thin air!";
         return 0;
@@ -1917,7 +1938,7 @@ sub savehist_bin {
 sub set_bin {
     my @argv = @_;
     if (@argv) {
-        do_getopt(\@argv, %Setopts);
+        do_getopt(\@argv, $Setopts);
     } else {
         # pretty print everything like sh
         while (my ($var, $val) = each %ENV) {
@@ -2040,11 +2061,11 @@ sub which_bin {
     my $found = 0;
     my @argv  = @_;
     my @progs = ();
-    my %opts  = ( 'a|all'      => sub { $flag = '-a' },
+    my $opts  = { 'a|all'      => sub { $flag = '-a' },
                   's|sillent'  => sub { $flag = '-s' },
                   '<>'         => sub { push @progs, shift },
-       );
-    do_getopt(\@argv, %opts);
+       };
+    do_getopt(\@argv, $opts);
     #@progs = @argv;
 
     for (@progs) {
@@ -2092,7 +2113,7 @@ END {
 #                begin program execution 
 #----------------------------------------------------------
 if (__PACKAGE__ eq 'main') {
-    do_getopt(\@ARGV, %Setopts);
+    do_getopt(\@ARGV, $Setopts);
     $Options{interactive} = -t *STDIN && !@ARGV ? 1 : 0;
     $Options{stdin}       = @ARGV               ? 1 : 0;
     if ($Options{cmdstr}) {
