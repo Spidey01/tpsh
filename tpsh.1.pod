@@ -977,6 +977,8 @@ normally would expect.  Note: zsh also treats attempts to escape the equal sign
 funny, but not quite in the same way as tpsh.
 
 
+Handling of history is still in development, so expect bugs.
+
 =head1 LICENSE
 
 

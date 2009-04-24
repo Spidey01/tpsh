@@ -844,6 +844,15 @@ sub search_path {
     return;
 }
 
+=pod
+
+rehash
+
+Rebuild the internal %Path cache using the users PATH envrionment variable.
+This subroutine is meant to be called in void context.
+
+=cut
+
 sub rehash {
     for my $dir (reverse hsplit $ENV{PATH}) {
         print "hashing $dir\n" if $Options{verbose};
@@ -901,6 +910,15 @@ sub do_completion {
     return sort @completions;
 }
 
+=pod
+
+complete_filename EXPR
+
+Evaluate EXPR as a partial filename to complete, and return the result as a
+LIST. Both realitive and absolute filenames may be completed.
+
+=cut
+
 sub complete_filename {
     #
     # File::Basename will pop a cork if the $word is bad; so use eval{} here.
@@ -936,6 +954,16 @@ sub complete_filename {
     @a = map { "${dirname}/${_}" } @a;
     return @a;
 }
+
+=pod
+
+complete_command EXPR
+
+Returna LIST of possible Macro, Built-in, or known External Command completions
+for the word EXPR. To restrict completion to macros or built-in commands, use
+the complete_macro(EXPR) or complete_builtin(EXPR) subroutines.
+
+=cut
 
 sub complete_command {
     my $word = shift;
@@ -1022,7 +1050,18 @@ sub expand_quotes {
     }
 }
 
-# handle tilde expansions
+=pod
+
+expand_tilde EXPR
+
+Expand all unescaped '~' symbols found in EXPR, and return the resulting
+scalar. Note that this subroutine does not understand any form of quoting
+except the single backslash. It is technically obsolete, but may still be
+useful. If you need to evaluate expressions with more complex quoting (e.g. ',
+", and `), you should use sh_eval() or play with expand_quotes() directly.
+
+=cut
+
 sub expand_tilde {
 
     my $ln = wantarray ? join ' ', @_ : shift;
@@ -1118,6 +1157,18 @@ sub expand_aliases {
     return wantarray ? @nargv : join ' ', @nargv;
 }
 
+=pod
+
+expand_glob LIST
+
+Performs Input Field spliting on elements of LIST, and returns the LIST with
+all glob chacters expanded: IAW the shells 'noglob' option, and the users
+TPSH_GLOB_FLAGS variable. It is an error for no matches to be found, or for a
+perl syntax error in TPSH_GLOB_FLAGS. On error, a suitable warn()ing is fired
+off, and return undef.
+
+=cut
+
 sub expand_glob {
 
     return @_ if $Options{noglob};
@@ -1125,7 +1176,7 @@ sub expand_glob {
     my $flags = eval "$ENV{TPSH_GLOB_FLAGS}";
     if ($@) {
         warn "syntax error in \$TPSH_GLOB_FLAGS: $!";
-        return " ";
+        return undef;
     }
     my $globch = qr/[\[\]\{\}?*]/;
     my @argv;
@@ -1134,7 +1185,7 @@ sub expand_glob {
         my @args = bsd_glob $_, $flags;
         if (!@args and /$globch/) {
                 warn "no matches found: $_\n";
-                return " ";
+                return undef;
         }
         push @argv, @args ? @args : $_;
     }
