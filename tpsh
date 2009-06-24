@@ -36,6 +36,7 @@ sub do_getop;
 sub main_loop;
 sub tpsh_parse;
 sub tpsh_lex;
+sub tpsh_cgen;
 sub argv_rejoin;
 sub resolve_cmd;
 sub pexec;
@@ -541,7 +542,17 @@ Keep it nice and tight, most things belong in subroutines.
 
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
-        map { resolve_cmd @$_ if defined @$_ } sh_eval $cmdln;
+        #
+        # generate an executor subroutine for the command line
+        #
+        my $exe = tpsh_cgen(sh_eval $cmdln);
+        unless ($@) {
+            $exe->();
+            $Dumper->dumpValues($exe);
+        } else {
+            warn("syntax error in the above program");
+            if (1) { warn $@ } # XXX for debuging
+        }
     }
 }
 
@@ -641,6 +652,81 @@ sub tpsh_lex {
            } map { 
                [argv_rejoin @$_] 
            } @queue;
+}
+
+sub tpsh_cgen {
+
+    my @data = @_;
+    my $default = sub {
+        'map { resolve_cmd @$_ if defined @$_ } '.
+        "sh_eval('". join(' ', @_). "')";
+    };
+    my %targets = (
+        'if'    =>  sub {
+            return "if ( ".$default->(@_)." )";
+        },
+        'elif'  =>  sub {
+            return "\n}\nelsif ( ".$default->(@_)." )";
+        },
+        'else'  =>  sub {
+            return "\n}\nelse\n{\n\t".$default->(@_)."\n";
+        },
+        'then'  =>  sub {
+            return "\n{\n\t".$default->(@_).";\n";
+        },
+        'do'    =>  sub {
+            return "\n\t".$default->(@_).";\n";
+        },
+        'fi'    =>  sub {
+            return "\n}"
+        },
+        'done'  =>  sub {
+            return "\n}"
+        },
+        'esac'  =>  sub {
+            return "\n}"
+        },
+        'while' =>  sub {
+            return "while ( ".$default->(@_)." )";
+        },
+        'until' =>  sub {
+            return "until ( ".$default->(@_)." )";
+        },
+        'for'   =>  sub {
+            my $cntr;
+            my $buf;
+
+            # TODO:
+            #   for X; do ...; done is given, we need to act as if
+            #   for X in $@; do ..; done was given.
+            #
+            if ($_[0] ne 'in') {
+                $cntr = shift;
+                shift; # strip the 'in'
+                my $x = join ' ', map { "'$_'," } @_;
+                chop $x;
+                $buf  = "foreach ( $x ) ";
+                $buf .= '{ $ENV{\'$cntr\'}=$_;'."\n";
+            }
+            return $buf;
+        },
+        'case'  =>  sub {
+        },
+       );
+
+    my $strb;
+    foreach my $cmdln (@data) {
+        my $cmd = shift @$cmdln;
+        my @cmds = @$cmdln;
+        if (exists $targets{$cmd}) {
+            $strb .= $targets{$cmd}->(@cmds);
+        } else {
+            $strb .= "\n" . $default->($cmd, @cmds) . ';';
+        }
+    }
+
+    warn "sub {\n$strb\n}\n";
+    return eval "sub {\n$strb\n}\n";
 }
 
 sub argv_rejoin {
