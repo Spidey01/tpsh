@@ -236,6 +236,21 @@ be:
 Unless otherwise stated, the exit status of a complex command is always that
 of the last simple command executed by the command.
 
+=head3 Control Flow Keywords
+
+=over 8
+
+=item B<if> I<list> B<then> I<list> [B<elif> I<list> B<then> I<list>] ... [B<else> I<list>] B<fi>
+
+The I<list> immediately following the B<if> keyword is executed, if it returns
+an exit status of zero, then the list following B<then> is executed. If the
+I<list> immediately following the B<if> returns non-zero, then any supplied
+B<elif> groups will be executed likewise, until one succeeds. If given, and no
+preceding B<if> or B<elif> resulted in an exit status of zero: the I<list>
+following B<else> is finally executed.
+
+=back
+
 =head3 Command Search & Execution
 
 The shell understands several types of commands: built-in commands, macros,

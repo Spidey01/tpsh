@@ -6,6 +6,7 @@
 !_TAG_PROGRAM_VERSION	5.7	//
 add_history	tpsh	/^sub add_history {$/;"	s
 alias_bin	tpsh	/^sub alias_bin {$/;"	s
+argv_rejoin	tpsh	/^sub argv_rejoin {$/;"	s
 bad	tpsh	/^      bad:$/;"	l
 badidx	tpsh	/^          badidx:$/;"	l
 binerr	tpsh	/^sub binerr {$/;"	s
@@ -68,6 +69,7 @@ sleep_bin	tpsh	/^sub sleep_bin {$/;"	s
 source_bin	tpsh	/^sub source_bin {$/;"	s
 test_bin	tpsh	/^sub test_bin {$/;"	s
 times_bin	tpsh	/^sub times_bin {$/;"	s
+tpsh_cgen	tpsh	/^sub tpsh_cgen {$/;"	s
 tpsh_lex	tpsh	/^sub tpsh_lex {$/;"	s
 tpsh_parse	tpsh	/^sub tpsh_parse {$/;"	s
 trap_bin	tpsh	/^sub trap_bin {$/;"	s
