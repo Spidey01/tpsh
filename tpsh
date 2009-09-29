@@ -74,6 +74,7 @@ sub alias_bin;
 sub builtin_bin;
 sub cd_bin;
 sub cls_bin;
+sub dirs_bin;
 sub echo_bin;
 sub eval_bin;
 sub exit_bin;
@@ -84,6 +85,8 @@ sub hash_bin;
 sub history_bin;
 sub loadhist_bin;
 sub macro_bin;
+sub popd_bin;
+sub pushd_bin;
 sub pwd_bin;
 sub read_bin;
 sub rehash_bin;
@@ -254,6 +257,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'chdir'        => \&cd_bin,
                  'cls'          => \&cls_bin,
                  'command'      => sub { warn "Not implemented\n" },
+                 'dirs'         => \&dirs_bin,
                  'echo'         => \&echo_bin,
                  'eval'         => \&eval_bin,
                  'exec',        => \&exec_bin,
@@ -270,6 +274,8 @@ my %Builtins = ( '.'            => \&source_bin,
                  'loadhist'     => \&loadhist_bin,
                  'local'        => sub { warn "Not implemented\n" },
                  'macro'        => \&macro_bin,
+                 'popd'         => \&popd_bin,
+                 'pushd'        => \&pushd_bin,
                  'pwd'          => \&pwd_bin,
                  'read'         => \&read_bin,
                  'readonly'     => sub { warn "Not implemented\n" },
@@ -454,6 +460,7 @@ sub init_sh {
     # this will also take care of the OLDPWD/PWD variables.
     #
     $Builtins{chdir}->($ENV{HOME});
+    $ENV{DIRSTACK} = "~";
 
     # process the users ENV files
     #
@@ -548,7 +555,7 @@ sub main_loop {
         my $exe = tpsh_cgen(sh_eval $cmdln);
         unless ($@) {
             $exe->();
-            $Dumper->dumpValues($exe);
+            #$Dumper->dumpValues($exe);
         } else {
             warn("syntax error in the above program");
             if (1) { warn $@ } # XXX for debuging
@@ -725,7 +732,7 @@ sub tpsh_cgen {
         }
     }
 
-    warn "sub {\n$strb\n}\n";
+    #warn "sub {\n$strb\n}\n";
     return eval "sub {\n$strb\n}\n";
 }
 
@@ -1638,6 +1645,15 @@ sub cls_bin {
     return 1;
 }
 
+sub dirs_bin {
+
+    my $i = 0;
+    for my $dir (ifsplit $ENV{DIRSTACK}) {    
+        printf "%d\t%s\n", $i, $dir;
+        $i += 1;
+    }
+}
+
 sub echo_bin {
 
     my $i;
@@ -1978,6 +1994,26 @@ sub macro_bin {
 
     #$Macros{$name} = '(' . join(' ', @line) . ')';
     $Macros{$name} = join(' ', @line);
+}
+
+sub popd_bin {
+
+    my @ds  = ifsplit $ENV{DIRSTACK};
+    my $dir = shift @ds;
+
+    $ENV{DIRSTACK} = join(' ', @ds);
+
+    cd_bin(expand_tilde $ds[0]) && return dirs_bin();
+    return 0;
+}
+
+sub pushd_bin {
+    my $dir = shift || $ENV{PWD};
+    my $ds  = $ENV{DIRSTACK};
+
+    $ENV{DIRSTACK} = "$dir $ds";
+    cd_bin(expand_tilde $dir) && return dirs_bin();
+    return 0;
 }
 
 sub pwd_bin {

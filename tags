@@ -1,7 +1,83 @@
-binerr	tpsh	/^binerr()$/
-complete_macro	tpsh	/^the complete_macro(EXPR) or complete_builtin(EXPR)/
-handle_prompt	tpsh	/^handle_prompt()$/
-if	tpsh	/^    if (defined $ENV{TMPDIR}) {$/
-main_loop	tpsh	/^main_loop()$/
-pexec	tpsh	/^for use by pexec() or comparable value. If EXPR ca/
-unless	tpsh	/^    unless (defined $ENV{TMPDIR}) {$/
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+add_history	tpsh	/^sub add_history {$/;"	s
+alias_bin	tpsh	/^sub alias_bin {$/;"	s
+argv_rejoin	tpsh	/^sub argv_rejoin {$/;"	s
+bad	tpsh	/^      bad:$/;"	l
+badidx	tpsh	/^          badidx:$/;"	l
+binerr	tpsh	/^sub binerr {$/;"	s
+builtin	tpsh	/^  builtin:$/;"	l
+builtin_bin	tpsh	/^sub builtin_bin {$/;"	s
+cd_bin	tpsh	/^sub cd_bin {$/;"	s
+cls_bin	tpsh	/^sub cls_bin {$/;"	s
+complete_builtin	tpsh	/^sub complete_builtin {$/;"	s
+complete_command	tpsh	/^sub complete_command {$/;"	s
+complete_filename	tpsh	/^sub complete_filename {$/;"	s
+complete_macro	tpsh	/^sub complete_macro {$/;"	s
+death_handler	tpsh	/^sub death_handler {$/;"	s
+dirs_bin	tpsh	/^sub dirs_bin {$/;"	s
+do_completion	tpsh	/^sub do_completion {$/;"	s
+do_getopt	tpsh	/^sub do_getopt {$/;"	s
+echo_bin	tpsh	/^sub echo_bin {$/;"	s
+err_handler	tpsh	/^sub err_handler {$/;"	s
+eval_bin	tpsh	/^sub eval_bin {$/;"	s
+exec_bin	tpsh	/^sub exec_bin {$/;"	s
+exec_pipe	tpsh	/^sub exec_pipe {$/;"	s
+exit_bin	tpsh	/^sub exit_bin {$/;"	s
+expand_aliases	tpsh	/^sub expand_aliases {$/;"	s
+expand_glob	tpsh	/^sub expand_glob {$/;"	s
+expand_parameters	tpsh	/^sub expand_parameters {$/;"	s
+expand_quotes	tpsh	/^sub expand_quotes {$/;"	s
+expand_tilde	tpsh	/^sub expand_tilde {$/;"	s
+export_bin	tpsh	/^sub export_bin {$/;"	s
+fail	tpsh	/^    fail: do {$/;"	l
+fc_bin	tpsh	/^sub fc_bin {$/;"	s
+function_bin	tpsh	/^sub function_bin {$/;"	s
+get_history	tpsh	/^sub get_history {$/;"	s
+handle_prompt	tpsh	/^sub handle_prompt {$/;"	s
+hash_bin	tpsh	/^sub hash_bin {$/;"	s
+history_bin	tpsh	/^sub history_bin {$/;"	s
+hsplit	tpsh	/^sub hsplit {$/;"	s
+ifsplit	tpsh	/^sub ifsplit {$/;"	s
+init_sh	tpsh	/^sub init_sh {$/;"	s
+is_builtin	tpsh	/^sub is_builtin {$/;"	s
+is_macro	tpsh	/^sub is_macro {$/;"	s
+load_history	tpsh	/^sub load_history {$/;"	s
+loadhist_bin	tpsh	/^sub loadhist_bin {$/;"	s
+macro_bin	tpsh	/^sub macro_bin {$/;"	s
+main_loop	tpsh	/^sub main_loop {$/;"	s
+notfound	tpsh	/^    notfound: do {$/;"	l
+pexec	tpsh	/^sub pexec {$/;"	s
+pipe	tpsh	/^  pipe:$/;"	l
+popd_bin	tpsh	/^sub popd_bin {$/;"	s
+pushd_bin	tpsh	/^sub pushd_bin {$/;"	s
+pwd_bin	tpsh	/^sub pwd_bin {$/;"	s
+read_bin	tpsh	/^sub read_bin {$/;"	s
+redirect	tpsh	/^  redirect:$/;"	l
+rehash	tpsh	/^sub rehash {$/;"	s
+rehash_bin	tpsh	/^sub rehash_bin {$/;"	s
+resolve_cmd	tpsh	/^sub resolve_cmd {$/;"	s
+save_history	tpsh	/^sub save_history {$/;"	s
+savehist_bin	tpsh	/^sub savehist_bin {$/;"	s
+search_path	tpsh	/^sub search_path {$/;"	s
+set_bin	tpsh	/^sub set_bin {$/;"	s
+setenv_bin	tpsh	/^sub setenv_bin {$/;"	s
+setvar_bin	tpsh	/^sub setvar_bin {$/;"	s
+sh_eval	tpsh	/^sub sh_eval {$/;"	s
+sleep_bin	tpsh	/^sub sleep_bin {$/;"	s
+source_bin	tpsh	/^sub source_bin {$/;"	s
+test_bin	tpsh	/^sub test_bin {$/;"	s
+times_bin	tpsh	/^sub times_bin {$/;"	s
+tpsh_cgen	tpsh	/^sub tpsh_cgen {$/;"	s
+tpsh_lex	tpsh	/^sub tpsh_lex {$/;"	s
+tpsh_parse	tpsh	/^sub tpsh_parse {$/;"	s
+trap_bin	tpsh	/^sub trap_bin {$/;"	s
+type_bin	tpsh	/^sub type_bin {$/;"	s
+unalias_bin	tpsh	/^sub unalias_bin {$/;"	s
+unset_bin	tpsh	/^sub unset_bin {$/;"	s
+update_env	tpsh	/^sub update_env {$/;"	s
+which_bin	tpsh	/^sub which_bin {$/;"	s
