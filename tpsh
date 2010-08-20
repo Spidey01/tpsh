@@ -119,6 +119,7 @@ my %Options = (
     autohistory     =>  0,
     notify          =>  0,
     noclobber       =>  0,
+    debug           =>  0,
     emacs           =>  1,
     errexit         =>  0,
     noglob          =>  0,
@@ -150,6 +151,7 @@ my $Setopts = {
     'b|notify'       =>  \$Options{notify},
     'c=s'            =>  \$Options{cmdstr},
     'C|noclobber'    =>  \$Options{noclobber},
+    'D|debug'        =>  \$Options{debug},
     'E|emacs'        =>  \$Options{emacs},
     'e|errexit'      =>  \$Options{errexit},
     'f|noglob'       =>  \$Options{noglob},
@@ -1513,7 +1515,7 @@ sub err_handler {
     local $0 = basename $0;
     my $msg  = join( ' ', @_);
 
-    $msg =~ s/ at (?:.*\/tpsh) line .*\n//;
+    $msg =~ s/ at (?:.*\/tpsh) line .*\n// unless $Options{debug};
     print STDERR "$0: $msg\n";
 }
 
@@ -1522,7 +1524,7 @@ sub death_handler {
     local $0 = basename $0;
     my $msg  = join( ' ', @_);
 
-    $msg =~ s/ at $0 line .*\n//;
+    $msg =~ s/ at $0 line .*\n// unless $Options{debug};
     die "$0: ${msg}, stopping tpsh\n";
 }
 

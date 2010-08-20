@@ -74,6 +74,10 @@ input. Keep in mind that multi-word strings must be quoted in most shells.
 
 XXX not implemented yet
 
+=item B<-D> debug
+
+Enables debugging output. Intended for development and internal testing purposes only.
+
 =item B<-E> emacs
 
 Use key bindings for interactive line editing that resemble the L<emacs(1)>
