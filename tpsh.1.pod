@@ -786,8 +786,8 @@ values if necessary.
 
 =item PATH
 
-The default search path for executables. PATH is a HASHSEP separated list of
-directories in which to search. The default value is system dependent.
+The search path used for finding executables. PATH is a HASHSEP separated list of
+directories in which to search. There is no default value.
 
 =item SHELL
 

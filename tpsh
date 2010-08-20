@@ -32,6 +32,9 @@ local $0 = File::Spec->catfile($FindBin::Bin, $FindBin::Script);
 # Internal subroutines
 #
 sub init_sh;
+sub init_win32;
+sub init_unix;
+sub init_readline;
 sub do_getop;
 sub main_loop;
 sub tpsh_parse;
@@ -306,9 +309,8 @@ my %Builtins = ( '.'            => \&source_bin,
 #----------------------------------------------------------
 
 sub init_sh {
-    # handle default initializations for the environment
-    # XXX this is a _huge_ ass sub
-
+    # Get the shell up and running.
+    #   -> this is one _huge_ ass sub
 
     # override warn/die behaviour with the desired output
     #
@@ -319,57 +321,31 @@ sub init_sh {
         warn "Unsupported OS $^O -- YMMV\n";
     }
 
-    # if none of the accepted UNIX / NT login names are found in the
-    # users environment, treat this as a massively fatal error NOW.
-    do {
-        my $tried = 0;
-        my @names = qw( USER LOGNAME USERNAME );
-        for my $try (@names) {
-            $tried++ unless defined $ENV{$try};
-        }
-        die "Unable to find your username" if $tried == @names;
-    };
+    $ENV{OSTYPE} = $^O;
 
-    my ($isWin, $isUnix, %pw);
-    if (grep { $^O eq $_ } qw(MSWin32 os2 dos)) {
-        ($isWin, $isUnix) = (1, 0);
-        require Win32API::Net;
-        Win32API::Net::UserGetInfo('', $ENV{USERNAME}, 3, my $href={}) || die $!;
-        %pw = ( name => $href->{name},
-                homedir => $href->{homeDir} || $ENV{USERPROFILE},
-                uid => $href->{userId} );
-        $ENV{LOGNAME} = $pw{name};
-    } else {
-        ($isUnix, $isWin) = (1, 0);
-        require User::pwent;
-        my $pw = User::pwent::getpwnam($ENV{LOGNAME})
-            or die "No username specified";
-        %pw = ( name => $pw->name, homedir => $pw->dir, uid => $pw->uid, );
-    }
-
-
-    # These are defaults for our own internal variables
+    # sets the following:
+    #   $LOGNAME
+    #   $UID
+    #   $HOME
+    #   $EDITOR
+    #   $HASHSEP
     #
-    unless ($ENV{EDITOR}) {
-        if ($isUnix) {
-            $ENV{EDITOR} = '/bin/ed';
-        } elsif ($isWin) {
-            $ENV{EDITOR} = 'edit';
+    {
+        if (grep { $^O eq $_ } qw(MSWin32 os2 dos)) {
+            init_win32();
+        } else {
+            init_unix();
+        }
+
+        foreach (qw(LOGNAME UID HOME)) {
+            die "$_ environment not set" unless defined $ENV{$_};
         }
     }
-    $ENV{HISTSIZE}  ||= 512;
-    $ENV{IFS}       ||= " \t\n";
-    $ENV{PS1}       ||= $pw{uid} != 1 ? '$ ' : '# ';
-    $ENV{PS2}       ||= '> ';
-    $ENV{PS4}       ||= '+ ';
-    $ENV{CDPATH}    ||= "";
 
-    # inheritied from the system, normally...
-    $ENV{OSTYPE}    ||= $^O;
-    $ENV{SHELL}     ||= $0;             #  don't use $pw to get shell.
-    $ENV{HOME}      ||= $pw{homedir};
-    $ENV{USER}      ||= $pw{name};
-    $ENV{USERNAME}  ||= $pw{name};
+    # for compatability with Windows NT and BSD UNIX
+    $ENV{USERNAME} = $ENV{USER} = $ENV{LOGNAME};
+
+    # There can only be one value!
     if (defined $ENV{TMPDIR}) {
         $ENV{TMP}   ||= $ENV{TMPDIR};
         $ENV{TEMP}  ||= $ENV{TMPDIR};
@@ -378,44 +354,94 @@ sub init_sh {
         $ENV{TMP}    ||= $ENV{TMPDIR};
         $ENV{TEMP}   ||= $ENV{TMPDIR};
     }
+
     # some programs (e.g. nvi) will pop a cork if TMPDIR=""
     # so delete them all, unless there is a value.
     unless (defined $ENV{TMPDIR}) {
         delete @ENV{qw/TMPDIR TMP TEMP/};
     }
 
-    # We consider LOGNAME to be the authoritve form of the users name as
-    # specified in our starting environment. This should never fail, but I'm to
-    # sleepy to think clearly... so figure it out later.
     #
-    if ($ENV{LOGNAME} ne $pw{name}) {
-        die 'The $USER, $LOGNAME, and $USERNAME variables must match!';
-    }
+    # O.K. now on to shell settings.
+    #
+    $ENV{HISTSIZE}  ||= 512;
+    $ENV{IFS}       ||= " \t\n";
+    $ENV{PS1}       ||= $ENV{UID} != 1 ? '$ ' : '# ';
+    $ENV{PS2}       ||= '> ';
+    $ENV{PS4}       ||= '+ ';
+    $ENV{SHELL}     ||= $0;             #  don't use $pw to get shell.
 
-    $ENV{MAIL}      ||= "/var/mail/${ENV{USER}}";
-    #$ENV{MAILPATH}  ||= 'unused';
+    $ENV{'$'} = $$;
 
     # Set defaults for shell globbing behavour
     #
     $ENV{TPSH_GLOB_FLAGS} ||= 'GLOB_QUOTE | GLOB_TILDE';
 
+    # change to the users home directory by default.
+    # this will also take care of the OLDPWD/PWD variables.
+    #
+    $Builtins{chdir}->($ENV{HOME});
+    $ENV{DIRSTACK} = "~";
 
-    unless (defined $ENV{PATH}) {
-        $ENV{PATH} = $isUnix ? "/usr/bin:/bin"
-                             : "C:/Windows/system32;C:/Windows;" .
-                               "C:/Windows/System32/WBem;";
-    }
-
-    if ($isUnix) {
-        $$HashSep ||= qr':';
-    } else {
-        $$HashSep ||= qr';';
-    }
-    
+    # call now, so any default $PATH is pre-hashed for the users $ENV scripts
     rehash();
 
-    $ENV{'$'} = $$;
+    # process the users ENV files
+    #
+    if ($Options{interactive}) {
+        if (exists $ENV{ENV}) {
+            map { my $f = sh_eval $_;
+                  source_bin $f or warn "$f: $!";
+                } hsplit $ENV{ENV};
+        }
+    }
 
+    init_readline();
+}
+
+sub init_win32 {
+    # Does MS Windows specific initializations
+
+    $$HashSep       ||= qr';';
+    $ENV{EDITOR}    ||= 'edit';
+
+    # ActivePerl bundles this, Strawberry doesn't. So eval it.
+    my %pw;
+    eval {
+        require Win32API::Net;
+        Win32API::Net::UserGetInfo('', $ENV{USERNAME}, 3, my $href={}) 
+            || die $!;
+
+        $ENV{LOGNAME} = $href->{name};
+        $ENV{UID} = $href->{userId};
+        $ENV{HOME} = $href->{homeDir} || $ENV{USERPROFILE};
+    };
+
+    return unless $@;
+
+    # We will just have to guess... bah!
+
+    $ENV{LOGNAME} = $ENV{USERNAME};
+    $ENV{UID} = $<;
+    $ENV{HOME} = $ENV{USERPROFILE};
+}
+
+sub init_unix {
+    # Does UNIX specific initializations
+
+    $$HashSep       ||= qr':';
+    $ENV{EDITOR}    ||= 'ed';
+
+    require User::pwent;
+    my $pw = User::pwent::getpwnam($ENV{LOGNAME})
+        or die "No username specified";
+
+    $ENV{LOGNAME} = $pw->name;
+    $ENV{UID} = $pw->dir;
+    $ENV{HOME} = $pw->uid;
+}
+
+sub init_readline {
     # initialize the readline library
     #
     $Term = Term::ReadLine->new($ENV{SHELL});
@@ -454,23 +480,6 @@ sub init_sh {
     # XXX works for Zoid, Perl, and Gnu (Zoid is best)
     #
     $attr->{completion_function}   = \&do_completion;
-
-
-    # change to the users home directory by default.
-    # this will also take care of the OLDPWD/PWD variables.
-    #
-    $Builtins{chdir}->($ENV{HOME});
-    $ENV{DIRSTACK} = "~";
-
-    # process the users ENV files
-    #
-    if ($Options{interactive}) {
-        if (exists $ENV{ENV}) {
-            map { my $f = sh_eval $_;
-                  source_bin $f or warn "$f: $!";
-                } hsplit $ENV{ENV};
-        }
-    }
 
     if ($Options{autohistory}) {
         loadhist_bin $ENV{HISTFILE};
