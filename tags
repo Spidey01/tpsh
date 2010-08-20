@@ -43,7 +43,10 @@ hash_bin	tpsh	/^sub hash_bin {$/;"	s
 history_bin	tpsh	/^sub history_bin {$/;"	s
 hsplit	tpsh	/^sub hsplit {$/;"	s
 ifsplit	tpsh	/^sub ifsplit {$/;"	s
+init_readline	tpsh	/^sub init_readline {$/;"	s
 init_sh	tpsh	/^sub init_sh {$/;"	s
+init_unix	tpsh	/^sub init_unix {$/;"	s
+init_win32	tpsh	/^sub init_win32 {$/;"	s
 is_builtin	tpsh	/^sub is_builtin {$/;"	s
 is_macro	tpsh	/^sub is_macro {$/;"	s
 load_history	tpsh	/^sub load_history {$/;"	s
