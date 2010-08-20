@@ -438,9 +438,9 @@ sub init_unix {
     my $pw = User::pwent::getpwnam($ENV{LOGNAME})
         or die "No username specified";
 
-    $ENV{LOGNAME} = $pw->name;
-    $ENV{UID} = $pw->dir;
-    $ENV{HOME} = $pw->uid;
+    $ENV{LOGNAME}   = $pw->name;
+    $ENV{UID}       = $pw->uid;
+    $ENV{HOME}      = $pw->dir;
 }
 
 sub init_readline {
