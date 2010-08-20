@@ -958,6 +958,8 @@ This subroutine is meant to be called in void context.
 =cut
 
 sub rehash {
+    return unless defined $ENV{PATH};
+
     for my $dir (reverse hsplit $ENV{PATH}) {
         print "hashing $dir\n" if $Options{verbose};
         opendir my $dh, $dir 
