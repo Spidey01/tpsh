@@ -52,6 +52,7 @@ is_macro	tpsh	/^sub is_macro {$/;"	s
 load_history	tpsh	/^sub load_history {$/;"	s
 loadhist_bin	tpsh	/^sub loadhist_bin {$/;"	s
 macro_bin	tpsh	/^sub macro_bin {$/;"	s
+macros_bin	tpsh	/^sub macros_bin {$/;"	s
 main_loop	tpsh	/^sub main_loop {$/;"	s
 notfound	tpsh	/^    notfound: do {$/;"	l
 pexec	tpsh	/^sub pexec {$/;"	s

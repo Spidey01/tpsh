@@ -88,6 +88,7 @@ sub hash_bin;
 sub history_bin;
 sub loadhist_bin;
 sub macro_bin;
+sub macros_bin;
 sub popd_bin;
 sub pushd_bin;
 sub pwd_bin;
@@ -279,6 +280,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'loadhist'     => \&loadhist_bin,
                  'local'        => sub { warn "Not implemented\n" },
                  'macro'        => \&macro_bin,
+                 'macros'       => \&macros_bin,
                  'popd'         => \&popd_bin,
                  'pushd'        => \&pushd_bin,
                  'pwd'          => \&pwd_bin,
@@ -340,7 +342,7 @@ sub init_sh {
         }
 
         foreach (qw(LOGNAME UID HOME)) {
-            die "$_ environment not set" unless defined $ENV{$_};
+            die "$_ environment variable not set" unless defined $ENV{$_};
         }
     }
 
@@ -382,7 +384,7 @@ sub init_sh {
     # change to the users home directory by default.
     # this will also take care of the OLDPWD/PWD variables.
     #
-    $Builtins{chdir}->($ENV{HOME});
+    cd_bin $ENV{HOME};
     $ENV{DIRSTACK} = "~";
 
     # call now, so any default $PATH is pre-hashed for the users $ENV scripts
@@ -392,9 +394,10 @@ sub init_sh {
     #
     if ($Options{interactive}) {
         if (exists $ENV{ENV}) {
-            map { my $f = sh_eval $_;
-                  source_bin $f or warn "$f: $!";
-                } hsplit $ENV{ENV};
+            foreach (hsplit $ENV{ENV}) { 
+                my $f = sh_eval $_;
+                source_bin $f or warn "$f: $!";
+            }
         }
     }
 
@@ -560,6 +563,7 @@ Keep it nice and tight, most things belong in subroutines.
 
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
+        next unless $cmdln;
         #
         # generate an executor subroutine for the command line
         #
@@ -569,7 +573,7 @@ sub main_loop {
             #$Dumper->dumpValues($exe);
         } else {
             warn("syntax error in the above program");
-            if (1) { warn $@ } # XXX for debuging
+            if ($Options{debug}) { warn $@ }
         }
     }
 }
@@ -587,7 +591,7 @@ etc where appropriate. See also sh_eval() and source_bin().
 =cut
 
 sub handle_prompt {
-    my $ln = "";
+    my $ln;
 
     if ($Options{interactive} && !$Options{stdin}) {
         $ln = $Term->readline($ENV{PS1});
@@ -615,6 +619,7 @@ sub handle_prompt {
 }
 
 sub tpsh_parse {
+    return () unless @_;
 
     my $line  = shift;
     my @stack;
@@ -632,6 +637,7 @@ sub tpsh_parse {
 }
 
 sub tpsh_lex {
+    return () unless @_;
 
     my $strbuf;
     my @words = @_;
@@ -673,6 +679,7 @@ sub tpsh_lex {
 }
 
 sub tpsh_cgen {
+    return eval "sub {\n\n}\n" unless @_;
 
     my @data = @_;
     my $default = sub {
@@ -1142,7 +1149,8 @@ sub expand_quotes {
         my $unqu    = $1;
         my $isqu    = $3;
         my $mayqu   = $5;
-        print "expand_quotes $qu: $unqu | $isqu | $mayqu\n";
+        print "expand_quotes $qu: $unqu | $isqu | $mayqu\n"
+            if $Options{debug};
 
 
         $quotes{def}->($unqu) if $unqu !~ /^\s*$/;
@@ -1409,9 +1417,10 @@ sub load_history {
 }
 
 sub save_history {
+    return unless @_ and $ENV{HISTSIZE};
 
     my $histfile = shift;
-    my $histsize = $ENV{HISTSIZE} || 0;
+    my $histsize = $ENV{HISTSIZE};
     my $fsize    = 0;
     my $hsize    = 0;
     my $fh       = undef;
@@ -1436,10 +1445,10 @@ sub save_history {
             shift @lines;
         }
         seek $fh, 0, 0;
-        map { print $fh "$_\n" } (@lines, @history);
+        print $fh "$_\n" foreach (@lines, @history);
     } else {
         # just append 
-        map { print $fh "$_\n" } @history;
+        print $fh "$_\n" foreach @history;
     }
 
     return close $fh;
@@ -1565,10 +1574,8 @@ style alias, in the form of 'alias command value'. If no argument list is specif
 
 =cut
 sub alias_bin {
-    unless (@_) {
-        $Dumper->dumpValue(\%Macros);
-        return 1;
-    }
+    return macros_bin unless @_;
+
     my @argv = @_;
     my ($lvalue, $rvalue);
 
@@ -1732,11 +1739,7 @@ sub fc_bin {
         }
     };
     my $println = sub {
-        if ($r) {
-            map { print "$_\n" } reverse @_;
-        } else {
-            map { print "$_\n" } @_;
-        }
+        print $_, "\n" foreach $r ? reverse @_ : @_;
     };
     my $editln = sub {
         #
@@ -1852,12 +1855,12 @@ sub fc_bin {
                           : $hist[$first];
             };
             if ($n) {
-                map { $pushln->($_) } @buf;
+                $pushln->($_) foreach @buf;
             } else {
                 # we have to manually insert the line numbers
                 #
                 my $k= $first + 1;
-                map { $pushln->($_, $k); $k++ } @buf;
+                $pushln->($_, $k), $k++ foreach @buf;
             }
             $dofc->(@lines);
 
@@ -1964,6 +1967,7 @@ sub history_bin {
 }
 
 sub loadhist_bin {
+    return unless @_;
 
     my @argv  = @_;
     my @lines = ();
@@ -1980,6 +1984,7 @@ sub loadhist_bin {
 }
 
 sub macro_bin {
+    return macros_bin unless @_;
 
     # name( ... ) == good 
     my @line = @_;
@@ -2007,6 +2012,11 @@ sub macro_bin {
 
     #$Macros{$name} = '(' . join(' ', @line) . ')';
     $Macros{$name} = join(' ', @line);
+}
+
+sub macros_bin {
+    $Dumper->dumpValue(\%Macros);
+    return 1;
 }
 
 sub popd_bin {
@@ -2186,7 +2196,9 @@ sub source_bin {
         for my $file (@args) {
             open my $fh, '<', $file     or die "${file}: $!\n";
             while (defined(my $ln = <$fh>)) {
-                map { resolve_cmd @$_ if defined @$_ } sh_eval $ln;
+                foreach (sh_eval $ln) {
+                    resolve_cmd @$_ if defined @$_;
+                }
             }
         }
     };
@@ -2298,7 +2310,7 @@ END {
 #----------------------------------------------------------
 #                begin program execution 
 #----------------------------------------------------------
-if (__PACKAGE__ eq 'main') {
+unless (caller) {
     do_getopt(\@ARGV, $Setopts);
     $Options{interactive} = -t *STDIN && !@ARGV ? 1 : 0;
     $Options{stdin}       = @ARGV               ? 1 : 0;

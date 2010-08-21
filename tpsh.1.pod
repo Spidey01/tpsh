@@ -64,7 +64,7 @@ XXX not implemented yet
 
 =item B<-C> noclobber
 
-Do not overwrite existing files with I/O redirection; e.g. C<<cat f1 f2 > f1>>
+Do not overwrite existing files with I/O redirection; e.g. C<< cat f1 f2 > f1 >>
 becomes an error under noclobber.
 
 =item B<-c string> 
