@@ -1,0 +1,65 @@
+=pod
+
+=head1 Hacking tpsh
+
+=head2 Code structure / style issues
+
+Keep the following structure:
+
+	she-bang.
+
+	pragma's.
+
+	use's sorted by alphabet.
+	
+	forward declarations of internal sub's.
+
+	forward declarations of sub's for built in commands, ending in _bin.
+
+	global data structures. Document them.
+
+	definitions of internal sub's.
+
+	definitions of sub's for built in commands, ending in _bin.
+
+	program main entry point.
+
+Naming convention is generally:
+
+	$Global
+	sub name_like_this; sub builtin_bin
+
+Internal functions will often start with a verb (like expand_quotes) and only common abbrivations used (like err instead of error). The name should be descriptive enough. Very internal/tpsh specific functions will usually be prefixed with tpsh_.
+
+=head2 Design notes
+
+tpsh maintains tables of things like I<%Options> and I<%Builtins>. See above and script upper structure.
+
+Built-in commands are implemented as a look up table through %Builtins as a hash of command names to call backs. The call backs are in the form of canonical_name_bin, e.g. cd and chdir are implemented via the cd_bin subroutine.
+
+The readline situation is a real mess IMHO.
+
+=head3 Program flow
+
+We setup stuff like I<%Options> according to our execution mode (interactive shell, etc) and call init_sh(). In init_sh() we initialize the shell for use, delegating specific issues to init_something (see L<init_win32()>, L<init_unix()>, and L<init_readline()>). Any default values for environment variables are either imported or set accordingly. Configuration files and I<$ENV> are setup as appropriate.
+
+We then enter the main_loop() until exit. The main_loop() is a pretty simple Read-Eval-Print-Loop (REPL). Most interesting stuff occurs through functions called here.
+
+tpsh is currently implemented with a "Code generator" in the form of tpsh_cgen(). It generates a I<coderef> for the main_loop() to execute the arguments. So whether it's as simple as 'ls' or 'if [ ...]; then ...; else ...; fi', it's done here.
+
+Command input gets evaluated as shell commands by:
+
+	sh_eval() -> tpsh_lex() -> tpsh_parse($line)
+
+tpsh_parse() generates a stack representing what was entered. It handles things like splitting a command line like I<foo "bar ham" eggs> up into three words.
+
+tpsh_lex() takes care of massaging what was tpsh_parse()'d into something we can work with.
+
+Behaviour of command look up is specified in the manual under L<Command Search & Execution>.
+
+=head2 do_getopt()
+
+Read the POD above the subroutine definition! Then look at some commands that use it (mostly I</*._bin/>). We use this to deal with systems that lack Getopt::Long::GetOptionsFromArray(), and will die if the users Getopt::Long module is less than 2.29.
+
+=cut
+
