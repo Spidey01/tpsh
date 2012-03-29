@@ -1,0 +1,16 @@
+#!/usr/bin/perl
+#
+# Yes this may be cheap, cheesey, and ugly to a purest versus the combo of perl
+# modules (use Tpsh::Tests::Foo) and perl meta programming to execute them but
+# hell, it's also simple and exactly what I want! Oh, and did I mention it
+# keeps tests closer to live tpsh code?
+
+use warnings;
+use strict;
+
+do 'tpsh';
+
+foreach (<tests.d/*.pl>) {
+	do $_;
+}
+
