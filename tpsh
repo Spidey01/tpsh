@@ -2151,7 +2151,8 @@ sub set_bin {
         do_getopt(\@argv, $Setopts);
     } else {
         # pretty print everything like sh
-        while (my ($var, $val) = each %ENV) {
+        foreach my $var (sort keys %ENV) {
+            my $val = $ENV{$var};
             # shut up uninitialized warnings if VAR=
             #
             $val = "" unless defined $val;
