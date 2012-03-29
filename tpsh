@@ -972,8 +972,12 @@ sub rehash {
 
     for my $dir (reverse hsplit $ENV{PATH}) {
         print "hashing '$dir'\n" if $Options{verbose};
-        opendir my $dh, $dir 
-            or warn "Unable to access '$dir'; skipping in \$PATH\n";
+        my $dh;
+        if (not opendir $dh, $dir ) {
+            warn "Unable to access '$dir'; skipping in \$PATH\n"
+                if $Options{debug};
+            next;
+        }
         for my $prog (readdir $dh) {
             $Path{$prog} = "${dir}/${prog}";
         }
