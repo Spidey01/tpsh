@@ -384,11 +384,16 @@ sub init_sh {
     #
     $ENV{TPSH_GLOB_FLAGS} ||= 'GLOB_QUOTE | GLOB_TILDE';
 
-    # change to the users home directory by default.
-    # this will also take care of the OLDPWD/PWD variables.
-    #
-    cd_bin $ENV{HOME};
-    $ENV{DIRSTACK} = "~";
+    if ($Options{interactive}) {
+        # change to the users home directory by default.
+        # this will also take care of the OLDPWD/PWD variables.
+        #
+        cd_bin $ENV{HOME};
+        $ENV{DIRSTACK} = "~";
+    } else {
+        # scripts/commands run from CWD.
+        $ENV{PWD} = $ENV{DIRSTACK} = Cwd::getcwd();
+    }
 
     # call now, so any default $PATH is pre-hashed for the users $ENV scripts
     rehash();
