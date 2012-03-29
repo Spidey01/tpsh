@@ -321,6 +321,9 @@ sub init_sh {
     $SIG{__WARN__} = \&err_handler;
     $SIG{__DIE__}  = \&death_handler;
 
+    # ignore ^Z/SUSP key for now: we don't have support for job control yet.
+    $SIG{TSTP} = "IGNORE";
+
     if (grep { $^O eq $_ } qw(VMS MacOS NetWare beos vos)) {
         warn "Unsupported OS $^O -- YMMV\n";
     }
