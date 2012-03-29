@@ -1020,6 +1020,7 @@ not a portable sh script runner. A proper solution is probably to make command e
 		output => "1\n"
 	}
 
+Function style macro definitions and positional parameters are not implemented yet.
 
 =head1 LICENSE
 
