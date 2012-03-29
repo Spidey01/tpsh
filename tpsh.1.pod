@@ -267,10 +267,10 @@ macro will be expanded recursively before execution occurs, the expansion
 replaces the macro name in the queue. Refer to L</Macro Expansions> below for
 the gory details of how macros are expanded.
 
-Next tpsh examines if the command is built-in to the shell. If so, the
-command is executed internally without spawning a new process. tpsh provides
-many built-in commands either for connivance or portability; they are
-documented under L</Built-in Commands>.
+Next tpsh examines if the command is built-in to the shell. If so, the command
+is executed internally without spawning a new process. tpsh provides many
+built-in commands either for convenience or portability; they are documented
+under L</Built-in Commands>.
 
 Lastly if the command does not match a named macro or built-in command, it is
 assumed to be an external program to be executed. If the command begins with
@@ -997,6 +997,29 @@ funny, but not quite in the same way as tpsh.
 
 
 Handling of history is still in development, so expect bugs.
+
+Pipes were disabled ages ago.
+
+I/O redirection probably only works with simple commands. Been to long since I tested it.
+
+There is no real solid concept of a "Return value" from a command just yet.
+This means that conditonal expressions and the like are partially broken. I<if
+bad-command; then echo yes; else echo no; fi>  outputs the following:
+
+	tpsh: command not found: bad-command
+	yes
+
+Instead of I<no>. Support for this is too experimental to be that far along,
+and emphasis was on the code generator being a viable method, rather than on
+usability. Like I've always said this is focused on being an interactive shell,
+not a portable sh script runner. A proper solution is probably to make command execution contexts return a hash like:
+
+	# from 'echo 1'
+	{
+		rv => $?,
+		output => "1\n"
+	}
+
 
 =head1 LICENSE
 
