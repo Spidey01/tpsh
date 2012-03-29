@@ -1,0 +1,21 @@
+#!/bin/sh
+
+cd `dirname "$0"`
+
+#PERL_RL="Zoid "; export PERL_RL
+#ENV="~/.tpshrc"; export ENV
+
+# strip env to be more like a login(1) shell.
+#
+exec env -i USER="$USER" LOGNAME="$LOGNAME" USERNAME="$USERNAME" \
+    TTY="$TTY" TERM="$TERM" COLORTERM="$COLORTERM" \
+    TERMCAP="$TERMCAP" TERMINFO="$TERMINFO" \
+    LINES="$LINES" COLUMNS="$COLUMNS" \
+    LANG="$LANG" LANGUAGE="$LANGUAGE" LC_ALL="$LC_ALL" \
+    DISPLAY="$DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
+    PATH="/bin:/usr/bin:/usr/local/bin:${HOME}/bin:${HOME}/sh" \
+    HISTFILE="${TMPDIR:-/tmp}/tpsh-histfile" \
+    ENV="`pwd`/tpshrc" \
+    `which perl` ./tpsh "$@"
+
+echo "EXEC FAILED"; exit 255
