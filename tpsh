@@ -753,7 +753,9 @@ sub tpsh_cgen {
         }
     }
 
-    #warn "sub {\n$strb\n}\n";
+    if ($Options{debug}) {
+        warn "eval('sub {\n\t$strb\n\n}')\n";
+    }
     return eval "sub {\n$strb\n}\n";
 }
 
