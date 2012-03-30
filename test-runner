@@ -9,8 +9,45 @@ use warnings;
 use strict;
 
 do 'tpsh';
+# TODO make tpsh handle this for us correctly.
+init_sh();
 
-foreach (<tests.d/*.pl>) {
-	do $_;
+
+my $ActiveTest;
+my %Results = ( passes => 0, tests => 0, failures => 0, asserts => 0 );
+
+our $TestRunnerDir = $ENV{PWD};
+
+# assert BLOCK "message to show on failure"
+#
+sub assert(&$) {
+    my ($block, $msg) = @_;
+    $Results{asserts}++;
+
+    my $rv = $block->(); 
+    if (!$rv) {
+        $Results{failures}++;
+        print "$ActiveTest failed: $msg\n";
+    } else {
+        $Results{passes}++;
+    }
+
+    return $rv;
 }
 
+
+
+
+foreach (<tests.d/*.pl>) {
+    $Results{tests}++;
+	do ($ActiveTest = $_);
+}
+
+
+
+my $header = "-" x ($ENV{COLUMNS} || 10);
+print $header, "\n\tSUMMARY\n\n";
+print "$Results{tests} tests were run with $Results{asserts} assertions\n";
+print "$Results{passes} passed\n";
+print "$Results{failures} failed\n";
+print $header, "\n";
