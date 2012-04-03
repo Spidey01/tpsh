@@ -572,6 +572,7 @@ Keep it nice and tight, most things belong in subroutines.
 sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
         next unless $cmdln;
+        next if $cmdln =~ /^\s*#/;
         #
         # generate an executor subroutine for the command line
         #
@@ -692,6 +693,7 @@ sub tpsh_cgen {
     my @data = @_;
     my $default = sub {
         'map { resolve_cmd @$_ if defined @$_ } '.
+        #'map { my $xxx=-500; $xxx=resolve_cmd @$_ if defined @$_; print "resolve_cmd returned $xxx\n" } '.
         "sh_eval('". join(' ', @_). "')";
     };
     my %targets = (
@@ -875,6 +877,8 @@ pexec() overrides Perl's PATH look up for exec(), by using a qualified path for
 the shells %Path. exec'ing stuff this way respects the users HASHSEP, and
 ensures that the operation will also respect the users pathext setting.
 
+returns $?>>8.
+
 =cut
 
 sub pexec {
@@ -889,6 +893,7 @@ sub pexec {
 
     if ($pid) {
         wait();
+        return $? >> 8;
     } else {
         my $e = $$c;
         unless ($$c = search_path $$c) {
@@ -1600,15 +1605,16 @@ sub alias_bin {
         # join C-Shell style rhs into a scalar for assignment
         ($lvalue, $rvalue) = (shift @argv, join ' ', @argv);
     }
-    unless ($rvalue) {
-        if (is_macro $lvalue) {
-            print "'$lvalue' => '$Macros{$lvalue}'\n";
-        }
-        return 1
+
+    # maybe called like alias macroname
+    if (!$rvalue) {
+        return 1 if (!is_macro($lvalue));
+        print "'$lvalue' => '$Macros{$lvalue}'\n" if !$rvalue;
     }
 
+
     $Macros{$lvalue} = $rvalue;
-    return 1;
+    return 0;
 }
 
 sub builtin_bin {
@@ -1618,6 +1624,7 @@ sub builtin_bin {
         $Builtins{$bin}->(@_);
     } else {
         warn "not found: $bin";
+        return 127;
     }
 }
 
@@ -1653,7 +1660,8 @@ sub cd_bin {
     warn $! unless $rv;
     $ENV{OLDPWD} = $ENV{PWD} || "";
     $ENV{PWD}    = cwd();
-    return $rv;
+
+    return $rv ? 0 : 2; # dash returns 2 on cd /notreal
 }
 
 sub cls_bin {
@@ -1676,7 +1684,8 @@ sub cls_bin {
             print "\r\n";
         }
     }
-    return 1;
+
+    return 0;
 }
 
 sub dirs_bin {
@@ -1686,6 +1695,8 @@ sub dirs_bin {
         printf "%d\t%s\n", $i, $dir;
         $i += 1;
     }
+
+    return 0;
 }
 
 sub echo_bin {
@@ -1697,9 +1708,11 @@ sub echo_bin {
         print $i < $#words ? "$words[$i] " : $words[$i];
     }
 
+    # Not sure if I this is retroactively a bug or a feature.
     return $i + print "\n";
 }
 
+# needs more testing
 sub eval_bin {
 
     my $args = join ' ', @_;
@@ -1712,16 +1725,20 @@ sub exec_bin {
     my ($prog, @argv) = @_;
 
     exec { $prog } ($prog, @argv) or warn $!;
+    # bet most of you forget this trick :P
+    return ($! << 0);
 }
 
 sub exit_bin {
     my $ev = shift;
 
     defined $ev ? exit $ev : exit $? >> 8;
+    return 127;
 }
 
 sub export_bin {
 
+    return 1;
 }
 
 sub fc_bin {
@@ -1824,7 +1841,7 @@ sub fc_bin {
     }
     unless ($e or $l) {
         warn "no editor specified";
-        return 0;
+        return 127;
     }
 
     #
@@ -1881,7 +1898,7 @@ sub fc_bin {
           badidx:
             if ($@) {
                 print STDERR "fc: ", $@;
-                return 0;
+                return 1;
             }
         } else {
             #
@@ -1901,7 +1918,7 @@ sub fc_bin {
             };
             if ($@) {
                 print STDERR "fc: ", $@;
-                return 0;
+                return 1;
             }
 
             # locate the first offset by counting backwards and
@@ -1926,7 +1943,7 @@ sub fc_bin {
         }
     }
 
-    return 1;
+    return 0;
 }
 
 sub function_bin {
@@ -1935,9 +1952,12 @@ sub function_bin {
         warn "syntax error: did you forget the parentheses? ",
              "function $name $def";
 
-        return " ";
+        #return " ";
+        return 2; # bash4.2.10 returns 2 for this syntax errorj  
     }
     $Macros{$name} = $def;
+
+    return 1
 }
 
 sub hash_bin {
@@ -2030,7 +2050,7 @@ sub macro_bin {
 
 sub macros_bin {
     $Dumper->dumpValue(\%Macros);
-    return 1;
+    return 0;
 }
 
 sub popd_bin {

@@ -13,7 +13,8 @@ alias csh_alias echo csh style alias with $# positional parameters
 
 sh_function() { echo sh style function with $# positional parameters }
 
-function bash_function() {  echo bash style function with $# positional parameters }
+# { } syntax doesn't work yet so only 'function name() simple-command' would work
+function bash_function() echo "bash style function with $# positional parameters"
 
 echo -------------
 echo testing macros

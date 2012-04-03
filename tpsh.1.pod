@@ -1016,7 +1016,7 @@ not a portable sh script runner. A proper solution is probably to make command e
 
 	# from 'echo 1'
 	{
-		rv => $?,
+		rv => $? >> 8,
 		output => "1\n"
 	}
 
