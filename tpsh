@@ -687,83 +687,69 @@ sub tpsh_lex {
            } @queue;
 }
 
+=pod
+
+tpsh_cgen LIST
+
+Return a coderef that will execute the specified shell command line when called.
+LIST is meant to be in the format of the return value of sh_eval().
+
+=cut
+
 sub tpsh_cgen {
     return eval "sub {\n\n}\n" unless @_;
 
+    # if called like: 
+    #
+    #     tpsh_cgen(sh_eval('if ls -l /foo; then echo yes; else echo no;fi'));
+    #
+    # @data = @_ = something like: (
+    #  [ 'if', 'ls', '-l', '/foo'  ],
+    #  ['then', 'echo', 'yes'      ],
+    #  ['else', 'echo', 'no'       ],
+    #  ['fi',                      ],
+    #
+    # if called like:
+    #
+    #     tpsh_cgen(sh_eval('ls -l /foo; head -1 /x'));
+    #
+    # @data = @_ = something like: (
+    #  [ 'ls', '-l', '/foo'  ],
+    #  [ 'head', '-1', '/x'  ],
+    # )
+    #
+    # You get the idea.
+    #
     my @data = @_;
-    my $default = sub {
-        'map { resolve_cmd @$_ if defined @$_ } '.
-        #'map { my $xxx=-500; $xxx=resolve_cmd @$_ if defined @$_; print "resolve_cmd returned $xxx\n" } '.
-        "sh_eval('". join(' ', @_). "')";
-    };
+    # just execute command for return value 
+    my $default = sub { "resolve_cmd(\"".join("\", \"", @_)."\")"; };
+    # generate corrisponding perl code :)
     my %targets = (
-        'if'    =>  sub {
-            return "if ( ".$default->(@_)." )";
-        },
-        'elif'  =>  sub {
-            return "\n}\nelsif ( ".$default->(@_)." )";
-        },
-        'else'  =>  sub {
-            return "\n}\nelse\n{\n\t".$default->(@_)."\n";
-        },
-        'then'  =>  sub {
-            return "\n{\n\t".$default->(@_).";\n";
-        },
-        'do'    =>  sub {
-            return "\n\t".$default->(@_).";\n";
-        },
-        'fi'    =>  sub {
-            return "\n}"
-        },
-        'done'  =>  sub {
-            return "\n}"
-        },
-        'esac'  =>  sub {
-            return "\n}"
-        },
-        'while' =>  sub {
-            return "while ( ".$default->(@_)." )";
-        },
-        'until' =>  sub {
-            return "until ( ".$default->(@_)." )";
-        },
-        'for'   =>  sub {
-            my $cntr;
-            my $buf;
-
-            # TODO:
-            #   for X; do ...; done is given, we need to act as if
-            #   for X in $@; do ..; done was given.
-            #
-            if ($_[0] ne 'in') {
-                $cntr = shift;
-                shift; # strip the 'in'
-                my $x = join ' ', map { "'$_'," } @_;
-                chop $x;
-                $buf  = "foreach ( $x ) ";
-                $buf .= '{ $ENV{\'$cntr\'}=$_;'."\n";
-            }
-            return $buf;
-        },
-        'case'  =>  sub {
-        },
-       );
+        if => sub { 'if( '.$default->(@_)." == 0 )"; },
+        then => sub { ' { '.$default->(@_) },
+        elif => sub { ' } elsif( '.$default->(@_)." == 0 )"; },
+        else => sub { ' } else { '.$default->(@_) },
+        fi => sub { ' }' },
+    );
 
     my $strb;
     foreach my $cmdln (@data) {
         my $cmd = shift @$cmdln;
-        my @cmds = @$cmdln;
+        my @args = @$cmdln;
+        print "cmd = \"$cmd\"\ncmds = (\"", join('", "', @args), "\")\n"
+                if $Options{debug};
+
         if (exists $targets{$cmd}) {
-            $strb .= $targets{$cmd}->(@cmds);
+            $strb .= $targets{$cmd}->(@args);
         } else {
-            $strb .= "\n" . $default->($cmd, @cmds) . ';';
+            $strb .= "\n" . $default->($cmd, @args) . ';';
         }
     }
 
     if ($Options{debug}) {
-        warn "eval('sub {\n\t$strb\n\n}')\n";
+        warn "eval('sub { $strb }')";
     }
-    return eval "sub {\n$strb\n}\n";
+    return eval "sub { $strb }";
 }
 
 sub argv_rejoin {

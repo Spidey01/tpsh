@@ -1002,23 +1002,7 @@ Pipes were disabled ages ago.
 
 I/O redirection probably only works with simple commands. Been to long since I tested it.
 
-There is no real solid concept of a "Return value" from a command just yet.
-This means that conditonal expressions and the like are partially broken. I<if
-bad-command; then echo yes; else echo no; fi>  outputs the following:
-
-	tpsh: command not found: bad-command
-	yes
-
-Instead of I<no>. Support for this is too experimental to be that far along,
-and emphasis was on the code generator being a viable method, rather than on
-usability. Like I've always said this is focused on being an interactive shell,
-not a portable sh script runner. A proper solution is probably to make command execution contexts return a hash like:
-
-	# from 'echo 1'
-	{
-		rv => $? >> 8,
-		output => "1\n"
-	}
+The parse/lex/eval/cgen needs to do less split/join wrangling.
 
 Function style macro definitions and positional parameters are not implemented yet.
 
