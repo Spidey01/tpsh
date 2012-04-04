@@ -1571,10 +1571,13 @@ sub update_env {
     my ($var, $val) = @_;
     $val = sh_eval($val);
 
-    return warn "Bad syntax, '$var'\n"
-        if $var =~ /=/; # IEEE Std 1003.1-2004 forbirds = in env-var names
+    if ($var =~ /=/) {
+        # IEEE Std 1003.1-2004 forbirds = in env-var names
+        return warn "Bad syntax, '$var'\n"
+    }
 
     $ENV{$var} = "$val";
+    return 0;
 }
 
 
@@ -2080,14 +2083,16 @@ sub pwd_bin {
     goto bad if @_;
 
     if ($arg eq '-P') {
-        return print Cwd::realpath($ENV{PWD}), "\n";
+        print Cwd::realpath($ENV{PWD}), "\n";
     } elsif ($arg eq '-L') {
-        return print Cwd::getcwd(), "\n";
+        print Cwd::getcwd(), "\n";
     } else {
       bad:
-        return warn "to many arguments";
+        warn "to many arguments";
+        return 1;
     }
 
+    return 0;
 }
 
 sub read_bin {
@@ -2103,7 +2108,7 @@ sub read_bin {
     do_getopt(\@argv, $opts);
     unless (@argv) {
         warn "I can't read into thin air!";
-        return 0;
+        return 127;
     }
 
     if ($prmpt and -t *STDIN) {
@@ -2136,9 +2141,14 @@ sub read_bin {
         alarm 0 if $time;
     };
     if ($@) {
-        warn $@ unless $@ eq "timed-out\n";
         # on time out, init the vars to empty strings
         @ENV{@argv} = ('') x scalar @argv;
+
+        unless($@ eq "timed-out\n") {
+            # if we hit here and didn't time out, something errored.
+            warn $@;
+            return 1;
+        }
         return 0;
     } else {
         # set each var to the words
@@ -2151,13 +2161,13 @@ sub read_bin {
         #
         my $ifs = defined $ENV{IFS} ? qr/[$ENV{IFS}]/ : qr/\s/;
         @ENV{@argv} = grep !/^$/, split $ifs, $line, scalar(@argv);
-        return 1;
+        return 0;
     }
 }
 
 sub rehash_bin {
     rehash;
-    return 1;
+    return 0;
 }
 
 sub savehist_bin {
@@ -2184,20 +2194,22 @@ sub set_bin {
             }
             print $var, "=", $val, "\n";
         }
-        return 1;
+        return 0;
     }
 }
 
 sub setenv_bin {
     my ($var, $val) = @_;
 
-    update_env($var, $val);
+    return update_env($var, $val);
 }
 
 sub setvar_bin {
 
+    return 1;
 }
 
+# this builtin doesn't follow the usual exit status convention yet and might never.
 sub sleep_bin {
 
     my $secs = shift;
@@ -2239,24 +2251,28 @@ sub source_bin {
             }
         }
     };
-    warn $@ if $@;
 
-    return 1;
+    return warn $@ if $@;
+    return 0;
 }
 
 sub test_bin {
 
+    return 1;
 }
 
 sub times_bin {
 
+    return 1;
 }
 
 sub trap_bin {
 
+    return 1;
 }
 
 sub type_bin {
+    my $rv = 0;
 
     for (@_) {
         # check macros, builtins, path, and current directory.
@@ -2276,17 +2292,21 @@ sub type_bin {
                                     and next          if -x "./$_";
 
         print "$_ not found\n";
+        # a command was not found, adjust exit status to reflect this but continue.
+        $rv = 127;
     }
-    return 1;
+    return $rv;
 }
 
 sub unalias_bin {
 
     delete @Macros{@_};
+    return 0;
 }
 
 sub unset_bin {
 
+    return 0;
 }
 
 sub which_bin {
@@ -2330,10 +2350,10 @@ sub which_bin {
 
     if ($found >= scalar @progs) {
         $? = 0;
-        return 1;
+        return 0;
     } else {
         $? = 1 << 8;
-        return 0;
+        return 1;
     }
 }
 
