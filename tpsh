@@ -1974,7 +1974,7 @@ sub hash_bin {
         }
     }
 
-    return 1;
+    return 0;
 }
 
 sub history_bin {
@@ -2030,7 +2030,7 @@ sub macro_bin {
     if ($name =~ /\w*\([\w\(\)\{\}]/) {
        warn "syntax error: no space after opening parentheses ",
             "macro ".join ' ', @_;
-        return " ";
+        return 2;
     }
     $name =~ s/\(([^\s]*)$//g;
     #
@@ -2041,11 +2041,12 @@ sub macro_bin {
     if ($endmk ne ')') {
         warn "syntax error: no space before closing parentheses ",
              "macro ".join ' ', @_;
-        return " ";
+        return 2;
     }
 
     #$Macros{$name} = '(' . join(' ', @line) . ')';
     $Macros{$name} = join(' ', @line);
+    return 0;
 }
 
 sub macros_bin {
@@ -2060,8 +2061,8 @@ sub popd_bin {
 
     $ENV{DIRSTACK} = join(' ', @ds);
 
-    cd_bin(expand_tilde $ds[0]) && return dirs_bin();
-    return 0;
+    my $cd = cd_bin(expand_tilde $ds[0]);
+    return $cd == 0 ? dirs_bin() : $cd;
 }
 
 sub pushd_bin {
@@ -2069,8 +2070,9 @@ sub pushd_bin {
     my $ds  = $ENV{DIRSTACK};
 
     $ENV{DIRSTACK} = "$dir $ds";
-    cd_bin(expand_tilde $dir) && return dirs_bin();
-    return 0;
+
+    my $cd = cd_bin(expand_tilde $dir);
+    return $cd == 0 ? dirs_bin() : $cd;
 }
 
 sub pwd_bin {
