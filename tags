@@ -3,7 +3,7 @@
 !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
-!_TAG_PROGRAM_VERSION	5.8	//
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
 add_history	tpsh	/^sub add_history {$/;"	s
 alias_bin	tpsh	/^sub alias_bin {$/;"	s
 argv_rejoin	tpsh	/^sub argv_rejoin {$/;"	s
@@ -35,6 +35,7 @@ expand_quotes	tpsh	/^sub expand_quotes {$/;"	s
 expand_tilde	tpsh	/^sub expand_tilde {$/;"	s
 export_bin	tpsh	/^sub export_bin {$/;"	s
 fail	tpsh	/^    fail: do {$/;"	l
+false_bin	tpsh	/^sub false_bin {$/;"	s
 fc_bin	tpsh	/^sub fc_bin {$/;"	s
 function_bin	tpsh	/^sub function_bin {$/;"	s
 get_history	tpsh	/^sub get_history {$/;"	s
@@ -80,6 +81,7 @@ tpsh_cgen	tpsh	/^sub tpsh_cgen {$/;"	s
 tpsh_lex	tpsh	/^sub tpsh_lex {$/;"	s
 tpsh_parse	tpsh	/^sub tpsh_parse {$/;"	s
 trap_bin	tpsh	/^sub trap_bin {$/;"	s
+true_bin	tpsh	/^sub true_bin {$/;"	s
 type_bin	tpsh	/^sub type_bin {$/;"	s
 unalias_bin	tpsh	/^sub unalias_bin {$/;"	s
 unset_bin	tpsh	/^sub unset_bin {$/;"	s
