@@ -849,8 +849,10 @@ sub resolve_cmd {
     # built in command
     #
   builtin:
-    is_builtin($cmd) ?  return $Builtins{$cmd}->(@argv[1..$#argv])
-                     :  return pexec(@argv);
+    my $rv = is_builtin($cmd) ?  $Builtins{$cmd}->(@argv[1..$#argv])
+                              :  pexec(@argv);
+    update_env '?', $rv;
+    return $rv;
 }
 
 =pod 
