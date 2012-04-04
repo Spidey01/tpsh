@@ -57,6 +57,8 @@ tpsh_lex() takes care of massaging what was tpsh_parse()'d into something we can
 
 Behaviour of command look up is specified in the manual under L<Command Search & Execution>.
 
+There are good comments in tpsh_cgen() that note what sh_eval() spit-out looks like.
+
 =head2 do_getopt()
 
 Read the POD above the subroutine definition! Then look at some commands that use it (mostly I</*._bin/>). We use this to deal with systems that lack Getopt::Long::GetOptionsFromArray(), and will die if the users Getopt::Long module is less than 2.29.
