@@ -728,10 +728,22 @@ sub tpsh_cgen {
     # generate corrisponding perl code :)
     my %targets = (
         if => sub { 'if( '.$default->(@_)." == 0 )"; },
-        then => sub { ' { '.$default->(@_) },
+        then => sub { ' { '.$default->(@_).';' },
         elif => sub { ' } elsif( '.$default->(@_)." == 0 )"; },
-        else => sub { ' } else { '.$default->(@_) },
+        else => sub { ' } else { '.$default->(@_).';' },
         fi => sub { ' }' },
+        # synonyms for other stuff 
+        do => sub { ' { '.$default->(@_).';' },
+        done => sub { ' }' },
+        end => sub { ' }' },
+        # experimental stuff
+        while => sub { 'while ( '.$default->(@_)." == 0 )"; },
+        until => sub { 'until ( '.$default->(@_)." == 0 )"; },
+        for => sub { 'warn "Not implemented yet\n";'; },
+        continue => sub { ' next;'; },
+        next => sub { ' next;'; },
+        break => sub { ' last;'; },
+        last => sub { ' last;'; },
     );
 
     my $strb;

@@ -253,6 +253,25 @@ B<elif> groups will be executed likewise, until one succeeds. If given, and no
 preceding B<if> or B<elif> resulted in an exit status of zero: the I<list>
 following B<else> is finally executed.
 
+=item B<while> I<list> B<do> I<list> ... B<done>
+
+The I<list> immediately following the B<while> keyword is executed, if it
+returns an exit status of zero, then the list following B<do> is executed until
+the B<while> evaluates to a non-zero exit status.
+
+=item B<until> I<list> B<do> I<list> ... B<done>
+
+Exactly like the while control flow, except the exit status is inverted.
+
+=item B<break>, B<last>
+
+Exits the currently running while, until, or for loop.
+
+=item B<continue>, B<next>
+
+Proceeds to the next iteration of the current while, until, or for loop IAW
+evaluating the loop condition.
+
 =back
 
 =head3 Command Search & Execution
@@ -580,6 +599,10 @@ shell searches backwards in history until it finds a line starting with
 I<first>, and then walks forward until the previous command or a line starting
 with I<last> is found. 
 
+=item B<false>
+
+Always returns a non-zero exit status.
+
 =item B<function> I<name()> [I<list ...>]
 
 Defines a named macro using syntax that resembles the GNU Bourne Again SHell.
@@ -673,6 +696,10 @@ Causes tpsh to pause execution for I<timespec> using the L<sleep> system call.
 The I<timespec> is assumed to be an integer number of seconds to sleep. An
 optional suffix of C<s>, C<m>, or C<h> can be used to denote seconds, minutes,
 or hours.
+
+=item B<true>
+
+Always returns exit status of 0.
 
 =item B<type> [I<name ...>]
 
@@ -986,6 +1013,8 @@ behaviour as Perl, and provides the power of regular expressions which may or
 may not be convenient at any given moment. As strings, they are evaluated in
 the following context: C<m/^first/> and C<m/^last/>.
 
+Handling of history is still in development, so expect bugs.
+
 The syntax of the B<alias> command is strange. It is generally impossible to
 create a named macro with B<alias>: such as C<x=> by escaping the equal sign
 with a backslash. A C-Shell style alias may contain an equal sign in the
@@ -995,16 +1024,19 @@ C<x\= y z> shall have undefined results; and generally will NOT do what you
 normally would expect.  Note: zsh also treats attempts to escape the equal sign
 funny, but not quite in the same way as tpsh.
 
+Anonymous macros/command grouping syntax and positional parameters are not
+implemented yet.
 
-Handling of history is still in development, so expect bugs.
+while/until loops are implemented but they are pretty limited because variables
+will get expanded BEFORE any code generation occurs. Thus exit coniditons are
+limited to a very simple break, continue, next, or last keyword.
 
 Pipes were disabled ages ago.
 
-I/O redirection probably only works with simple commands. Been to long since I tested it.
+I/O redirection probably only works with simple commands. Been to long since I
+tested it.
 
 The parse/lex/eval/cgen needs to do less split/join wrangling.
-
-Function style macro definitions and positional parameters are not implemented yet.
 
 =head1 LICENSE
 
