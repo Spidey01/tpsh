@@ -269,7 +269,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'exec',        => \&exec_bin,
                  'exit'         => \&exit_bin,
                  'export'       => \&export_bin,
-                 'false'        => sub { warn "Not implemented\n" },
+                 'false'        => \&false_bin,
                  'fc'           => \&fc_bin,
                  'fg'           => sub { warn "Not implemented\n" },
                  'function'     => \&function_bin,
@@ -298,7 +298,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'test'         => \&test_bin,
                  'times'        => \&times_bin,
                  'trap'         => \&trap_bin,
-                 'true'         => sub { warn "Not implemented\n" },
+                 'true'         => \&true_bin,
                  'type'         => \&type_bin,
                  'ulimit'       => sub { warn "Not implemented\n" },
                  'umask'        => sub { warn "Not implemented\n" },
@@ -1730,6 +1730,10 @@ sub export_bin {
     return 1;
 }
 
+sub false_bin {
+    return 1;
+}
+
 sub fc_bin {
 
     my ($e,$l,$n,$r) = (0,0,0,0);
@@ -2255,6 +2259,10 @@ sub times_bin {
 sub trap_bin {
 
     return 1;
+}
+
+sub true_bin {
+    return 0;
 }
 
 sub type_bin {
