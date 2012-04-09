@@ -475,21 +475,11 @@ sub init_readline {
     # some packages (Zoid) have problems with Features, others (Perl, Gnu) have
     # issues with respecting Attribs; so just trap this in an eval.
     #
-    eval {
-        if ($feat->{autohistory}) {
-            $ReadLineSupportsHistory = "yes";
 
-            # XXX ignored by Stubs and Perl
-            $attr->{autohistory} = 1;
-        }
-    };
-    if ($@ and substr($ENV{TPSH_READLINE}, 16) eq 'Zoid') {
-        # band-aid for Zoid
-        $attr->{autohistory} = 1;
-        $ReadLineSupportsHistory = "yes";
-    }
-
+    # Term off autohistory, so we can manage it ourself.
     #
+    $Term->MinLine(undef);
+
     # turn off stupid ornamentation
     #
     $Term->ornaments(0);
