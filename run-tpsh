@@ -2,11 +2,6 @@
 
 cd `dirname "$0"`
 
-# On Ubuntu 11.10/x86_64 box this seems to be totally ignored by 2012-04-09 and
-# Gnu is always loaded if installed!
-#PERL_RL="Zoid "; export PERL_RL
-#ENV="~/.tpshrc"; export ENV
-
 # strip env to be more like a login(1) shell.
 #
 exec env -i USER="$USER" LOGNAME="$LOGNAME" USERNAME="$USERNAME" \
@@ -17,7 +12,7 @@ exec env -i USER="$USER" LOGNAME="$LOGNAME" USERNAME="$USERNAME" \
     DISPLAY="$DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
     PATH="/bin:/usr/bin:/usr/local/bin:${HOME}/bin:${HOME}/sh" \
     HISTFILE="${TMPDIR:-/tmp}/tpsh-histfile" \
-    ENV="`pwd`/tpshrc" \
+    ENV="`pwd`/tpshrc" PERL_RL=$PERL_RL \
     `which perl` ./tpsh "$@"
 
 echo "EXEC FAILED"; exit 255
