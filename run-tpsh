@@ -2,6 +2,8 @@
 
 cd `dirname "$0"`
 
+# On Ubuntu 11.10/x86_64 box this seems to be totally ignored by 2012-04-09 and
+# Gnu is always loaded if installed!
 #PERL_RL="Zoid "; export PERL_RL
 #ENV="~/.tpshrc"; export ENV
 

@@ -397,6 +397,8 @@ sub init_sh {
         $ENV{PWD} = $ENV{DIRSTACK} = Cwd::getcwd();
     }
 
+    init_readline();
+
     # call now, so any default $PATH is pre-hashed for the users $ENV scripts
     rehash();
 
@@ -410,8 +412,6 @@ sub init_sh {
             }
         }
     }
-
-    init_readline();
 }
 
 sub init_win32 {
@@ -465,6 +465,9 @@ sub init_readline {
 
     my $attr = $Term->Attribs();
     my $feat = $Term->Features();
+    #$Dumper->dumpValue($attr);
+    #$Dumper->dumpValue($feat);
+
 
     #
     # stupid side-steps for various Term::ReadLine::Packages 
