@@ -1051,6 +1051,7 @@ sub set_completion_append_char {
     };
     # Perl
     eval {
+        no warnings 'once';
         $readline::rl_completer_terminator_character = $c;
     };
     #  No other implementations supporting completion, seem to have any control
