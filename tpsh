@@ -1009,6 +1009,7 @@ sub do_completion {
     my ($word, $str, $start) = @_;
     my @c = ();
 
+    # print "\n\n\tword=$word; str=$str; start=$start\n\n";
     if ($word =~ /^[\.~]?\//) {
     do_filenames:
         # looks like a file path
@@ -1091,6 +1092,7 @@ sub complete_filename {
         if (-d $_) {
             $_ .= '/';
         }
+        $_;
     } <$word*>;
 }
 
