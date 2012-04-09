@@ -488,11 +488,11 @@ sub init_readline {
         $attr->{autohistory} = 1;
         $ReadLineSupportsHistory = "yes";
     }
+
     #
     # turn off stupid ornamentation
-    # XXX works in Gnu, Zoid;  !Stubs, !Perl
     #
-    $attr->{ornaments} = 0;
+    $Term->ornaments(0);
 
     # Setup custom completion function
     # XXX works for Zoid, Perl, and Gnu (Zoid is best)
