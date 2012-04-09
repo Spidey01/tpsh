@@ -463,8 +463,8 @@ sub init_readline {
 
     $ENV{TPSH_READLINE} = $Term->ReadLine();
 
-    my $attr = $Term->Attribs();
-    my $feat = $Term->Features();
+    #my $attr = $Term->Attribs();
+    #my $feat = $Term->Features();
     #$Dumper->dumpValue($attr);
     #$Dumper->dumpValue($feat);
 
