@@ -811,14 +811,6 @@ sub resolve_cmd {
     # skip the I/O tricks when command is the macro built-in
     goto builtin if $cmd =~ /^macro$/;
 
-    # test if it's a pipe
-    #
-  pipe:
-    if ($cmdln =~ /([^|]*) \| ([^|]*)/) {
-        return warn "\nPipes are currently disabled, sorry!\n";
-        return exec_pipe $1, $2 || warn "bad pipe: $!\n";
-    }
-
     # I/O redirection
     #
     # command   >    write stdout to file
@@ -835,7 +827,7 @@ sub resolve_cmd {
             if ( $op eq '>' and -e $file) {
                 warn "'$file' already exists",
                      " and `set -o noclobber` is in effect";
-                return 0;
+                return 1;
             }
         }
         open my $fp, $op, $file or return binerr "Can't open $file: $!";
@@ -845,7 +837,7 @@ sub resolve_cmd {
             while (<$fp>) {
                 print $ch $_;
             }
-        } else {
+        } else { # > or >>
             open $ch, '-|', $cmd;
             while (<$ch>) {
                 print $fp $_;
