@@ -35,6 +35,9 @@ sub init_sh;
 sub init_win32;
 sub init_unix;
 sub init_readline;
+sub init_job_control;
+sub init_unix_job_control;
+sub init_win32_job_control;
 sub do_getop;
 sub main_loop;
 sub tpsh_parse;
@@ -389,6 +392,9 @@ sub init_sh {
     eval {
         $ENV{'PPID'} = getpgrp(0);
     };
+    # TODO: make this part of unless (caller) block at EOF.
+    $Options{monitor} = 1 unless $@;
+    init_job_control() if $Options{monitor};
 
     if ($Options{interactive}) {
         # change to the users home directory by default.
@@ -503,6 +509,42 @@ sub init_readline {
     unless (defined $ENV{TERM}) {
         warn "UNDEFINED TERMINAL TYPE\n";
     }
+}
+
+sub init_job_control {
+
+    $^O eq "MSWin32" ? init_win32_job_control()
+                     : init_unix_job_control();
+
+}
+
+sub init_unix_job_control {
+    use POSIX qw(setpgid tcgetpgrp tcsetpgrp);
+
+    # spin until we reach the foreground
+    my $ppid;
+    while (tcgetpgrp(fileno(STDIN)) != ($ppid = getpgrp(0))) {
+        kill TTIN => -$ppid;
+    }
+
+    # ignore signals relevant to job control
+    $SIG{$_} = "IGNORE" foreach qw(INT QUIT TSTP TTIN TTOU CHLD);
+
+    unless (setpgid($$, $ppid)) {
+        warn "Job control was disabled because creating our own process group failed";
+        $Options{monitor} = 0;
+        return;
+    }
+
+    tcsetpgrp(fileno(STDIN), $ppid)
+        or warn "Problem taking control of terminal for job control";
+
+    $ENV{PPID} = $ppid;
+    return;
+}
+
+sub init_win32_job_control {
+    warn "Job control is not supported on Windows :-(yet)\n";
 }
 
 =pod

@@ -20,7 +20,9 @@ complete_filename	tpsh	/^sub complete_filename {$/;"	s
 complete_macro	tpsh	/^sub complete_macro {$/;"	s
 death_handler	tpsh	/^sub death_handler {$/;"	s
 dirs_bin	tpsh	/^sub dirs_bin {$/;"	s
+do_commands	tpsh	/^    do_commands:$/;"	l
 do_completion	tpsh	/^sub do_completion {$/;"	s
+do_filenames	tpsh	/^    do_filenames:$/;"	l
 do_getopt	tpsh	/^sub do_getopt {$/;"	s
 echo_bin	tpsh	/^sub echo_bin {$/;"	s
 err_handler	tpsh	/^sub err_handler {$/;"	s
@@ -44,10 +46,13 @@ hash_bin	tpsh	/^sub hash_bin {$/;"	s
 history_bin	tpsh	/^sub history_bin {$/;"	s
 hsplit	tpsh	/^sub hsplit {$/;"	s
 ifsplit	tpsh	/^sub ifsplit {$/;"	s
+init_job_control	tpsh	/^sub init_job_control {$/;"	s
 init_readline	tpsh	/^sub init_readline {$/;"	s
 init_sh	tpsh	/^sub init_sh {$/;"	s
 init_unix	tpsh	/^sub init_unix {$/;"	s
+init_unix_job_control	tpsh	/^sub init_unix_job_control {$/;"	s
 init_win32	tpsh	/^sub init_win32 {$/;"	s
+init_win32_job_control	tpsh	/^sub init_win32_job_control {$/;"	s
 is_builtin	tpsh	/^sub is_builtin {$/;"	s
 is_macro	tpsh	/^sub is_macro {$/;"	s
 load_history	tpsh	/^sub load_history {$/;"	s
@@ -57,7 +62,6 @@ macros_bin	tpsh	/^sub macros_bin {$/;"	s
 main_loop	tpsh	/^sub main_loop {$/;"	s
 notfound	tpsh	/^    notfound: do {$/;"	l
 pexec	tpsh	/^sub pexec {$/;"	s
-pipe	tpsh	/^  pipe:$/;"	l
 popd_bin	tpsh	/^sub popd_bin {$/;"	s
 pushd_bin	tpsh	/^sub pushd_bin {$/;"	s
 pwd_bin	tpsh	/^sub pwd_bin {$/;"	s
@@ -70,6 +74,7 @@ save_history	tpsh	/^sub save_history {$/;"	s
 savehist_bin	tpsh	/^sub savehist_bin {$/;"	s
 search_path	tpsh	/^sub search_path {$/;"	s
 set_bin	tpsh	/^sub set_bin {$/;"	s
+set_completion_append_char	tpsh	/^sub set_completion_append_char {$/;"	s
 setenv_bin	tpsh	/^sub setenv_bin {$/;"	s
 setvar_bin	tpsh	/^sub setvar_bin {$/;"	s
 sh_eval	tpsh	/^sub sh_eval {$/;"	s
