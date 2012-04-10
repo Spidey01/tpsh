@@ -380,11 +380,15 @@ sub init_sh {
     $ENV{PS4}       ||= '+ ';
     $ENV{SHELL}     ||= $0;             #  don't use $pw to get shell.
 
-    $ENV{'$'} = $$;
-
     # Set defaults for shell globbing behavour
     #
     $ENV{TPSH_GLOB_FLAGS} ||= 'GLOB_QUOTE | GLOB_TILDE';
+
+    # PID and PPID where available.
+    $ENV{'$'} = $$;
+    eval {
+        $ENV{'PPID'} = getpgrp(0);
+    };
 
     if ($Options{interactive}) {
         # change to the users home directory by default.
