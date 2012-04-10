@@ -678,12 +678,15 @@ history based on the value of HISTSIZE.
 If no options are given, the B<set> command displays the values of all shell
 variables.
 
-If options are given using either short form or the C<-/+o logname> form; it
+If options are given using either short form or the C<-/+o longname> form; it
 sets or clears the specified options as described in the above section
 L</Argument List Processing>. Introducing an option with a dash (C<->) enables
 the option, while using a plus (C<+>) disables the option.  A C<--> or plain
 C<-> will stop option processing and will force the remaining words on the
 command line to be treated as arguments.
+
+When called like C<set -o>, the values of options are pretty printed in long
+format.
 
 If the B<--> option is specified or only bare words are given, set will replace
 the shells positional parameters with whatever arguments follow. If no

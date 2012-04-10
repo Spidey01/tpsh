@@ -161,9 +161,29 @@ my $Setopts = {
     'I|ignoreeof'    =>  \$Options{ignoreeof},
     'i|interactive'  =>  \$Options{interactive},
     'm|monitor'      =>  \$Options{monitor},
-    'o=s'            =>  sub {
+    'o:s'            =>  sub {
                              my @opts = keys %Options;
-                             for my $o (split /,/, $_[1]) {
+                             my $flags = $_[1];
+
+                             # set -o = pretty print
+                             if (length($flags) == 0) {
+                                 my ($o, $v);
+                                 format = 
+@<<<<<<<<<<<<<<<    @<<<
+$o, $v
+.
+                                 foreach $o (@opts) {
+                                     # print $o, "\t",
+                                           # ($Options{$o} == 0 ? "off"
+                                                              # : "on"), "\n";
+                                    $v = $Options{$o} ? "on" : "off";
+                                    write();
+                                 }
+                                 return;
+                             }
+                             
+                             # set -o [opt,list] = d'uh
+                             for my $o (split /,/, $flags) {
                                  grep /$o/, @opts or
                                     die("no such option: $o"), last;
                                  $Options{$o} = 1;
