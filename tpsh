@@ -224,14 +224,6 @@ my @History = ();
 my $HistoryNumber = 1;
 
 #
-# Set to a truth value if Term::ReadLine can automatically add history
-# to its internal buffers when getting a line. Other wise, we need to
-# do our own emulation.
-#
-our $ReadLineSupportsHistory = 0;
-
-
-#
 # Reference to our ReadLine interface
 #
 my $Term;
@@ -1403,12 +1395,9 @@ sub get_history {
     # known: Zoid, Perl, and Gnu do but Stubs doesn't. so 
     # call within an eval to be sure.
     #
-    if ($ReadLineSupportsHistory) {
-        @lines = eval { $Term->GetHistory() };
-        if ($@) {
-            warn $Term->ReadLine(), " might not support GetHistory()",
-        }
-    } else {
+    @lines = eval { $Term->GetHistory() };
+    if ($@) {
+        # XXX maybe we should skip straight to this?
         @lines = @History;
     }
 
@@ -1423,25 +1412,16 @@ sub get_history {
 
 sub add_history {
 
-    unless ($ReadLineSupportsHistory) {
-        push @History, @_;
-    }
+    push @History, @_;
+    $Term->addhistory(@_);
 }
 
 sub load_history {
 
-    if ($ReadLineSupportsHistory) {
-        eval {
-            $Term->SetHistory(@_);
-            $HistoryNumber += $#_;
-        };
-        if ($@) {
-            warn $Term->ReadLine(), " might not support GetHistory()",
-        }
-    } else {
-        push @History, @_;
-        $HistoryNumber += $#_;
-    }
+    eval { $Term->SetHistory(@_); };
+    push @History, @_;
+    $HistoryNumber += $#_;
+
     return 1;
 }
 
