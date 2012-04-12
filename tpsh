@@ -16,6 +16,7 @@ use File::Spec;
 use File::Temp;
 use FindBin;
 use Getopt::Long;       # do NOT export GetOptionsFrom*
+use POSIX               (); # this should work on unix and windows but idk about other platforms.
 use Term::ReadLine;
 
 #
@@ -45,6 +46,9 @@ sub tpsh_lex;
 sub tpsh_cgen;
 sub argv_rejoin;
 sub resolve_cmd;
+sub exec_cmd;
+sub wait_for_job;
+sub exec_job;
 sub pexec;
 sub search_path;
 sub handle_prompt;
@@ -77,6 +81,7 @@ sub death_handler;
 # These subs implement built in commands
 #
 sub alias_bin;
+sub bg_bin;
 sub builtin_bin;
 sub cd_bin;
 sub cls_bin;
@@ -87,6 +92,7 @@ sub exit_bin;
 sub export_bin;
 sub false_bin;
 sub fc_bin;
+sub fg_bin;
 sub function_bin;
 sub hash_bin;
 sub history_bin;
@@ -261,7 +267,7 @@ my %Macros = ();
 my %Builtins = ( '.'            => \&source_bin,
                  '['            => sub { warn "Not implemented\n" },
                  'alias'        => \&alias_bin,
-                 'bg'           => sub { warn "Not implemented\n" },
+                 'bg'           => \&bg_bin,
                  'bindkey'      => sub { warn "Not implemented\n" },
                  'builtin'      => \&builtin_bin,
                  'cd'           => \&cd_bin,
@@ -276,7 +282,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'export'       => \&export_bin,
                  'false'        => \&false_bin,
                  'fc'           => \&fc_bin,
-                 'fg'           => sub { warn "Not implemented\n" },
+                 'fg'           => \&fg_bin,
                  'function'     => \&function_bin,
                  'getopts'      => sub { warn "Not implemented\n" },
                  'hash'         => \&hash_bin,
@@ -312,6 +318,20 @@ my %Builtins = ( '.'            => \&source_bin,
                  'wait'         => sub { warn "Not implemented\n" },
                  'which'        => \&which_bin,
 );
+
+#
+# A hash of active jobs.
+#
+# The format is expected to be like this:
+#
+# JOB ID => {
+#   PGID => process group id,
+#   PID => porcess id,
+#   ARGV => argv of job that was forked,
+#   STATE => ?
+# }
+#
+my %Jobs = ();
 
 #----------------------------------------------------------
 #                Subroutine Implementations
@@ -387,11 +407,9 @@ sub init_sh {
     #
     $ENV{TPSH_GLOB_FLAGS} ||= 'GLOB_QUOTE | GLOB_TILDE';
 
-    # PID and PPID where available.
+    # PID
     $ENV{'$'} = $$;
-    eval {
-        $ENV{'PPID'} = getpgrp(0);
-    };
+
     # TODO: make this part of unless (caller) block at EOF.
     $Options{monitor} = 1 unless $@;
     init_job_control() if $Options{monitor};
@@ -519,28 +537,38 @@ sub init_job_control {
 }
 
 sub init_unix_job_control {
-    use POSIX qw(setpgid tcgetpgrp tcsetpgrp);
+
+    # These are what signals we need for job control under POSIX.
+    foreach my $sig (qw(TSTP TTIN TTOU CHLD)) {
+        unless (exists $SIG{$sig}) {
+            warn "Job control disabled because SIG$sig was not found";
+            goto disable;
+        }
+    }
 
     # spin until we reach the foreground
-    my $ppid;
-    while (tcgetpgrp(fileno(STDIN)) != ($ppid = getpgrp(0))) {
-        kill TTIN => -$ppid;
+    my $pgid;
+    while (POSIX::tcgetpgrp(fileno(STDIN)) != ($pgid = getpgrp(0))) {
+        kill TTIN => -$pgid;
     }
 
     # ignore signals relevant to job control
-    $SIG{$_} = "IGNORE" foreach qw(INT QUIT TSTP TTIN TTOU CHLD);
+    $SIG{$_} = "IGNORE" foreach qw(INT QUIT TSTP TTIN TTOU );
 
-    unless (setpgid($$, $ppid)) {
+    unless (POSIX::setpgid($$, $pgid)) {
         warn "Job control was disabled because creating our own process group failed";
+        goto disable;
+    }
+
+    POSIX::tcsetpgrp(fileno(STDIN), $pgid)
+        or warn "Problem taking control of terminal for job control";
+
+    return;
+
+    disable: {
         $Options{monitor} = 0;
         return;
     }
-
-    tcsetpgrp(fileno(STDIN), $ppid)
-        or warn "Problem taking control of terminal for job control";
-
-    $ENV{PPID} = $ppid;
-    return;
 }
 
 sub init_win32_job_control {
@@ -898,49 +926,149 @@ sub resolve_cmd {
     #
   builtin:
     my $rv = is_builtin($cmd) ?  $Builtins{$cmd}->(@argv[1..$#argv])
-                              :  pexec(@argv);
+                              :  exec_job(@argv);
     update_env '?', $rv;
     return $rv;
+}
+
+=pod
+
+exec_cmd LIST
+
+Executes it's arguments in a child process and waits.
+
+exec_cmd() overrides Perl's PATH look up for exec(), by using a qualified path for
+the shells %Path. exec'ing stuff this way respects the users HASHSEP, and
+ensures that the operation will also respect the users pathext setting.
+
+If job control is supported on the current platform, the job may be
+suspended/continued as usual.
+
+returns $?>>8.
+returns undef if unable to fork a child process for exec().
+
+=cut
+
+my @xJobs=();
+sub exec_job {
+    
+# The getattr/setattr methods of POSIX::Termios can probably be used for saving/restoring terminal modes.
+    my $termios = POSIX::Termios->new(); $termios->getattr(fileno(STDIN));
+    my $pid  = fork();
+
+    unless(defined $pid) {
+        warn "Unable to fork for exec_cmd(): $!";
+        return 2;
+    }
+
+    if ($pid) {
+        wait_for_job $pid;
+
+        POSIX::setpgid($$, getpgrp());
+        POSIX::tcsetpgrp(fileno(STDIN), $$);
+        $termios->setattr(fileno(STDIN), &POSIX::TCSADRAIN);
+        print "returning ", ($?>>8), "\n";
+        return $? >> 8;
+    } else {
+               $SIG{$_} = "IGNORE" foreach qw(TSTP TTIN TTOU CHLD);
+               $SIG{$_} = "DEFAULT" foreach qw(TSTP );
+               POSIX::setpgid($$, $$);
+               my $pgid = getpgrp();
+               warn "pid=$$ / pgid=$pgid / ppid=", ($ENV{PPID}||-1);
+               POSIX::tcsetpgrp(fileno(STDIN), $$);
+
+        exit pexec @_;
+    }
+}
+
+sub wait_for_job {
+    my $pid = shift;
+
+    if ($pid == $$) {
+        warn "I'm not waiting on myself!";
+        return 512; # >> 8 = 2
+    }
+
+    #### UNIX SPECIFIC ####
+    # we do it this way, so that we will be notified (return from waitpid) when
+    # our child suspends (SIGTSTP) or exits (SIGCHLD), whatever. Regular wait()
+    # can't do that.
+    {
+        no strict 'subs';
+        #local $?; # don't clobber value: it's used by exec stuff.
+        waitpid $pid, POSIX::WUNTRACED;
+    }
+    #### UNIX SPECIFIC ####
+
+}
+
+=pod
+
+exec_job LIST
+
+Executes LIST with job control enabled.
+
+Never returns if successful (see perldoc -f exec).
+Returns a $? like value if failure, suitable for use with exit in a child process.
+
+=cut
+
+sub exec_cmd {
+    my $erv = 512; # >> 8 == 2
+
+    if ($Options{monitor}) { # job control is on
+        #### UNIX SPECIFIC ####
+        if (POSIX::setpgid($$, $$) == -1) {
+            warn "child $$ can't change it's process group: $!";
+            return $erv;
+        }
+        if (POSIX::tcsetpgrp(fileno(STDIN), $$) == -1) {
+            warn "child $$ can't take control of terminal: $!";
+            warn "expect bad things to happen...";
+            return $erv;
+        }
+        # reset job control signals.
+        $SIG{$_} = "DEFAULT" foreach qw(INT QUIT TSTP TTIN TTOU CHLD);
+        #### UNIX SPECIFIC ####
+    }
+    return $erv;
+
+    if (!defined pexec @_) {
+        return 32512; # >> 8 == 127; command not found
+    } else {
+       warn "exec_job->pexec: $!";
+       return $! << 8;
+    }
 }
 
 =pod 
 
 pexec LIST
 
-Executes it's arguments in a child process and waits.
+Wrapper for the built in exec function that overrides Perl's PATH look up, by
+using a qualified path for the shells %Path.  exec'ing stuff this way respects
+the users HASHSEP, and ensures that the operation will also respect the users
+pathext setting.
 
-pexec() overrides Perl's PATH look up for exec(), by using a qualified path for
-the shells %Path. exec'ing stuff this way respects the users HASHSEP, and
-ensures that the operation will also respect the users pathext setting.
-
-returns $?>>8.
+never returns if successful (perldoc -f exec).
+returns undef if command was not found.
+returns $! if exec failed.
 
 =cut
 
 sub pexec {
-
-    local $!;
     my    @cmds = @_;
     my    $c    = \$cmds[0];   # save typing
-    my    $pid  = fork();
 
-    die "Unable to fork for pexec(\@): $!"
-        unless defined $pid;
-
-    if ($pid) {
-        wait();
-        return $? >> 8;
-    } else {
-        my $e = $$c;
-        unless ($$c = search_path $$c) {
-            warn "command not found: $e";
-            exit 1;
-        }
-        exec { $cmds[0] } @cmds;
-        # FIXME /file.ext not exec'able
-        warn "NOT REACHED -- CHILD ON ", __FILE__, ':', __LINE__;
-        exit $? >> 8;
+    my $e = $$c;
+    unless ($$c = search_path $$c) {
+        warn "command not found: $e";
+        return 127;
     }
+    exec { $cmds[0] } @cmds;
+    # FIXME /file.ext not exec'able
+    warn "NOT REACHED -- CHILD ON ", __FILE__, ':', __LINE__, " error: ", $!;
+    return $!;
 }
 
 =pod
@@ -1676,6 +1804,19 @@ sub alias_bin {
     return 0;
 }
 
+sub bg_bin {
+    my $jid = shift;
+
+    unless (exists $Jobs{$jid}) {
+        binerr "no such job: $jid";
+        return 127;
+    }
+
+   if (kill(CONT => -$Jobs{$jid}->{PGID}) < 1) {
+       binerr "error signaling job $jid";
+   }
+}
+
 sub builtin_bin {
     my $bin = shift;
 
@@ -2005,6 +2146,26 @@ sub fc_bin {
             $dofc->(@lines);
         }
     }
+
+    return 0;
+}
+
+sub fg_bin {
+    my $pgid = shift;
+
+    # give terminal to process 
+    POSIX::tcsetpgrp(fileno(STDIN), $pgid);
+
+    # revive job
+    if (kill(CONT => -$pgid) < 1) {
+        binerr "error signaling job $pgid";
+    }
+
+    # block until job changes state
+    wait_for_job($pgid);
+
+    # retake terminal for tpsh
+    POSIX::tcsetpgrp(fileno(STDIN), getpgrp());
 
     return 0;
 }
