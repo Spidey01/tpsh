@@ -9,6 +9,7 @@ alias_bin	tpsh	/^sub alias_bin {$/;"	s
 argv_rejoin	tpsh	/^sub argv_rejoin {$/;"	s
 bad	tpsh	/^      bad:$/;"	l
 badidx	tpsh	/^          badidx:$/;"	l
+bg_bin	tpsh	/^sub bg_bin {$/;"	s
 binerr	tpsh	/^sub binerr {$/;"	s
 builtin	tpsh	/^  builtin:$/;"	l
 builtin_bin	tpsh	/^sub builtin_bin {$/;"	s
@@ -20,6 +21,7 @@ complete_filename	tpsh	/^sub complete_filename {$/;"	s
 complete_macro	tpsh	/^sub complete_macro {$/;"	s
 death_handler	tpsh	/^sub death_handler {$/;"	s
 dirs_bin	tpsh	/^sub dirs_bin {$/;"	s
+disable	tpsh	/^    disable: {$/;"	l
 do_commands	tpsh	/^    do_commands:$/;"	l
 do_completion	tpsh	/^sub do_completion {$/;"	s
 do_filenames	tpsh	/^    do_filenames:$/;"	l
@@ -28,6 +30,8 @@ echo_bin	tpsh	/^sub echo_bin {$/;"	s
 err_handler	tpsh	/^sub err_handler {$/;"	s
 eval_bin	tpsh	/^sub eval_bin {$/;"	s
 exec_bin	tpsh	/^sub exec_bin {$/;"	s
+exec_cmd	tpsh	/^sub exec_cmd {$/;"	s
+exec_job	tpsh	/^sub exec_job {$/;"	s
 exec_pipe	tpsh	/^sub exec_pipe {$/;"	s
 exit_bin	tpsh	/^sub exit_bin {$/;"	s
 expand_aliases	tpsh	/^sub expand_aliases {$/;"	s
@@ -39,20 +43,23 @@ export_bin	tpsh	/^sub export_bin {$/;"	s
 fail	tpsh	/^    fail: do {$/;"	l
 false_bin	tpsh	/^sub false_bin {$/;"	s
 fc_bin	tpsh	/^sub fc_bin {$/;"	s
+fg_bin	tpsh	/^sub fg_bin {$/;"	s
 function_bin	tpsh	/^sub function_bin {$/;"	s
 get_history	tpsh	/^sub get_history {$/;"	s
+give_term_unix	tpsh	/^sub give_term_unix {$/;"	s
+give_term_windows	tpsh	/^sub give_term_windows {$/;"	s
 handle_prompt	tpsh	/^sub handle_prompt {$/;"	s
 hash_bin	tpsh	/^sub hash_bin {$/;"	s
 history_bin	tpsh	/^sub history_bin {$/;"	s
 hsplit	tpsh	/^sub hsplit {$/;"	s
 ifsplit	tpsh	/^sub ifsplit {$/;"	s
-init_job_control	tpsh	/^sub init_job_control {$/;"	s
+init_job_control_unix	tpsh	/^sub init_job_control_unix {$/;"	s
+init_job_control_windows	tpsh	/^sub init_job_control_windows {$/;"	s
+init_os_unix	tpsh	/^sub init_os_unix {$/;"	s
+init_os_windows	tpsh	/^sub init_os_windows {$/;"	s
+init_platform	tpsh	/^sub init_platform {$/;"	s
 init_readline	tpsh	/^sub init_readline {$/;"	s
 init_sh	tpsh	/^sub init_sh {$/;"	s
-init_unix	tpsh	/^sub init_unix {$/;"	s
-init_unix_job_control	tpsh	/^sub init_unix_job_control {$/;"	s
-init_win32	tpsh	/^sub init_win32 {$/;"	s
-init_win32_job_control	tpsh	/^sub init_win32_job_control {$/;"	s
 is_builtin	tpsh	/^sub is_builtin {$/;"	s
 is_macro	tpsh	/^sub is_macro {$/;"	s
 load_history	tpsh	/^sub load_history {$/;"	s
@@ -91,4 +98,6 @@ type_bin	tpsh	/^sub type_bin {$/;"	s
 unalias_bin	tpsh	/^sub unalias_bin {$/;"	s
 unset_bin	tpsh	/^sub unset_bin {$/;"	s
 update_env	tpsh	/^sub update_env {$/;"	s
+wait_for_job_unix	tpsh	/^sub wait_for_job_unix {$/;"	s
+wait_for_job_windows	tpsh	/^sub wait_for_job_windows {$/;"	s
 which_bin	tpsh	/^sub which_bin {$/;"	s
