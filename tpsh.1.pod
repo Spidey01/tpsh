@@ -1038,6 +1038,9 @@ tested it that much.
 
 The parse/lex/eval/cgen needs to do less split/join wrangling.
 
+Running commands via C<tpsh -c 'cmd'> is broken. The option parser shallows
+I<'cmd'> :/.
+
 =head1 LICENSE
 
 
