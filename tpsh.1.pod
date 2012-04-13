@@ -974,7 +974,7 @@ $HOME as C<sh> should. Like wise, $PWD is updated using the standard L<Cwd>
 Perl module.
 
 The B<pwd> built-in command is implemented using the Cwd Perl module, so C<pwd
--L> likely will behave differently in tpsh, then sh or /bin/pwd.
+-L> may behave differently in tpsh, then sh or /bin/pwd.
 
 Operations that rely on time delays, via system calls such as sleep() or
 alarm() may return early, late, or whatever strange behaviour can be
@@ -1034,7 +1034,7 @@ limited to a very simple break, continue, next, or last keyword.
 Pipes were disabled ages ago.
 
 I/O redirection probably only works with simple commands. Been to long since I
-tested it.
+tested it that much.
 
 The parse/lex/eval/cgen needs to do less split/join wrangling.
 
