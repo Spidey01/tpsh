@@ -33,12 +33,13 @@ local $0 = File::Spec->catfile($FindBin::Bin, $FindBin::Script);
 # Internal subroutines
 #
 sub init_sh;
-sub init_win32;
-sub init_unix;
+sub init_os;
+sub init_os_unix;
+sub init_os_win32;
 sub init_readline;
 sub init_job_control;
-sub init_unix_job_control;
-sub init_win32_job_control;
+sub init_job_control_unix;
+sub init_job_control_win32;
 sub do_getop;
 sub main_loop;
 sub tpsh_parse;
@@ -48,6 +49,11 @@ sub argv_rejoin;
 sub resolve_cmd;
 sub exec_cmd;
 sub wait_for_job;
+sub wait_for_job_unix;
+sub wait_for_job_win32;
+sub give_term;
+sub give_term_unix;
+sub give_term_win32;
 sub exec_job;
 sub pexec;
 sub search_path;
@@ -341,6 +347,7 @@ sub init_sh {
     # Get the shell up and running.
     #   -> this is one _huge_ ass sub
 
+
     # override warn/die behaviour with the desired output
     #
     $SIG{__WARN__} = \&err_handler;
@@ -349,6 +356,18 @@ sub init_sh {
     # ignore ^Z/SUSP key for now: we don't have support for job control yet.
     $SIG{TSTP} = "IGNORE";
 
+
+    # Initialize platform specific functions that are really providied by
+    # func_$os. Prototypes of each are expected.
+    {
+        my $os = $^O eq "MSWin32" ? 'win32' : 'unix';
+        eval "*$_ = \&${_}_$os" foreach qw(
+            init_os
+            init_job_control
+            give_term
+            wait_for_job
+        );
+    }
     if (grep { $^O eq $_ } qw(VMS MacOS NetWare beos vos)) {
         warn "Unsupported OS $^O -- YMMV\n";
     }
@@ -442,7 +461,7 @@ sub init_sh {
     }
 }
 
-sub init_win32 {
+sub init_os_win32 {
     # Does MS Windows specific initializations
 
     $$HashSep       ||= qr';';
@@ -469,7 +488,7 @@ sub init_win32 {
     $ENV{HOME} = $ENV{USERPROFILE};
 }
 
-sub init_unix {
+sub init_os_unix {
     # Does UNIX specific initializations
 
     $$HashSep       ||= qr':';
@@ -529,14 +548,7 @@ sub init_readline {
     }
 }
 
-sub init_job_control {
-
-    $^O eq "MSWin32" ? init_win32_job_control()
-                     : init_unix_job_control();
-
-}
-
-sub init_unix_job_control {
+sub init_job_control_unix {
 
     # These are what signals we need for job control under POSIX.
     foreach my $sig (qw(TSTP TTIN TTOU CHLD)) {
@@ -571,7 +583,7 @@ sub init_unix_job_control {
     }
 }
 
-sub init_win32_job_control {
+sub init_job_control_win32 {
     warn "Job control is not supported on Windows :-(yet)\n";
 }
 
@@ -949,7 +961,6 @@ returns undef if unable to fork a child process for exec().
 
 =cut
 
-my @xJobs=();
 sub exec_job {
     
 # The getattr/setattr methods of POSIX::Termios can probably be used for saving/restoring terminal modes.
@@ -963,25 +974,23 @@ sub exec_job {
 
     if ($pid) {
         wait_for_job $pid;
+        give_term($$, getpgrp());
 
-        POSIX::setpgid($$, getpgrp());
-        POSIX::tcsetpgrp(fileno(STDIN), $$);
-        $termios->setattr(fileno(STDIN), &POSIX::TCSADRAIN);
-        print "returning ", ($?>>8), "\n";
+            $termios->setattr(fileno(STDIN), &POSIX::TCSADRAIN);
+            # dicking with SIGCHLD can break this!
+            print "returning ", ($?>>8), "\n";
+
         return $? >> 8;
     } else {
-               $SIG{$_} = "IGNORE" foreach qw(TSTP TTIN TTOU CHLD);
-               $SIG{$_} = "DEFAULT" foreach qw(TSTP );
-               POSIX::setpgid($$, $$);
-               my $pgid = getpgrp();
-               warn "pid=$$ / pgid=$pgid / ppid=", ($ENV{PPID}||-1);
-               POSIX::tcsetpgrp(fileno(STDIN), $$);
+        $SIG{$_} = "IGNORE" foreach qw(TSTP TTIN TTOU CHLD);
+        $SIG{$_} = "DEFAULT" foreach qw(TSTP );
 
+        give_term($$, $$);
         exit pexec @_;
     }
 }
 
-sub wait_for_job {
+sub wait_for_job_unix {
     my $pid = shift;
 
     if ($pid == $$) {
@@ -1000,6 +1009,33 @@ sub wait_for_job {
     }
     #### UNIX SPECIFIC ####
 
+}
+
+sub wait_for_job_win32 {
+}
+
+=pod
+
+give_term PID, PGID[, FD]
+
+Gives control of the terminal associated with FD to PID/PGID. If not supplied,
+the file descriptor for STDIN will be used.
+
+Returns the controlling PGID.
+
+=cut
+
+sub give_term_unix {
+    my ($pid, $pgid, $fd) = @_;
+    $fd = fileno(STDIN) unless $fd;
+
+    warn $! if POSIX::setpgid($pid, $pgid) == -1;
+    warn $! if POSIX::tcsetpgrp($fd, $pgid) == -1;
+
+    return POSIX::tcgetpgrp($fd);
+}
+
+sub give_term_win32 {
 }
 
 =pod
