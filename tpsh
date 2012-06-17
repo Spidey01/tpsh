@@ -70,6 +70,8 @@ sub is_macro;
 sub is_builtin;
 sub err_handler;
 sub death_handler;
+sub min;
+sub max;
 #
 # These subs implement built in commands
 #
@@ -1590,6 +1592,18 @@ sub update_env {
     return 0;
 }
 
+sub min {
+	my $min = shift;
+	$min = $min < $_ ? $min : $_ foreach @_;
+	return $min;
+}
+
+sub max {
+	my $max = shift;
+	$max = $max > $_ ? $max : $_ foreach @_;
+	return $max;
+}
+
 
 =pod
 
@@ -1759,6 +1773,48 @@ sub false_bin {
 }
 
 sub fc_bin {
+
+    my ($e,$l,$n,$r) = (0,0,0,0);
+    my @lines;
+    my @argv = @_;
+    my @hist = get_history();
+    my $opts = {'e|editor=s'    => \$e,
+                'l|list'        => \$l,
+                'n'             => \$n,
+                'r|reverse'     => \$r,
+       };
+    do_getopt(\@argv, $opts);
+
+    my ($first, $last) = @argv;
+
+    my $println = sub {
+    };
+
+    if ($l) {
+        # listing, not editing
+        my @hist = get_history();
+        if ($r) {
+            @hist = reverse @hist;
+        }
+
+        my $howmany = 10;
+        # if unspecified, we display the last $howmany elements
+        $first = max(0, ($#hist+1) - $howmany )   unless $first;
+        $last  = min($first + $howmany, $#hist+1) unless $last;
+
+        # fc -l with numeric( or no) indexes.
+        if ($first =~ /^\d*/) {
+            # -r not supported.
+            for (my $i=$first; $i < $last; ++$i) {
+                print(($n ? "\t" : "$i\t"), $hist[$i], "\n");
+            }
+        }
+    }
+
+    return 0;
+}
+
+sub fc_bin_old {
 
     my ($e,$l,$n,$r) = (0,0,0,0);
     my @lines;
