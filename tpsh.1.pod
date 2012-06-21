@@ -582,22 +582,24 @@ status of the last command is used. Note that I<status> should be an integer.
 =item B<fc> [B<-e> I<editor>] [B<-rln>] [I<first>] [I<last>]
 
 Fudged Command. Select the most recently executed commands within the range
-(inclusive) of I<first> and I<liast>. The commands are placed into an editor
-for fudging and executed as a shell script. The default is to use the FCEDIT
-environment variable as the editor, and to fall back on the EDITOR variable
-when it is not set. If the B<-e> option is specified, edit the commands using
-I<editor>. If the B<-r> option is specified, the order of commands is inverted.
-When the B<-l> option is given, list but do not execute the commands. The B<-n>
-option may be used to in conjunction with B<-l> to disable the display of line
-numbers; when editing commands, line numbers are never displayed.
+(inclusive) of I<first> and I<last>. The commands are placed into an editor for
+fudging and executed similar to a shell script. The default is to use the
+FCEDIT environment variable as the editor, and to fall back on the EDITOR
+variable when that is not set. If the B<-e> option was specified, then commands
+will instead be edited using I<editor>. If the B<-r> option is specified, the
+order of commands is reversed.  When the B<-l> option is given, list but do not
+execute the commands. The B<-n> option may be used to in conjunction with B<-l>
+to disable the display of line numbers; when editing commands, line numbers are
+never displayed.
 
-The history index range, I<first> and I<last> may be either integer offsets
-into the history list, or string patterns.  Relative offsets are possible,
-negative indexes count backwards from the current command, thus -1 refers to
-the previous command and +1 to the current. When string indexes are used, the
-shell searches backwards in history until it finds a line starting with
-I<first>, and then walks forward until the previous command or a line starting
-with I<last> is found. 
+The history index range, I<first> and I<last> may be either integers or
+strings. If it is numeric it is treathed as an index into the history list.
+Relative offsets are semi-possible.  If the index is prefixed with a '-', e.g.
+C<fc -l -- -5>, then the index is interpreted as negative indexe that counts
+backwards from the last command in the history list, thus -1 refers to the
+previous command and +1 to the first command. When string indexes are used, the
+shell searches history from the oldest command until it finds a line matching
+against I<first>, and then corrispondly finds the last match for I<last>.
 
 =item B<false>
 
@@ -1015,8 +1017,9 @@ little good ;).
 Currently the B<fc> built-in command handles I<first> and I<last> as array
 subscripts or regular expressions; this means tpsh uses the same array indexing
 behaviour as Perl, and provides the power of regular expressions which may or
-may not be convenient at any given moment. As strings, they are evaluated in
-the following context: C<m/^first/> and C<m/^last/>.
+may not be convenient at any given moment. Currently I<last> is always threated
+as the same type as I<first>; which is not noted in the commands documentation
+as this behaviour has not been decided yet.
 
 Handling of history is still in development, so expect bugs.
 
