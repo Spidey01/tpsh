@@ -593,6 +593,9 @@ sub main_loop {
 }
 
 sub execute {
+
+    $Last_Cmd = join(' ', @_);
+
     #
     # generate an executor subroutine for the command line
     #
@@ -661,6 +664,7 @@ sub tpsh_parse {
         }
     }
 
+    @Last_Line = @stack;
     return @stack;
 }
 
@@ -1511,7 +1515,7 @@ used.
 =cut
 
 sub binerr {
-    print STDERR "${Last_Cmd}: ", @_ ? shift : $!;
+    print STDERR "${Last_Line[0]}: ", (@_ ? @_ : $!), "\n";
 }
 
 sub hsplit {
@@ -1717,7 +1721,7 @@ sub builtin_bin {
     if (is_builtin $bin) {
         $Builtins{$bin}->(@_);
     } else {
-        warn "not found: $bin";
+        binerr "not found: $bin";
         return 127;
     }
 }
@@ -1751,7 +1755,7 @@ sub cd_bin {
         }
     }
 
-    warn $! unless $rv;
+    binerr $! unless $rv;
     $ENV{OLDPWD} = $ENV{PWD} || "";
     $ENV{PWD}    = cwd();
 
@@ -1811,14 +1815,14 @@ sub eval_bin {
 
     my $args = join ' ', @_;
     return eval {
-        resolve_cmd scalar sh_eval $args or warn "syntax error: $args";
+        resolve_cmd scalar sh_eval $args or binerr "syntax error: $args";
     };
 }
 
 sub exec_bin {
     my ($prog, @argv) = @_;
 
-    exec { $prog } ($prog, @argv) or warn $!;
+    exec { $prog } ($prog, @argv) or binerr;
     # bet most of you forget this trick :P
     return ($! << 0);
 }
@@ -1898,7 +1902,7 @@ sub fc_bin {
         # let's fudge them commands!
         #
         $e = $ENV{FCEDIT} || $ENV{EDITOR}           unless $e;
-        warn "no editor specified" and return 127   unless $e;
+        binerr "no editor specified" and return 127   unless $e;
 
 
         my ($fh, $fn) = tempfile();
@@ -1917,8 +1921,7 @@ sub fc_bin {
 sub function_bin {
     my ($name, $def) = (shift @_, join ' ', @_);
     unless ($name =~ s/\(\)$//) {
-        warn "syntax error: did you forget the parentheses? ",
-             "function $name $def";
+        binerr "syntax error: did you forget the parentheses? ";
 
         #return " ";
         return 2; # bash4.2.10 returns 2 for this syntax errorj  
@@ -1934,7 +1937,7 @@ sub hash_bin {
         if ($_[0] eq '-r') {
             %Path = ();
         } else {
-            map { delete $Path{$_} or warn "command not found: $_" } @_;
+            map { delete $Path{$_} or binerr "command not found: $_" } @_;
         }
     } else {
         while (my ($k, $v) = each %Path) {
@@ -1975,7 +1978,7 @@ sub loadhist_bin {
     my @lines = ();
 
     for my $file (@argv) {
-        open my $fh, '<', $file or warn "loadhist: $!";
+        open my $fh, '<', $file or binerr;
         next if $!;
         while (<$fh>) {
             chomp;
@@ -1996,8 +1999,7 @@ sub macro_bin {
     my $name = shift @line;
     # macro name(foo == bad
     if ($name =~ /\w*\([\w\(\)\{\}]/) {
-       warn "syntax error: no space after opening parentheses ",
-            "macro ".join ' ', @_;
+        binerr "syntax error: no space after opening parentheses ";
         return 2;
     }
     $name =~ s/\(([^\s]*)$//g;
@@ -2007,8 +2009,7 @@ sub macro_bin {
     #
     my $endmk = pop @line || '';
     if ($endmk ne ')') {
-        warn "syntax error: no space before closing parentheses ",
-             "macro ".join ' ', @_;
+        binerr "syntax error: no space before closing parentheses ";
         return 2;
     }
 
@@ -2053,7 +2054,7 @@ sub pwd_bin {
         print Cwd::getcwd(), "\n";
     } else {
       bad:
-        warn "to many arguments";
+        binerr "to many arguments";
         return 1;
     }
 
@@ -2072,7 +2073,7 @@ sub read_bin {
 
     do_getopt(\@argv, $opts);
     unless (@argv) {
-        warn "I can't read into thin air!";
+        binerr "I can't read into thin air!";
         return 127;
     }
 
@@ -2111,7 +2112,7 @@ sub read_bin {
 
         unless($@ eq "timed-out\n") {
             # if we hit here and didn't time out, something errored.
-            warn $@;
+            binerr $@;
             return 1;
         }
         return 0;
@@ -2181,7 +2182,7 @@ sub sleep_bin {
 
     # an s, m, or h suffix causes sleep for sec, min, or hour
     #
-    if ($secs =~ /^(\d*)([smh]?)/) {
+    if ($secs and $secs =~ /^(\d+)([smh]?)/) {
         if ($2 eq 's') {
             $secs = $1;
         } elsif ($2 eq 'm') {
@@ -2197,7 +2198,7 @@ sub sleep_bin {
 
         return sleep $secs;
     } else {
-        warn "usage: sleep timespec";
+        print "usage: sleep timespec\n";
         return 0;
     }
 }
@@ -2217,7 +2218,7 @@ sub source_bin {
         }
     };
 
-    return warn $@ if $@;
+    return binerr $@ if $@;
     return 0;
 }
 
