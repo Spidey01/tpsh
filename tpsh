@@ -53,6 +53,7 @@ sub do_completion;
 sub complete_filename;
 sub complete_command;
 sub complete_macro;
+sub complete_variable;
 sub complete_builtin;
 sub expand_quotes;
 sub expand_tilde;
@@ -1054,6 +1055,11 @@ sub do_completion {
         push @c, complete_command($word);
     }
 
+    if ($str =~ /\$\w+/) {
+    do_variables:
+        push @c, complete_variable($word);
+    }
+
     return @c;
 }
 
@@ -1147,6 +1153,11 @@ sub complete_command {
 sub complete_macro {
     my $word = shift;
     grep /^${word}.*/, (keys %Macros);
+}
+
+sub complete_variable {
+    my $word = shift;
+    grep /^${word}.*/, (keys %ENV);
 }
 
 sub complete_builtin {
