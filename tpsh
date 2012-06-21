@@ -44,6 +44,7 @@ sub argv_rejoin;
 sub resolve_cmd;
 sub pexec;
 sub search_path;
+sub execute;
 sub handle_prompt;
 sub rehash;
 sub update_env;
@@ -585,17 +586,21 @@ sub main_loop {
     while (defined(my $cmdln = handle_prompt())) {
         next unless $cmdln;
         next if $cmdln =~ /^\s*#/;
-        #
-        # generate an executor subroutine for the command line
-        #
-        my $exe = tpsh_cgen(sh_eval $cmdln);
-        unless ($@) {
-            $exe->();
-            #$Dumper->dumpValues($exe);
-        } else {
-            warn("syntax error in the above program");
-            if ($Options{debug}) { warn $@ }
-        }
+        execute($cmdln);
+    }
+}
+
+sub execute {
+    #
+    # generate an executor subroutine for the command line
+    #
+    my $exe = tpsh_cgen(sh_eval @_);
+    unless ($@) {
+        $exe->();
+        #$Dumper->dumpValues($exe);
+    } else {
+        warn("syntax error in the above program");
+        if ($Options{debug}) { warn $@ }
     }
 }
 
@@ -2102,25 +2107,24 @@ sub hash_bin {
 
 sub history_bin {
 
-    my $c;
-    my $cmd  = shift || "";
+    my $cmd = shift;
     my %cmds = ('edit'  => 'fc %s',
                 'list'  => 'fc -l %s',
                 'load'  => 'loadhist %s',
                 'save'  => 'savehist %s',
-                'help'  => 'history [edit | list | load | save | help] [args]',
-       );
+                'help'  => undef,
+    );
 
-    if (exists $cmds{$cmd}) {
-        $c = $cmds{$cmd};
-        $c =~ s/%s/join ' ', @_/e;
-    } else {
-        $c = $cmds{list};
-        $cmd ? $c =~ s/%s/$cmd/
-             : $c =~ s/%s//;
+    $cmd = 'list' unless $cmd;
+
+    if ( $cmd ne 'help' and exists $cmds{$cmd}) {
+        my $args = join(' ', @_);
+        my $c = $cmds{$cmd}; $c =~ s/%s/$args/;
+        return execute $c;
     }
 
-    return eval_bin $c;
+    print 'history [', join(' | ', sort keys %cmds), "] [options] [args]\n";
+    return 1;
 }
 
 sub loadhist_bin {

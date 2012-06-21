@@ -629,6 +629,8 @@ is a synonym for C<fc>, C<history help> displays a usage message, C<history
 list> is a synonym for C<fc -l>, C<history load> is a synonym for C<loadhist>,
 and C<history save> is a synonym for C<savehist>. I<args> will be passed on to
 the underlaying command, e.g. C<history list 3 4> is the same as C<fc -l 3 4>.
+If called without arguments, it will behave as if called like C<history list>.
+Note that C<history [args]> is I<not> a synonym for C<history list [args]>.
 
 =item B<loadhist> [I<file> ...]
 
