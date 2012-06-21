@@ -74,6 +74,7 @@ sub death_handler;
 sub min;
 sub max;
 sub igrep;
+sub tempfile;
 #
 # These subs implement built in commands
 #
@@ -1644,6 +1645,37 @@ sub igrep {
 
 =pod
 
+tempfile
+
+Return the file handle and name of a tempory file.
+If unseccessful, returns undef and may set $!.
+
+=cut
+
+sub tempfile {
+    # my $fn = "/tmp/cmds";
+    # open my $fh, '>', $fn or die $!;
+
+    File::Temp->safe_level(File::Temp::HIGH);
+
+    my ($fh, $fn);
+    my $base = "/proc/$$/fd";
+
+    if (-d $base) {
+        # makes a tempfile and then deletes it but we can get the name back from the fd.
+        $fh = File::Temp::tempfile();
+        $fn = File::Spec->catfile($base, fileno($fh));
+    } else {
+        ($fh, $fn) = File::Temp::tempfile();
+    }
+
+
+    return ($fh, $fn);
+}
+
+
+=pod
+
 alias_bin
 alias_bin EXPR
 alias_bin LIST
@@ -1813,7 +1845,6 @@ sub fc_bin {
 
     my ($e,$l,$n,$r) = (0,0,0,0);
     my @argv = @_;
-    my @hist = get_history();
     my $opts = {'e|editor=s'    => \$e,
                 'l|list'        => \$l,
                 'n'             => \$n,
@@ -1821,219 +1852,69 @@ sub fc_bin {
        };
     do_getopt(\@argv, $opts);
 
-    # the synonym is really the implentation, 'cuz this is more readable.
-    return listhist_bin(@_) if $l;
+    # only default to line numbers if listing
+    $n = 1 unless $l;
 
-    my ($first, $last) = @argv;
-
-    return 0;
-}
-
-
-sub fc_bin_old {
-
-    my ($e,$l,$n,$r) = (0,0,0,0);
-    my @lines;
-    my @argv = @_;
     my @hist = get_history();
-    my $opts = {'e|editor=s'    => \$e,
-                'l|list'        => \$l,
-                'n'             => \$n,
-                'r|reverse'     => \$r,
-       };
-    do_getopt(\@argv, $opts);
+    # for easy testing ;)
+    # my @hist = ("echo '\$HOME .*'", 'ls foo', 'ls -lt /', 'ls -l /tmp', 'echo $HOME', join(' ', @_));
 
+    # drop this fc -l command so that it isn't captured.
+    pop @hist;
+
+    my $howmany = 10;
+    my ($i, $bounds);
     my ($first, $last) = @argv;
 
-    $first ||= ""; $last ||= "";    # darn auto-viv.
 
-    # code refs to save on typing
-    # these functions are handy, but only needed here.
+    # if unspecified, we display the last $howmany elements
     #
-    my $pushln = sub {
-        my ($str, $idx) = @_;
-        if ($n) {
-            push @lines, $str;
-        } else {
-            push @lines, "$idx: $str";
-        }
-    };
-    my $println = sub {
-        print $_, "\n" foreach $r ? reverse @_ : @_;
-    };
-    my $editln = sub {
-        #
-        # actually edit and re execute the command
-        #
+    $first = max(0, ($#hist+1) - $howmany )   unless $first;
 
-        #
-        # If the OS supports /dev/fd*, use it to avoid passing the filename
-        # to the users editor.
-        #
-        my $devfd;
-        for ("/proc/$$/fd") {
-        #for ("/proc/$$/fd", '/dev/fd') {  <-- doesn't work on fbsd
-            if (-d $_) {
-                $devfd = $_;
-                last;
-            }
-        }
-
-        #
-        # Let the module do the right thing, for us.
-        #
-        File::Temp->safe_level(File::Temp::HIGH);
-        my ($fh, $fn) = File::Temp::tempfile();
-
-        #
-        # write commands to temp file
-        #
-        map { print $fh "$_\n" } $r ? reverse @_ : @_;
-
-        my $file = $devfd ? "${devfd}/".fileno($fh) : $fn;
-
-        resolve_cmd $e, $file;
-
-        #
-        # execute the result as a script in current shell
-        #
-        source_bin($file);
-
-        File::Temp::unlink1($fh, $fn)
-            or warn "unable to clean up $fn";
-    };
-    my $dofc = sub {
-        if ($l) {
-            $println->(@_);
-        } else {
-            $editln->(@_);
-        }
-    };
-
-    # if we are not listing, we are editing
+    # make sure we're setup
     #
-    unless ($l) {
-        $n = 'so skip line numbers';
-    }
+    if ($first =~ /^\d+/) {
+        # fc with numeric indexes.
 
-    # make sure there is an editor to use
-    #
-    local $ENV{FCEDIT} = $ENV{FCEDIT};
-    if ($e) {
-        $ENV{FCEDIT} = $e;
-    }
-    for my $ed (qw/ FCEDIT EDITOR /) {
-        if (defined $ENV{$ed}) {
-            $e = $ENV{$ed};
-            last;
-        }
-    }
-    unless ($e or $l) {
-        warn "no editor specified";
-        return 127;
-    }
+        $last = min($first + $howmany, $#hist+1) unless $last;
+        ($i, $bounds) = ($first, $last);
 
-    #
-    # list or edit/re-exec command
-    #
-    unless ($first) {
-        #
-        # just operate on all the history (fc)
-        #
-        my $i = $HistoryNumber - $#hist;
-        for my $ln (@hist) {
-            $pushln->($ln, $i);
-            $i++;
-        }
-        $dofc->(@lines);
     } else {
+        # then we're dealing with regex indexes.
+
+        $i = (igrep(qr/$first/, @hist))[0];
+        $bounds = (igrep(qr/$last/, @hist))[-1];
+    }
+
+    # format stuff in memory, so that we can handle our options easier.
+    #
+    my @out = ();
+    for (; $i <= $bounds && $i <= $#hist; ++$i) {
+        push @out, ($n ? ($l ? "\t" : "") : "$i\t").$hist[$i]."\n";
+    }
+    @out = reverse @out if $r;
+
+    if ($l) {
+        print $_ foreach @out;
+    } else {
+        # let's fudge them commands!
         #
-        # locate the command range to use (fc first [last])
-        #
-        if ($first =~ /^\d/) {
-            #
-            # fc numerical indexes 
-            #
+        $e = $ENV{FCEDIT} || $ENV{EDITOR}           unless $e;
+        warn "no editor specified" and return 127   unless $e;
 
-            # XXX 
-            #   user indexes are 1 based, convert to 0 based.
-            #   and abort if out of range.
-            $first--; $first  = int($first);
-            $last--;  $last   = int($last);
 
-            local $@;
-            if ($first > $#hist) {
-                $@ = "history index out of range: $first";
-            }
-            if ($last > $#hist) {
-                $@ = "history index out of range: $last";
-            }
-            goto badidx if $@;
+        my ($fh, $fn) = tempfile();
+        print $fh $_ foreach @out;
 
-            my @buf = eval {
-                $last > 0 ? @hist[$first..$last]
-                          : $hist[$first];
-            };
-            if ($n) {
-                $pushln->($_) foreach @buf;
-            } else {
-                # we have to manually insert the line numbers
-                #
-                my $k= $first + 1;
-                $pushln->($_, $k), $k++ foreach @buf;
-            }
-            $dofc->(@lines);
+        my $r = resolve_cmd $e, $fn;
+        return $r if $r != 0;
 
-          badidx:
-            if ($@) {
-                print STDERR "fc: ", $@;
-                return 1;
-            }
-        } else {
-            #
-            # fc regexp indexes
-            #
-
-            # check for regexp syntax errors 
-            # XXX we _N_E_E_D_ a global sub for this!!!
-            eval {
-                local $SIG{__WARN__} = 'IGNORE';
-                local $SIG{__DIE__}  = sub {
-                    my $msg = join ' ', @_;
-                    $msg =~ s%at (?:.*tpsh) line \d*\.$%\n%;
-                    die "$msg\n";
-                };
-                "" =~ /^$first/ or "" =~ /^$last/
-            };
-            if ($@) {
-                print STDERR "fc: ", $@;
-                return 1;
-            }
-
-            # locate the first offset by counting backwards and
-            # then walk forward again if we have another regexp
-            #
-            my ($i,$x);
-            for ($i=$#hist; $i < scalar @hist; $i--) {
-                if ($hist[$i] =~ /^$first/) {
-                    $x=$i+1;
-                    $pushln->($hist[$i], $x);
-                    last;
-                }
-            }
-            if ($last) {
-                for ($i++; $i < scalar @hist; $i++) {
-                    $x=$i+1;
-                    $pushln->($hist[$i], $x);
-                    last if $hist[$i] =~ /^$last/;
-                }
-            }
-            $dofc->(@lines);
-        }
+        source_bin $fn;
     }
 
     return 0;
 }
+
 
 sub function_bin {
     my ($name, $def) = (shift @_, join ' ', @_);
@@ -2090,61 +1971,11 @@ sub history_bin {
 
 sub listhist_bin {
 
-    # just a rip out of fc -l, 
-    my ($e,$l,$n,$r) = (0,1,0,0);
-    my @argv = @_;
-    my $opts = {
-        'e|editor=s'    => \$e,
-        'l|list'        => \$l,
-        'n'             => \$n,
-        'r|reverse'     => \$r,
-    };
-    do_getopt(\@argv, $opts);
-
-    my ($first, $last) = @argv;
-
-
-    my @hist = get_history();
-    # for easy testing ;)
-    # my @hist = ("echo '\$HOME .*'", 'ls foo', 'ls -lt /', 'ls -l /tmp', 'echo $HOME', join(' ', @_));
-
-    # drop this fc -l command so that it isn't captured.
-    pop @hist;
-
-
-    my $howmany = 10;
-    my ($i, $bounds);
-
-    # if unspecified, we display the last $howmany elements
-    $first = max(0, ($#hist+1) - $howmany )   unless $first;
-
-    if ($first =~ /^\d+/) {
-        # fc -l with numeric indexes.
-
-        $last = min($first + $howmany, $#hist+1) unless $last;
-        ($i, $bounds) = ($first, $last);
-
-    } else {
-        # then we're dealing with regex indexes.
-
-        $i = (igrep(qr/$first/, @hist))[0];
-        $bounds = (igrep(qr/$last/, @hist))[-1];
-    }
-
-    # format stuff in memory, so that we can handle -r + line numbers easier.
-    my @out = ();
-    for (; $i <= $bounds && $i <= $#hist; ++$i) {
-        # print(($n ? "\t" : "$i\t"), $hist[$i], "\n");
-        push @out, ($n ? "\t" : "$i\t").$hist[$i]."\n";
-    }
-    @out = reverse @out if $r;
-
-    print $_ foreach @out;
-
-    return 0;
+    return fc_bin '-l', @_;
 }
 
 sub loadhist_bin {
+
     return unless @_;
 
     my @argv  = @_;
