@@ -1794,28 +1794,71 @@ sub fc_bin {
 
     my ($first, $last) = @argv;
 
-    my $println = sub {
-    };
-
     if ($l) {
         # listing, not editing
         my @hist = get_history();
-        if ($r) {
-            @hist = reverse @hist;
-        }
+
+        # drop this fc -l command so that it isn't captured.
+        pop @hist;
+
+        # given an re and a list, return the first index of re.
+        my $fgrep = sub {
+            my ($i, $re, @args) = (0, shift(), @_);
+
+            return unless $re;
+            $re = qr/$re/;
+
+            foreach (@_) {
+                last if /$re/;
+                $i++;
+            }
+            return $i;
+        };
+
+        # ditto but return last index of re.
+        my $lgrep = sub {
+            my ($i, $re) = (0, shift);
+            my $j = $#_;
+
+            return $j unless $re;
+            $re = qr/$re/;
+
+            foreach (@_) {
+                if (/$re/) { print "'$_' =~ /$re/ matched at $i\n"; }
+                $j=$i if /$re/;
+                $i++;
+            }
+            return $j;
+        };
 
         my $howmany = 10;
+        my ($i, $bounds);
+
         # if unspecified, we display the last $howmany elements
         $first = max(0, ($#hist+1) - $howmany )   unless $first;
-        $last  = min($first + $howmany, $#hist+1) unless $last;
 
-        # fc -l with numeric( or no) indexes.
-        if ($first =~ /^\d*/) {
-            # -r not supported.
-            for (my $i=$first; $i < $last; ++$i) {
-                print(($n ? "\t" : "$i\t"), $hist[$i], "\n");
-            }
+        if ($first =~ /^\d+/) {
+            # fc -l with numeric indexes.
+
+            $last = min($first + $howmany, $#hist+1) unless $last;
+            ($i, $bounds) = ($first, $last);
+
+        } else {
+            # then we're dealing with regex indexes.
+
+            $i = $fgrep->($first, @hist);
+            $bounds = $lgrep->($last, @hist);
         }
+
+        # format stuff in memory, so that we can handle -r + line numbers easier.
+        my @out = ();
+        for (; $i <= $bounds && $i <= $#hist; ++$i) {
+            # print(($n ? "\t" : "$i\t"), $hist[$i], "\n");
+            push @out, ($n ? "\t" : "$i\t").$hist[$i]."\n";
+        }
+        @out = reverse @out if $r;
+
+        print $_ foreach @out;
     }
 
     return 0;
