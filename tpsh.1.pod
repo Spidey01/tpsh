@@ -634,10 +634,6 @@ the underlaying command, e.g. C<history list 3 4> is the same as C<fc -l 3 4>.
 If called without arguments, it will behave as if called like C<history list>.
 Note that C<history [args]> is I<not> a synonym for C<history list [args]>.
 
-=item B<listhist> [options]
-
-A synonym for C<fc -l [options]>.
-
 =item B<loadhist> [I<file> ...]
 
 Load saved history from the indicated I<file>s and append it to the shells

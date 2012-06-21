@@ -92,7 +92,6 @@ sub fc_bin;
 sub function_bin;
 sub hash_bin;
 sub history_bin;
-sub listhist_bin;
 sub loadhist_bin;
 sub macro_bin;
 sub macros_bin;
@@ -297,7 +296,6 @@ my %Builtins = ( '.'            => \&source_bin,
                  'hash'         => \&hash_bin,
                  'history'      =>\ &history_bin,
                  'jobs'         => sub { warn "Not implemented\n" },
-                 'listhist'     => \&listhist_bin,
                  'loadhist'     => \&loadhist_bin,
                  'local'        => sub { warn "Not implemented\n" },
                  'macro'        => \&macro_bin,
@@ -1967,11 +1965,6 @@ sub history_bin {
 
     print 'history [', join(' | ', sort keys %cmds), "] [options] [args]\n";
     return 1;
-}
-
-sub listhist_bin {
-
-    return fc_bin '-l', @_;
 }
 
 sub loadhist_bin {
