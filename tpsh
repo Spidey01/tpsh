@@ -73,6 +73,7 @@ sub err_handler;
 sub death_handler;
 sub min;
 sub max;
+sub igrep;
 #
 # These subs implement built in commands
 #
@@ -90,6 +91,7 @@ sub fc_bin;
 sub function_bin;
 sub hash_bin;
 sub history_bin;
+sub listhist_bin;
 sub loadhist_bin;
 sub macro_bin;
 sub macros_bin;
@@ -294,6 +296,7 @@ my %Builtins = ( '.'            => \&source_bin,
                  'hash'         => \&hash_bin,
                  'history'      =>\ &history_bin,
                  'jobs'         => sub { warn "Not implemented\n" },
+                 'listhist'     => \&listhist_bin,
                  'loadhist'     => \&loadhist_bin,
                  'local'        => sub { warn "Not implemented\n" },
                  'macro'        => \&macro_bin,
@@ -1616,6 +1619,28 @@ sub max {
 	return $max;
 }
 
+=pod
+
+igrep PATTERN, LIST
+
+Evaluate PATTERN as a regular expression and return a list of indexes into
+LIST, for every match in LIST.
+
+=cut
+
+sub igrep {
+    my ($i, $re, @list) = (0, shift, @_);
+    my @indexes = ();
+
+    return unless $re;
+
+    foreach (@list) {
+        push @indexes, $i if /$re/;
+        $i++;
+    }
+
+    return @indexes;
+}
 
 =pod
 
@@ -1787,7 +1812,6 @@ sub false_bin {
 sub fc_bin {
 
     my ($e,$l,$n,$r) = (0,0,0,0);
-    my @lines;
     my @argv = @_;
     my @hist = get_history();
     my $opts = {'e|editor=s'    => \$e,
@@ -1797,77 +1821,14 @@ sub fc_bin {
        };
     do_getopt(\@argv, $opts);
 
+    # the synonym is really the implentation, 'cuz this is more readable.
+    return listhist_bin(@_) if $l;
+
     my ($first, $last) = @argv;
-
-    if ($l) {
-        # listing, not editing
-        my @hist = get_history();
-
-        # drop this fc -l command so that it isn't captured.
-        pop @hist;
-
-        # given an re and a list, return the first index of re.
-        my $fgrep = sub {
-            my ($i, $re, @args) = (0, shift(), @_);
-
-            return unless $re;
-            $re = qr/$re/;
-
-            foreach (@_) {
-                last if /$re/;
-                $i++;
-            }
-            return $i;
-        };
-
-        # ditto but return last index of re.
-        my $lgrep = sub {
-            my ($i, $re) = (0, shift);
-            my $j = $#_;
-
-            return $j unless $re;
-            $re = qr/$re/;
-
-            foreach (@_) {
-                if (/$re/) { print "'$_' =~ /$re/ matched at $i\n"; }
-                $j=$i if /$re/;
-                $i++;
-            }
-            return $j;
-        };
-
-        my $howmany = 10;
-        my ($i, $bounds);
-
-        # if unspecified, we display the last $howmany elements
-        $first = max(0, ($#hist+1) - $howmany )   unless $first;
-
-        if ($first =~ /^\d+/) {
-            # fc -l with numeric indexes.
-
-            $last = min($first + $howmany, $#hist+1) unless $last;
-            ($i, $bounds) = ($first, $last);
-
-        } else {
-            # then we're dealing with regex indexes.
-
-            $i = $fgrep->($first, @hist);
-            $bounds = $lgrep->($last, @hist);
-        }
-
-        # format stuff in memory, so that we can handle -r + line numbers easier.
-        my @out = ();
-        for (; $i <= $bounds && $i <= $#hist; ++$i) {
-            # print(($n ? "\t" : "$i\t"), $hist[$i], "\n");
-            push @out, ($n ? "\t" : "$i\t").$hist[$i]."\n";
-        }
-        @out = reverse @out if $r;
-
-        print $_ foreach @out;
-    }
 
     return 0;
 }
+
 
 sub fc_bin_old {
 
@@ -2125,6 +2086,62 @@ sub history_bin {
 
     print 'history [', join(' | ', sort keys %cmds), "] [options] [args]\n";
     return 1;
+}
+
+sub listhist_bin {
+
+    # just a rip out of fc -l, 
+    my ($e,$l,$n,$r) = (0,1,0,0);
+    my @argv = @_;
+    my $opts = {
+        'e|editor=s'    => \$e,
+        'l|list'        => \$l,
+        'n'             => \$n,
+        'r|reverse'     => \$r,
+    };
+    do_getopt(\@argv, $opts);
+
+    my ($first, $last) = @argv;
+
+
+    my @hist = get_history();
+    # for easy testing ;)
+    # my @hist = ("echo '\$HOME .*'", 'ls foo', 'ls -lt /', 'ls -l /tmp', 'echo $HOME', join(' ', @_));
+
+    # drop this fc -l command so that it isn't captured.
+    pop @hist;
+
+
+    my $howmany = 10;
+    my ($i, $bounds);
+
+    # if unspecified, we display the last $howmany elements
+    $first = max(0, ($#hist+1) - $howmany )   unless $first;
+
+    if ($first =~ /^\d+/) {
+        # fc -l with numeric indexes.
+
+        $last = min($first + $howmany, $#hist+1) unless $last;
+        ($i, $bounds) = ($first, $last);
+
+    } else {
+        # then we're dealing with regex indexes.
+
+        $i = (igrep(qr/$first/, @hist))[0];
+        $bounds = (igrep(qr/$last/, @hist))[-1];
+    }
+
+    # format stuff in memory, so that we can handle -r + line numbers easier.
+    my @out = ();
+    for (; $i <= $bounds && $i <= $#hist; ++$i) {
+        # print(($n ? "\t" : "$i\t"), $hist[$i], "\n");
+        push @out, ($n ? "\t" : "$i\t").$hist[$i]."\n";
+    }
+    @out = reverse @out if $r;
+
+    print $_ foreach @out;
+
+    return 0;
 }
 
 sub loadhist_bin {
