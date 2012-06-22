@@ -1051,15 +1051,15 @@ sub do_completion {
         # completions like 'cd <tab>'
         push @c, complete_filename($word);
     }
-    # return @c;
 
     if ($word =~ /^[\.~]?\/*/) {
         # completions like '/u<tab>' or '.<tab>'
         push @c, complete_filename($word);
     }
-
-    if ($str =~ /[;\|]?\s*$word/) {
-        # try command completions
+    if (($word and $str =~  /^\s*$word/) or
+        ($word and $str =~ /[;\|]\s*$word(?:\s*[\w;\|])?/))
+    {
+        # completions like 'l<tab>' or 'ls | h<tab>'
         push @c, complete_command($word);
     }
 
@@ -2175,6 +2175,7 @@ sub set_bin {
             $val = "" unless defined $val;
 
             if ($val =~ /\s/) {
+                $val =~ s/$_/$_/g foreach ('\n', '\t');
                 $val = "'$val'";
             }
             print $var, "=", $val, "\n";
