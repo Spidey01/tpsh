@@ -115,8 +115,6 @@ Force th shell to execute in interactive mode.
 
 Enables built-in commands used for job control; e.g. fg, bg, jobs, etc.
 
-XXX there is no job control yet
-
 =item B<-n> noexec
 
 if not interactive, read commands but do not execute them. Normally this is
@@ -1048,6 +1046,8 @@ The parse/lex/eval/cgen needs to do less split/join wrangling.
 
 Running commands via C<tpsh -c 'cmd'> is broken. The option parser shallows
 I<'cmd'> :/.
+
+Job control is still pretty raw (and unix only) but seems functional.
 
 =head1 LICENSE
 
