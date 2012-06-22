@@ -35,7 +35,20 @@ sub assert(&$) {
     return $rv;
 }
 
+# assert_array ARRAYREF, ARRAYREF, "message to show on failure"
+#
+sub assert_array($$$) {
+    my ($a, $b, $m) = @_;
 
+    return assert { 
+        foreach my $g (@$a) {
+            print "bork $g\n" if ! grep { $g eq $_ } @$b;
+            return 0 if ! grep { $g eq $_ } @$b;
+        }
+
+        1;
+    } $m;
+}
 
 
 foreach (<tests.d/*.pl>) {
