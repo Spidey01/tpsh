@@ -1004,19 +1004,12 @@ sub resolve_cmd {
 
 =pod
 
-exec_cmd LIST
+exec_job LIST
 
-Executes it's arguments in a child process and waits.
+Executes LIST with job control enabled.
 
-exec_cmd() overrides Perl's PATH look up for exec(), by using a qualified path for
-the shells %Path. exec'ing stuff this way respects the users HASHSEP, and
-ensures that the operation will also respect the users pathext setting.
-
-If job control is supported on the current platform, the job may be
-suspended/continued as usual.
-
-returns $?>>8.
-returns undef if unable to fork a child process for exec().
+Never returns if successful (see perldoc -f exec).
+Returns a $? like value if failure, suitable for use with exit in a child process.
 
 =cut
 
@@ -1099,12 +1092,19 @@ sub give_term_windows {
 
 =pod
 
-exec_job LIST
+exec_cmd LIST
 
-Executes LIST with job control enabled.
+Executes it's arguments in a child process and waits.
 
-Never returns if successful (see perldoc -f exec).
-Returns a $? like value if failure, suitable for use with exit in a child process.
+exec_cmd() overrides Perl's PATH look up for exec(), by using a qualified path for
+the shells %Path. exec'ing stuff this way respects the users HASHSEP, and
+ensures that the operation will also respect the users pathext setting.
+
+If job control is supported on the current platform, the job may be
+suspended/continued as usual.
+
+returns $?>>8.
+returns undef if unable to fork a child process for exec().
 
 =cut
 
