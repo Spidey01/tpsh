@@ -1030,7 +1030,7 @@ sub exec_job {
 
             $termios->setattr(fileno(STDIN), &POSIX::TCSADRAIN);
             # dicking with SIGCHLD can break this!
-            print "returning ", ($?>>8), "\n";
+            # print "returning ", ($?>>8), "\n";
 
         return $? >> 8;
     } else {
