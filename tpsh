@@ -1042,21 +1042,29 @@ sub do_completion {
     my ($word, $str, $start) = @_;
     my @c = ();
 
+    $word = '' unless defined $word;
+    $str  = '' unless defined $str;
+
     # print "\n\n\tword=$word; str=$str; start=$start\n\n";
-    if ($word =~ /^[\.~]?\//) {
-    do_filenames:
-        # looks like a file path
+
+    if ($start > 0 and !$word) {
+        # completions like 'cd <tab>'
+        push @c, complete_filename($word);
+    }
+    # return @c;
+
+    if ($word =~ /^[\.~]?\/*/) {
+        # completions like '/u<tab>' or '.<tab>'
         push @c, complete_filename($word);
     }
 
-    if ($str =~ /^\s*$word/ or $str =~ /[;\|]\s*$word/) {
-    do_commands:
-        # looks like a command
+    if ($str =~ /[;\|]?\s*$word/) {
+        # try command completions
         push @c, complete_command($word);
     }
 
     if ($str =~ /\$\w+/) {
-    do_variables:
+        # completions like '$H<tab>'
         push @c, complete_variable($word);
     }
 
