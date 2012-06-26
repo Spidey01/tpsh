@@ -41,11 +41,11 @@ The readline situation is a real mess IMHO.
 
 =head3 Program flow
 
-We setup stuff like I<%Options> according to our execution mode (interactive shell, etc) and call init_sh(). In init_sh() we initialize the shell for use, delegating specific issues to init_something (see L<init_win32()>, L<init_unix()>, and L<init_readline()>). Any default values for environment variables are either imported or set accordingly. Configuration files and I<$ENV> are setup as appropriate.
+We setup stuff like I<%Options> according to our execution mode (interactive shell, etc) and call init_sh(). In init_sh() we initialize the shell for use, delegating specific issues to init_something (see L<init_os_win32()>, L<init_os_unix()>, and L<init_readline()>). Any default values for environment variables are either imported or set accordingly. Configuration files and I<$ENV> are setup as appropriate.
 
-We then enter the main_loop() until exit. The main_loop() is a pretty simple Read-Eval-Print-Loop (REPL). Most interesting stuff occurs through functions called here.
+We then enter the main_loop() until exit. The main_loop() is a pretty simple Read-Eval-Print-Loop (REPL). Most interesting stuff occurs through functions called through here.
 
-tpsh is currently implemented with a "Code generator" in the form of tpsh_cgen(). It generates a I<coderef> for the main_loop() to execute the arguments. So whether it's as simple as 'ls' or 'if [ ...]; then ...; else ...; fi', it's done here.
+tpsh is currently implemented with a "Code generator" in the form of tpsh_cgen(). It generates a I<coderef> for the shell to execute() the arguments. So whether it's as simple as 'ls' or 'if [ ...]; then ...; else ...; fi', it's done here.
 
 Command input gets evaluated as shell commands by:
 
