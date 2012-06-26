@@ -89,6 +89,9 @@ sub min;
 sub max;
 sub igrep;
 sub tempfile;
+sub make_job;
+sub print_job;
+sub get_last_job_status;
 #
 # These subs implement built in commands
 #
@@ -310,8 +313,8 @@ my %Builtins = ( '.'            => \&source_bin,
                  'function'     => \&function_bin,
                  'getopts'      => sub { warn "Not implemented\n" },
                  'hash'         => \&hash_bin,
-                 'history'      =>\ &history_bin,
-                 'jobs'         => sub { warn "Not implemented\n" },
+                 'history'      => \&history_bin,
+                 'jobs'         => \&jobs_bin,
                  'loadhist'     => \&loadhist_bin,
                  'local'        => sub { warn "Not implemented\n" },
                  'macro'        => \&macro_bin,
@@ -346,16 +349,22 @@ my %Builtins = ( '.'            => \&source_bin,
 #
 # A hash of active jobs.
 #
-# The format is expected to be like this:
+# Job ID's are used for keys.
 #
-# JOB ID => {
-#   PGID => process group id,
-#   PID => porcess id,
-#   ARGV => argv of job that was forked,
-#   STATE => ?
-# }
-#
+use Class::Struct Job => {
+    jid => '$',
+    pgid => '$',
+    pid => '$',
+    argv => '@',
+    state => '$',
+    fd => '$',
+};
 my %Jobs = ();
+
+#
+# Last active job. Invalid until job control is initialized.
+#
+my $Last_Job;
 
 #----------------------------------------------------------
 #                Subroutine Implementations
@@ -602,22 +611,32 @@ sub init_job_control_unix {
         }
     }
 
-    # spin until we reach the foreground
+    my $fd = fileno(STDIN);
     my $pgid;
-    while (POSIX::tcgetpgrp(fileno(STDIN)) != ($pgid = getpgrp(0))) {
+
+    # spin until we reach the foreground
+    while (POSIX::tcgetpgrp($fd) != ($pgid = getpgrp(0))) {
         kill TTIN => -$pgid;
     }
 
     # ignore signals relevant to job control
     $SIG{$_} = "IGNORE" foreach qw(INT QUIT TSTP TTIN TTOU );
 
+    # this will be redone by give_term() but we do it here for error control.
     unless (POSIX::setpgid($$, $pgid)) {
         warn "Job control was disabled because creating our own process group failed";
         goto disable;
     }
 
-    POSIX::tcsetpgrp(fileno(STDIN), $pgid)
+    # Create a job for ourself:
+    my $me = make_job($$, $pgid, $fd, 'tpsh', @ARGV);
+    warn "Thou shalt have no jobs before me: \$me->jid = ", $me->jid, " but must be 0!"
+         if $me->jid > 0;
+    $Last_Job = $me;
+
+    give_term_unix($me) == $me->pgid
         or warn "Problem taking control of terminal for job control";
+
 
     return;
 
@@ -1025,12 +1044,13 @@ sub exec_job {
     }
 
     if ($pid) {
-        wait_for_job $pid;
+        my $fd = fileno(STDIN);
+        my $job = make_job $pid, $pid, $fd, @_;
+
+        wait_for_job $job;
         give_term($$, getpgrp());
 
-            $termios->setattr(fileno(STDIN), &POSIX::TCSADRAIN);
-            # dicking with SIGCHLD can break this!
-            # print "returning ", ($?>>8), "\n";
+        $termios->setattr($fd, &POSIX::TCSADRAIN);
 
         return $? >> 8;
     } else {
@@ -1038,14 +1058,15 @@ sub exec_job {
         $SIG{$_} = "DEFAULT" foreach qw(TSTP );
 
         give_term($$, $$);
+        # print "child: \$\$=$$ pid=$pid pgrp=", getpgrp(), "\n";
         exit pexec @_;
     }
 }
 
 sub wait_for_job_unix {
-    my $pid = shift;
+    my $job = shift;
 
-    if ($pid == $$) {
+    if ($job->pid == $$) {
         warn "I'm not waiting on myself!";
         return 512; # >> 8 = 2
     }
@@ -1057,7 +1078,24 @@ sub wait_for_job_unix {
     {
         no strict 'subs';
         #local $?; # don't clobber value: it's used by exec stuff.
-        waitpid $pid, POSIX::WUNTRACED;
+        waitpid $job->pid, POSIX::WUNTRACED;
+
+        # Update status.
+        #
+        # fg_bin and other code handles setting status 'Running'.
+        #
+        my $s = defined(${^CHILD_ERROR_NATIVE}) ? ${^CHILD_ERROR_NATIVE}
+                                                : $?; # XXX Perl < v5.8.9
+        if (POSIX::WIFSTOPPED($s)) {
+            $job->state('Stopped');
+            $Last_Job = $job;
+            print_job $job;
+        } elsif (POSIX::WIFEXITED($s)) {
+            $job->state('Exited');
+            delete $Jobs{$job->jid};
+        } elsif (POSIX::WIFSIGNALED($s)) {
+            $job->state('Exited with signal '.POSIX::WTERMSIG($s));
+        }
     }
     #### UNIX SPECIFIC ####
 
@@ -1068,21 +1106,23 @@ sub wait_for_job_windows {
 
 =pod
 
+give_term JOB
 give_term PID, PGID[, FD]
 
 Gives control of the terminal associated with FD to PID/PGID. If not supplied,
-the file descriptor for STDIN will be used.
+the file descriptor for STDIN will be used. A Job object may also be used.
 
 Returns the controlling PGID.
 
 =cut
 
 sub give_term_unix {
-    my ($pid, $pgid, $fd) = @_;
+    my ($pid, $pgid, $fd) = $#_ == 0 ? ($_[0]->pid, $_[0]->pgid,$_[0]->fd)
+                                     : @_;
     $fd = fileno(STDIN) unless $fd;
 
-    warn $! if POSIX::setpgid($pid, $pgid) == -1;
-    warn $! if POSIX::tcsetpgrp($fd, $pgid) == -1;
+    warn $! if POSIX::setpgid($pid, $pgid) != 0;
+    warn $! if POSIX::tcsetpgrp($fd, $pgid) != 0;
 
     return POSIX::tcgetpgrp($fd);
 }
@@ -1930,6 +1970,56 @@ sub tempfile {
     return ($fh, $fn);
 }
 
+sub make_job {
+
+    my $j = new Job;
+
+    # cheesy I know.
+    {
+        my @jobs = (sort keys %Jobs);
+        # make sure we don't overrite the jid
+        $j->jid($#jobs + (exists($Jobs{$#jobs+1}) ? 2 : 1));
+        $Jobs{$j->jid} = $j;
+    }
+    $j->pid(shift);
+    $j->pgid(shift);
+    $j->fd(shift || fileno(STDIN));
+    $j->argv(\@_);
+    $j->state('created');
+
+    return $j;
+}
+
+sub print_job {
+    my $j = shift;
+
+    print "[", $j->jid, "]";
+    print "+" if $j == $Last_Job;
+    print " \t ", $j->state, " \t ", join(' ', @{$j->argv}), "\n";
+}
+
+=pod
+
+dump_job_status
+
+Returns a hash of data to explain what waitpid() reported. Just for debugging really.
+
+=cut
+
+sub dump_job_status {
+    my $s = defined(${^CHILD_ERROR_NATIVE}) ? ${^CHILD_ERROR_NATIVE}
+                                            : $?; # XXX Perl < v5.8.9
+
+    my %tests = (
+        WIFEXITED   => POSIX::WIFEXITED($s),
+        WEXITSTATUS => POSIX::WEXITSTATUS($s),
+        WIFSIGNALED => POSIX::WIFSIGNALED($s),
+        WTERMSIG    => POSIX::WTERMSIG($s),
+        WIFSTOPPED  => POSIX::WIFSTOPPED($s),
+        WSTOPSIG    => POSIX::WSTOPSIG($s),
+    );
+    return %tests;
+}
 
 =pod
 
@@ -1973,14 +2063,14 @@ sub alias_bin {
 sub bg_bin {
     my $jid = shift;
 
-    unless (exists $Jobs{$jid}) {
-        binerr "no such job: $jid";
-        return 127;
-    }
+    # unless (exists $Jobs{$jid}) {
+        # binerr "no such job: $jid";
+        # return 127;
+    # }
 
-   if (kill(CONT => -$Jobs{$jid}->{PGID}) < 1) {
-       binerr "error signaling job $jid";
-   }
+   # if (kill(CONT => -$Jobs{$jid}->{PGID}) < 1) {
+       # binerr "error signaling job $jid";
+   # }
 }
 
 sub builtin_bin {
@@ -2186,23 +2276,35 @@ sub fc_bin {
 }
 
 sub fg_bin {
-    my $pgid = shift;
+    my $spec = shift || goto badspec;
+    my $jid = substr($spec, 1, length($spec));
+    my $job = $spec =~ /^%$/ ? $Last_Job : $Jobs{$jid};
+
+    goto badspec unless $job;
 
     # give terminal to process 
-    POSIX::tcsetpgrp(fileno(STDIN), $pgid);
+    POSIX::tcsetpgrp(fileno(STDIN), $job->pgid);
 
     # revive job
-    if (kill(CONT => -$pgid) < 1) {
-        binerr "error signaling job $pgid";
+    $job->state('Running');
+    if (kill(CONT => -$job->pgid) < 1) {
+        binerr "error signaling job ", $job->pgid;
+        # we don't know what state the job should be in.
+        $job->state('Failed SIGCONT');
     }
 
     # block until job changes state
-    wait_for_job($pgid);
+    wait_for_job $job;
 
     # retake terminal for tpsh
     POSIX::tcsetpgrp(fileno(STDIN), getpgrp());
 
     return 0;
+
+    badspec: {
+        binerr(($spec ? "$spec: " : ''), 'no such job');
+        return 127;
+    }
 }
 
 sub function_bin {
@@ -2255,6 +2357,23 @@ sub history_bin {
 
     print 'history [', join(' | ', sort keys %cmds), "] [options] [args]\n";
     return 1;
+}
+
+sub jobs_bin {
+
+    foreach (sort keys %Jobs) {
+        my $j = $Jobs{$_};
+
+        # hide the tpsh job
+        next if $j->jid == 0;
+
+        print_job $j;
+
+        # trim jobs we've waited until now to clear.
+        delete $Jobs{$_} if $j->state =~ /^Exited/;
+    }
+
+    return 0;
 }
 
 sub loadhist_bin {
