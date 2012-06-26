@@ -1117,6 +1117,8 @@ Returns the controlling PGID.
 =cut
 
 sub give_term_unix {
+    return -1 unless $Options{monitor};
+
     my ($pid, $pgid, $fd) = $#_ == 0 ? ($_[0]->pid, $_[0]->pgid,$_[0]->fd)
                                      : @_;
     $fd = fileno(STDIN) unless $fd;
@@ -2061,6 +2063,8 @@ sub alias_bin {
 }
 
 sub bg_bin {
+    return binerr "job control is disabled" unless $Options{monitor};
+
     my $jid = shift;
 
     # unless (exists $Jobs{$jid}) {
@@ -2276,9 +2280,11 @@ sub fc_bin {
 }
 
 sub fg_bin {
+    return binerr "job control is disabled" unless $Options{monitor};
+
     my $spec = shift || goto badspec;
     my $jid = substr($spec, 1, length($spec));
-    my $job = $spec =~ /^%$/ ? $Last_Job : $Jobs{$jid};
+    my $job = $jid =~ /^%$/ ? $Last_Job : $Jobs{$jid};
 
     goto badspec unless $job;
 
