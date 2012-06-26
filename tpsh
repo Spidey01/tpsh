@@ -2580,6 +2580,7 @@ sub set_bin {
 sub setenv_bin {
     my ($var, $val) = @_;
 
+    print "setenv $var='", $val, "'\n";
     return update_env($var, $val);
 }
 
@@ -2624,6 +2625,7 @@ sub source_bin {
         for my $file (@args) {
             open my $fh, '<', $file     or die "${file}: $!\n";
             while (defined(my $ln = <$fh>)) {
+                next if $ln =~ /^\s*#/;
                 foreach (sh_eval $ln) {
                     resolve_cmd @$_ if defined @$_;
                 }
