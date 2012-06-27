@@ -1898,7 +1898,6 @@ sub sh_eval {
 
 sub update_env {
     my ($var, $val) = @_;
-    $val = sh_eval($val);
 
     if ($var =~ /=/) {
         # IEEE Std 1003.1-2004 forbirds = in env-var names

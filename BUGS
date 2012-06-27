@@ -1,3 +1,4 @@
+@@@ echo '$HOME' and echo '$ ' are now syntax errors.
 $$$ `set +o option` doesn't work.
 $$$ windows support probably borked by job control.
 %%% job control needs more segmentation.
