@@ -7,7 +7,6 @@
 STDOUT	tpsh	/^                                 format = $/;"	f
 add_history	tpsh	/^sub add_history {$/;"	s
 alias_bin	tpsh	/^sub alias_bin {$/;"	s
-argv_rejoin	tpsh	/^sub argv_rejoin {$/;"	s
 bad	tpsh	/^      bad:$/;"	l
 badspec	tpsh	/^    badspec: {$/;"	l
 bg_bin	tpsh	/^sub bg_bin {$/;"	s
@@ -85,7 +84,11 @@ redirect	tpsh	/^  redirect:$/;"	l
 rehash	tpsh	/^sub rehash {$/;"	s
 rehash_bin	tpsh	/^sub rehash_bin {$/;"	s
 resolve_cmd	tpsh	/^sub resolve_cmd {$/;"	s
+restore_term_state_unix	tpsh	/^sub restore_term_state_unix {$/;"	s
+restore_term_state_windows	tpsh	/^sub restore_term_state_windows {$/;"	s
 save_history	tpsh	/^sub save_history {$/;"	s
+save_term_state_unix	tpsh	/^sub save_term_state_unix {$/;"	s
+save_term_state_windows	tpsh	/^sub save_term_state_windows {$/;"	s
 savehist_bin	tpsh	/^sub savehist_bin {$/;"	s
 search_path	tpsh	/^sub search_path {$/;"	s
 set_bin	tpsh	/^sub set_bin {$/;"	s
