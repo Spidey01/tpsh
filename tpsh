@@ -90,7 +90,13 @@ sub igrep;
 sub tempfile;
 sub make_job;
 sub print_job;
-sub get_last_job_status;
+sub dump_job_status;;
+sub save_term_state;
+sub save_term_state_unix;
+sub save_term_state_windows;
+sub restore_term_state;
+sub restore_term_state_unix;
+sub restore_term_state_windows;
 #
 # These subs implement built in commands
 #
@@ -272,6 +278,16 @@ my $HistoryNumber = 1;
 my $Term;
 
 #
+# Reference to our terminal state for use with save_term_states and
+# restore_term_state.
+#
+# On unix:      this will be a POSIX::Termios object.
+# On windows:   this is currently unused.
+#
+#
+my $TermState;
+
+#
 # A hash containing a cache of all known commands, in the format
 # of command => /path/to/command. Only the rehash() sub should
 # ever modify this cache directly!
@@ -394,6 +410,8 @@ sub init_platform {
         init_job_control
         give_term
         wait_for_job
+        save_term_state
+        restore_term_state
     );
 
     my $os = exists($oses{$^O}) ? $oses{$^O} : 'unix';
@@ -553,6 +571,8 @@ sub init_os_unix {
     $ENV{LOGNAME}   = $pw->name;
     $ENV{UID}       = $pw->uid;
     $ENV{HOME}      = $pw->dir;
+
+    $TermState = POSIX::Termios->new(); 
 }
 
 sub init_readline {
@@ -647,6 +667,9 @@ sub init_job_control_unix {
 
 sub init_job_control_windows {
     warn "Job control is not supported on Windows :-(yet)\n";
+
+    $Options{monitor} = 0;
+    return;
 }
 
 =pod
@@ -1013,8 +1036,7 @@ Returns a $? like value if failure, suitable for use with exit in a child proces
 
 sub exec_job {
     
-# The getattr/setattr methods of POSIX::Termios can probably be used for saving/restoring terminal modes.
-    my $termios = POSIX::Termios->new(); $termios->getattr(fileno(STDIN));
+    save_term_state;
     my $pid  = fork();
 
     unless(defined $pid) {
@@ -1029,7 +1051,7 @@ sub exec_job {
         wait_for_job $job;
         give_term($$, getpgrp());
 
-        $termios->setattr($fd, &POSIX::TCSADRAIN);
+        restore_term_state;
 
         return $? >> 8;
     } else {
@@ -2001,6 +2023,20 @@ sub dump_job_status {
         WSTOPSIG    => POSIX::WSTOPSIG($s),
     );
     return %tests;
+}
+
+sub save_term_state_unix {
+    $TermState->getattr($Jobs{0}->fd);
+}
+
+sub save_term_state_windows {
+}
+
+sub restore_term_state_unix {
+    $TermState->setattr($Jobs{0}->fd, &POSIX::TCSADRAIN);
+}
+
+sub restore_term_state_windows {
 }
 
 =pod
