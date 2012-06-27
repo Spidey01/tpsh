@@ -1,0 +1,14 @@
+This file lists notable changes between tagged releases.
+
+v???:
+
+	basic job control
+	clean up of unix/win32 specific code handling.
+	$$ sorta works.
+	# comments ignored in source'd files.
+	echo ' x y ' => echo '' bug fixed.
+	BUGS and CHANGES files added.
+
+v1.0: commit 71adb0f878eb354f3a5258a9fc9e7a3fb67ab7d4 on 2012-06-22 
+
+	first version considered stable enough for daily usage.
