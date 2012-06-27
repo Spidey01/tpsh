@@ -45,7 +45,6 @@ sub main_loop;
 sub tpsh_parse;
 sub tpsh_lex;
 sub tpsh_cgen;
-sub argv_rejoin;
 sub resolve_cmd;
 sub exec_cmd;
 sub wait_for_job;
@@ -800,46 +799,55 @@ sub tpsh_parse {
     return @stack;
 }
 
+=pod
+
+tpsh_lex LIST
+
+Takes a list of tokens: like:
+
+    (
+        'if', 'lsx', ';',
+        'then', 'echo', 'fail', ';',
+        'else', 'echo', 'pass',
+        ';', 'fi'
+    )
+
+And returns a list containing a command queue: like:
+
+    (
+        [ 'if', 'lsx' ],
+        [ 'then', 'echo', 'fail' ],
+        [ 'else', 'echo', 'pass' ],
+        [ 'fi' ]
+    )
+
+I.e. it takes the output of tpsh_parse() and builds a data structure that
+tpsh_cgen() understands.
+
+=cut
+
 sub tpsh_lex {
     return () unless @_;
 
     my $strbuf;
     my @words = @_;
     my @queue;
+    my $buf = [];
 
-    #
-    # Rejoin the tokens into a command queue of [ word lists ]. 
-    #
-    #   ( [cmd1, arg, list, ...], [cmd2, arg, list, ...] )
-    #
-    # Note that the ';', '&', and '|' symbols terminate commands but 
-    # the the '&' and '|' operators must be retained in word list as 
-    # a trailing word; so things like resolve_cmd() can handle the 
-    # operators correctly.
-    #
-    for my $s (ifsplit (@words, ';')) {
-        if ($s eq ';' or $s eq '|' or $s eq '&') {
-            unless ($s eq ';') {
-                push @$strbuf, $s;
-            }
-            push @queue, $strbuf;
-            $strbuf = ();
-        } else {
-            push @$strbuf, "$s ";
+    for (my $i=0; $i <= $#words; ++$i) {
+        my $w = $words[$i];
+        my $last = $i == $#words;
+
+        if ($last or $w ne ';') {
+            push @$buf, $w;
+        }
+        if ($last or $w eq ';') {
+            push @queue, $buf;
+            $buf = [];
         }
     }
 
-    #
-    # Reconsitute the word lists into proper argument vectors,
-    # and strip out the [back]quotes where found.
-    #
-    #   ( [cmd1, arg list, ...], [cmd2, arg list, ...] )
-    #
-    return map { 
-               [map { $_ =~ s/(?<!\\)\\//g;  $_ } @$_] 
-           } map { 
-               [argv_rejoin @$_] 
-           } @queue;
+    return @queue;
 }
 
 =pod
@@ -924,35 +932,6 @@ sub tpsh_cgen {
         warn "eval('sub { $strb }')";
     }
     return eval "sub { $strb }";
-}
-
-sub argv_rejoin {
-
-    my $strbuf = "";
-    my @argv = @_;
-    my @tokens;
-    my $ifs = defined $ENV{IFS} ? qr/[$ENV{IFS}]/ : qr/\s/;
-
-    for my $tok (@argv) {
-        if ($tok =~ /\\$ifs$/ or $strbuf) {
-            # partial argument, left join into strbuf
-            chop $tok unless $tok =~ //;
-            $strbuf .= $tok;
-        }
-        if ($tok !~ // and $strbuf) {
-                # we hit end of tok's to append to strbuf
-                # and therefore have the entire argument.
-                push @tokens, $strbuf;
-                $strbuf = "";
-                next;
-        }
-        unless ($strbuf) {
-            # a stand alone argument, e.g. echo or z in `echo "x y" z`
-            chop $tok;
-            push @tokens, $tok;
-        }
-    }
-    return @tokens;
 }
 
 =pod
@@ -1846,7 +1825,8 @@ sub ifsplit {
     # whitespace; this is not strictly bourne compatible, but
     # is desirable none the less
     #
-    my $ifs = defined $ENV{IFS} ? qr/[$ENV{IFS}]/ : qr/\s/;
+    #my $ifs = defined $ENV{IFS} ? qr/[$ENV{IFS}]/ : qr/\s/;
+    my $ifs=qr/[ \t\n]/;
 
     return grep !/^$/, split $ifs, join ' ', @_;
 }
