@@ -1,6 +1,6 @@
 This file lists notable changes between tagged releases.
 
-v???:
+v1.1: commit decc74f4a0e4e22246d83e34af9e84851d2e941d
 
 	basic job control
 	clean up of unix/win32 specific code handling.
