@@ -1,4 +1,4 @@
-@@@ echo '$HOME' and echo '$ ' are now syntax errors.
+@@@ echo '$HOME' and echo '$ ' are now syntax errors since tpsh_lex rewrite.
 $$$ `set +o option` doesn't work.
 $$$ windows support probably borked by job control.
 %%% job control needs more segmentation.
