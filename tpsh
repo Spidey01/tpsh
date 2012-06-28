@@ -929,18 +929,11 @@ sub tpsh_cgen {
         break => sub { ' last;'; },
         last => sub { ' last;'; },
     );
-    my $esc = sub {
-        my @args = @_;
-        for (my $i=0; $i <= $#_; ++$i) {
-            $args[$i] =~ s/\$/\\\$/g;
-        }
-        return @args;
-    };
 
     my $strb;
     foreach my $cmdln (@data) {
         my $cmd = shift @$cmdln;
-        my @args = $esc->(@$cmdln);
+        my @args = @$cmdln;
         print "cmd = \"$cmd\"\ncmds = (\"", join('", "', @args), "\")\n"
                 if $Options{debug};
 
