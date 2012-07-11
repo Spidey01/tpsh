@@ -2044,14 +2044,18 @@ sub dump_job_status {
 }
 
 sub save_term_state_unix {
-    $TermState->getattr($Jobs{0}->fd);
+    if ($Options{monitor}) {
+        $TermState->getattr($Jobs{0}->fd);
+    }
 }
 
 sub save_term_state_windows {
 }
 
 sub restore_term_state_unix {
-    $TermState->setattr($Jobs{0}->fd, &POSIX::TCSADRAIN);
+    if ($Options{monitor}) {
+        $TermState->setattr($Jobs{0}->fd, &POSIX::TCSADRAIN);
+    }
 }
 
 sub restore_term_state_windows {
