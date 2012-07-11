@@ -1,5 +1,9 @@
 This file lists notable changes between tagged releases.
 
+v.??? commit
+
+	Lines starting with a quote character are no longer syntax errors :).
+
 v1.1.1 commit cb43053c8c23fec9d625b07a7b155f8c8b9222d3
 
 	bug fixes.

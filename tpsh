@@ -1477,7 +1477,7 @@ sub expand_quotes {
     # example of the expression -- Terry.
     #
     #                unqu    start quote      isqu   end quote   mayqu
-    unless ($ln =~ /(.+?) (?<!\\) ([\'\"\`]) (.*?)  (?<!\\)(\2) (.*) /x) {
+    unless ($ln =~ /(.*?) (?<!\\) ([\'\"\`]) (.*?)  (?<!\\)(\2) (.*) /x) {
         #
         # just feed back the expanded fields if no quotes
         #
