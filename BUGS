@@ -1,3 +1,7 @@
 $$$ `set +o option` doesn't work.
 $$$ windows support probably borked by job control.
+$$$ parse error when combining script words.
+	while test "$i" -gt 0 ; do echo "while-test: $i"; setenv i `expr $i - 1`; if test "$i" -eq 10; then echo fml; break; fi done
+	is an error unless you s/fi/fi;/.
 %%% job control needs more segmentation.
+%%% in tests.d/quotes.sh: echo `head -n 1 /dev/null` "x `echo $HOME` y"  returns a blank space for the `head ...` part.

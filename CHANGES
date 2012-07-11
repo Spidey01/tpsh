@@ -3,7 +3,7 @@ This file lists notable changes between tagged releases.
 v.??? commit
 
 	Bug fixes for script handling.
-	Variable expansion delayed until later in REPL.
+	Variable and `` expansion delayed until later, so loops really work!
 	Lines starting with a quote character are no longer syntax errors :).
 
 v1.1.1 commit cb43053c8c23fec9d625b07a7b155f8c8b9222d3

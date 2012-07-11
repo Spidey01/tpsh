@@ -71,6 +71,8 @@ sub expand_quotes;
 sub expand_tilde;
 sub expand_parameters;
 sub mark_parameters;
+sub expand_backticks;
+sub mark_backticks;
 sub expand_aliases;
 sub expand_glob;
 sub exec_pipe;
@@ -924,7 +926,7 @@ sub tpsh_cgen {
         # experimental stuff
         while => sub { 'while ( '.$default->(@_)." == 0 )"; },
         until => sub { 'until ( '.$default->(@_)." == 0 )"; },
-        for => sub { 'warn "Not implemented yet\n";'; },
+        for => sub { 'warn "for keyword not implemented yet\n";'; },
         continue => sub { ' next;'; },
         next => sub { ' next;'; },
         break => sub { ' last;'; },
@@ -1466,13 +1468,8 @@ sub expand_quotes {
                                 push @tokens, $data;
                    },
                    '`' => sub { my $data = shift;
-                                # cheating: $data is sent to /bin/sh.
-                                open my $cmd, '-|', $data or warn $!;
-                                my $buf;
-                                $buf .= $_ while readline $cmd;
-                                chomp $buf;
-                                close $cmd;
-                                push @tokens, $buf;
+                                $data    = mark_backticks(join(' ', expand_quotes($data)));
+                                push @tokens, $data;
                    },
                    'def' => sub { my $data = shift;
                                   push @tokens, ifsplit mark_parameters(
@@ -1574,6 +1571,7 @@ sub mark_parameters {
     # XXX
     #       the [\\'] part relies on $target's quoteing of $var in the loop
     #       also this makes the assumption that this will get interpolated into ""
+    #
     while ($ln =~ /(?<![\\'])\$(\w*)/) {
         my $var = $1;
         my $target = '@{[expand_parameters('."'\$$var'".')]}';
@@ -1582,6 +1580,34 @@ sub mark_parameters {
         $ln =~ s/\$$var/$target/;
     }
     return $ln;
+}
+
+sub expand_backticks {
+
+    my $ln = shift;
+
+    # cheating: $ln is sent to /bin/sh. We can do a I/O stream switch a roo and
+    # run it ourself though.
+    open my $cmd, '-|', $ln or warn $!;
+    my $buf;
+    $buf .= $_ while readline $cmd;
+    close $cmd;
+
+    chomp $buf if $buf;
+    $buf = '' unless $buf;
+
+    return $buf;
+
+}
+
+sub mark_backticks {
+
+    my $ln = shift;
+
+    # XXX
+    #       the \" part in these quotes makes the assumption that this will get interpolated into ""
+    #
+    return '@{[expand_backticks(\"'.$ln.'\")]}';
 }
 
 sub expand_aliases {
@@ -2619,7 +2645,7 @@ sub set_bin {
 sub setenv_bin {
     my ($var, $val) = @_;
 
-    print "setenv $var='", $val, "'\n";
+    # print "setenv $var='", $val, "'\n";
     return update_env($var, $val);
 }
 

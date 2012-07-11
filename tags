@@ -3,7 +3,7 @@
 !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
-!_TAG_PROGRAM_VERSION	5.8	//
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
 STDOUT	tpsh	/^                                 format = $/;"	f
 add_history	tpsh	/^sub add_history {$/;"	s
 alias_bin	tpsh	/^sub alias_bin {$/;"	s
@@ -36,6 +36,7 @@ exec_pipe	tpsh	/^sub exec_pipe {$/;"	s
 execute	tpsh	/^sub execute {$/;"	s
 exit_bin	tpsh	/^sub exit_bin {$/;"	s
 expand_aliases	tpsh	/^sub expand_aliases {$/;"	s
+expand_backticks	tpsh	/^sub expand_backticks {$/;"	s
 expand_glob	tpsh	/^sub expand_glob {$/;"	s
 expand_parameters	tpsh	/^sub expand_parameters {$/;"	s
 expand_quotes	tpsh	/^sub expand_quotes {$/;"	s
@@ -71,6 +72,8 @@ macro_bin	tpsh	/^sub macro_bin {$/;"	s
 macros_bin	tpsh	/^sub macros_bin {$/;"	s
 main_loop	tpsh	/^sub main_loop {$/;"	s
 make_job	tpsh	/^sub make_job {$/;"	s
+mark_backticks	tpsh	/^sub mark_backticks {$/;"	s
+mark_parameters	tpsh	/^sub mark_parameters {$/;"	s
 max	tpsh	/^sub max {$/;"	s
 min	tpsh	/^sub min {$/;"	s
 notfound	tpsh	/^    notfound: do {$/;"	l
