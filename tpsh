@@ -70,6 +70,7 @@ sub complete_builtin;
 sub expand_quotes;
 sub expand_tilde;
 sub expand_parameters;
+sub mark_parameters;
 sub expand_aliases;
 sub expand_glob;
 sub exec_pipe;
@@ -747,7 +748,7 @@ sub main_loop {
 }
 
 sub execute {
-
+    
     $Last_Cmd = join(' ', @_);
 
     #
@@ -908,7 +909,7 @@ sub tpsh_cgen {
     #
     my @data = @_;
     # just execute command for return value 
-    my $default = sub { "resolve_cmd(\"".join("\", \"", @_)."\")"; };
+    my $default = sub { 'resolve_cmd("'.join('", "', @_).'")'; };
     # generate corrisponding perl code :)
     my %targets = (
         if => sub { 'if( '.$default->(@_)." == 0 )"; },
@@ -934,7 +935,7 @@ sub tpsh_cgen {
     foreach my $cmdln (@data) {
         my $cmd = shift @$cmdln;
         my @args = @$cmdln;
-        print "cmd = \"$cmd\"\ncmds = (\"", join('", "', @args), "\")\n"
+        print "cmd = '$cmd'\ncmds = ('", join("', '", @args), "')\n"
                 if $Options{debug};
 
         if (exists $targets{$cmd}) {
@@ -945,9 +946,9 @@ sub tpsh_cgen {
     }
 
     if ($Options{debug}) {
-        warn "eval('sub { $strb }')";
+        warn "eval('sub { ".$strb." }')";
     }
-    return eval "sub { $strb }";
+    return eval "sub { ".$strb." }";
 }
 
 =pod
@@ -1456,18 +1457,25 @@ sub expand_quotes {
                                 push @tokens, quotemeta $data;
                    },
                    '"' => sub { my $data = shift;
-                                $data    = expand_parameters($data);
-                                push @tokens, quotemeta($data);
+                                #
+                                # need to recurse for stuff like `` and to
+                                # mark_paramaeters after so that we handle
+                                # echo "$FOO `echo $BAR`" correctly.
+                                #
+                                $data    = mark_parameters(join(' ', expand_quotes($data)));
+                                push @tokens, $data;
                    },
                    '`' => sub { my $data = shift;
+                                # cheating: $data is sent to /bin/sh.
                                 open my $cmd, '-|', $data or warn $!;
                                 my $buf;
                                 $buf .= $_ while readline $cmd;
+                                chomp $buf;
                                 close $cmd;
                                 push @tokens, $buf;
                    },
-                   'def' => sub { my $data = shift; 
-                                  push @tokens, ifsplit expand_parameters(
+                   'def' => sub { my $data = shift;
+                                  push @tokens, ifsplit mark_parameters(
                                       scalar expand_aliases(
                                           expand_glob($data)));
                    },
@@ -1542,6 +1550,7 @@ sub expand_tilde {
 sub expand_parameters {
 
     my $ln = shift;
+    # print "expand_parameters(ln=|$ln|)\n";
 
     # XXX todo: use a global symbol table or a function to check between 
     # %ENV and %VARS or something like that
@@ -1555,6 +1564,23 @@ sub expand_parameters {
         }
     }
 
+    return $ln;
+}
+
+sub mark_parameters {
+
+    my $ln = shift;
+
+    # XXX
+    #       the [\\'] part relies on $target's quoteing of $var in the loop
+    #       also this makes the assumption that this will get interpolated into ""
+    while ($ln =~ /(?<![\\'])\$(\w*)/) {
+        my $var = $1;
+        my $target = '@{[expand_parameters('."'\$$var'".')]}';
+        # print "target=$target";
+
+        $ln =~ s/\$$var/$target/;
+    }
     return $ln;
 }
 
@@ -2030,6 +2056,7 @@ sub restore_term_state_unix {
 
 sub restore_term_state_windows {
 }
+
 
 =pod
 

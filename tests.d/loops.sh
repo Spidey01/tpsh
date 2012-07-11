@@ -13,7 +13,6 @@ until false; do echo "Very simple until+break"; break; done
 #
 # So this can't work properly because the test will always become `10 > 0`. 
 #
-exit 2
 
 setenv i 10
 while test "$i" -gt 0 ; do echo "while-test: $i"; setenv i `expr $i - 1`; done
