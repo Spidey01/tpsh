@@ -1,0 +1,6 @@
+This is my portable shell. It's written in Perl and designed predominantly with Unix/Windows in mind. It can generally be considered a Bourne style shell but is it's own shell at heart. Interactive usage is generally favoured over scripting features.
+
+It is designed to be very simple to install. Dependencies are kept at a minimal. Generally any perl version since the 3rd edition of the Camel book should work. On some platforms (e.g. Windows), extra modules pre-installed by Active State's distribution may be assumed to be present. While even Perl 5.6 will probably work for the code itself, module versions may need updating. 
+
+
+Why is it one file and not packaged up into modules and crap like that? Because it's supposed to be one file install kind of easy as long as you have a perl distribution! If you have a problem with that, fuck off.
