@@ -926,7 +926,25 @@ sub tpsh_cgen {
         # experimental stuff
         while => sub { 'while ( '.$default->(@_)." == 0 )"; },
         until => sub { 'until ( '.$default->(@_)." == 0 )"; },
-        for => sub { 'warn "for keyword not implemented yet\n";'; },
+        for => sub {
+            print "for()-> |", join('|, ', @_), "|\n";
+            my $var = shift; # loop variable
+            my @words;
+
+            if (defined($_[0]) and $_[0] eq 'in') {
+                shift; # drop the 'in'
+                @words = @_;
+            } elsif (defined($ENV{'@'})) {
+                @words = ifsplit($ENV{'@'});
+            }
+            print(
+                # this line could mostly be used for the target string to generate.
+                # the sticky is how to pass $_ to default.
+                'for ( ("'.join('", "', @words).'") )'
+                , "\n");
+
+            'warn "for keyword not implemented yet\n";';
+        },
         continue => sub { ' next;'; },
         next => sub { ' next;'; },
         break => sub { ' last;'; },
