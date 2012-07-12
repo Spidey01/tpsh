@@ -5,3 +5,4 @@ $$$ parse error when combining script words.
 	is an error unless you s/fi/fi;/.
 %%% job control needs more segmentation.
 %%% in tests.d/quotes.sh: echo `head -n 1 /dev/null` "x `echo $HOME` y"  returns a blank space for the `head ...` part.
+%%% the test-runner perl script hasn't been fixed yet...
