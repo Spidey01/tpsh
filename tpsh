@@ -761,7 +761,7 @@ sub execute {
         $exe->();
         #$Dumper->dumpValues($exe);
     } else {
-        warn("syntax error in the above program");
+        warn("syntax error in the above program: code generator angry!");
         if ($Options{debug}) { warn $@ }
     }
 }
@@ -914,10 +914,19 @@ sub tpsh_cgen {
     my $default = sub { 'resolve_cmd("'.join('", "', @_).'")'; };
     # name of env var if we're inside a for loops do/done.
     my $for_loop_var = undef;
+    # for generating code to report syntax errors in our input.
+    my $error = undef;
     # generate corrisponding perl code :)
     my %targets = (
         if => sub { 'if( '.$default->(@_)." == 0 )"; },
-        then => sub { ' { '.$default->(@_).';' },
+        then => sub {
+            if ($for_loop_var) {
+                $error = "syntax error near unexpected token `then' where `do' was expected.";
+                return '';
+            }
+
+            ' { '.$default->(@_).';'
+        },
         elif => sub { ' } elsif( '.$default->(@_)." == 0 )"; },
         else => sub { ' } else { '.$default->(@_).';' },
         fi => sub { ' }' },
@@ -960,6 +969,8 @@ sub tpsh_cgen {
 
     my $strb;
     foreach my $cmdln (@data) {
+        last if defined $error;
+
         my $cmd = shift @$cmdln;
         my @args = @$cmdln;
         print "cmd = '$cmd'\ncmds = ('", join("', '", @args), "')\n"
@@ -970,6 +981,11 @@ sub tpsh_cgen {
         } else {
             $strb .= "\n" . $default->($cmd, @args) . ';';
         }
+    }
+
+    if (defined $error) {
+        # then just report it as an error
+        return sub { warn $error; };
     }
 
     if ($Options{debug}) {

@@ -1,3 +1,4 @@
+### shell conditionals have no exit status.
 $$$ `set +o option` doesn't work.
 $$$ windows support probably borked by job control.
 $$$ parse error when combining script words.
@@ -6,3 +7,4 @@ $$$ parse error when combining script words.
 %%% job control needs more segmentation.
 %%% in tests.d/quotes.sh: echo `head -n 1 /dev/null` "x `echo $HOME` y"  returns a blank space for the `head ...` part.
 %%% the test-runner perl script hasn't been fixed yet...
+^^^ figure out why cd_bin borks test-runner.
