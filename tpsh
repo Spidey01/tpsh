@@ -912,6 +912,8 @@ sub tpsh_cgen {
     my @data = @_;
     # just execute command for return value 
     my $default = sub { 'resolve_cmd("'.join('", "', @_).'")'; };
+    # name of env var if we're inside a for loops do/done.
+    my $for_loop_var = undef;
     # generate corrisponding perl code :)
     my %targets = (
         if => sub { 'if( '.$default->(@_)." == 0 )"; },
@@ -920,7 +922,16 @@ sub tpsh_cgen {
         else => sub { ' } else { '.$default->(@_).';' },
         fi => sub { ' }' },
         # synonyms for other stuff 
-        do => sub { ' { '.$default->(@_).';' },
+        do => sub {
+            my $s = ' { '.$default->(@_).';';
+
+            if ($for_loop_var) {
+                $s = ' { $ENV{'.$for_loop_var.'}=$_; '.$default->(@_).';';
+                $for_loop_var = undef;
+            }
+
+            $s;
+        },
         done => sub { ' }' },
         end => sub { ' }' },
         # experimental stuff
@@ -937,13 +948,9 @@ sub tpsh_cgen {
             } elsif (defined($ENV{'@'})) {
                 @words = ifsplit($ENV{'@'});
             }
-            print(
-                # this line could mostly be used for the target string to generate.
-                # the sticky is how to pass $_ to default.
-                'for ( ("'.join('", "', @words).'") )'
-                , "\n");
 
-            'warn "for keyword not implemented yet\n";';
+            $for_loop_var=$var;
+            'for ( ("'.join('", "', @words).'") )';
         },
         continue => sub { ' next;'; },
         next => sub { ' next;'; },
