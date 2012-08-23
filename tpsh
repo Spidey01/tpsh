@@ -2374,6 +2374,9 @@ sub fg_bin {
     # give terminal to process 
     POSIX::tcsetpgrp(fileno(STDIN), $job->pgid);
 
+    # show user the job being continued.
+    print join(' ', @{$job->argv}), "\n";
+
     # revive job
     $job->state('Running');
     if (kill(CONT => -$job->pgid) < 1) {
