@@ -1616,10 +1616,14 @@ sub mark_parameters {
     #       the [\\'] part relies on $target's quoteing of $var in the loop
     #       also this makes the assumption that this will get interpolated into ""
     #
-    while ($ln =~ /(?<![\\'])\$(\w*)/) {
+    while ($ln =~ /(?<![\\'])\$([@#\$\*\?\w]\w*)/) {
         my $var = $1;
         my $target = '@{[expand_parameters('."'\$$var'".')]}';
-        # print "target=$target";
+        # print "target='$target' var='$var' ln='$ln'\n";
+
+        # set this here so expanding specials like $? can work without trigging
+        # an infinit loop. But also lets us keep the above as is.
+        $var = quotemeta $var;
 
         $ln =~ s/\$$var/$target/;
     }
