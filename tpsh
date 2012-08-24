@@ -498,6 +498,13 @@ sub init_sh {
     # PID
     $ENV{'$'} = $$;
 
+    # other special variables
+    for (my $i=0; $i < $#ARGV; ++$i) {
+        $ENV{$i} = $ARGV[$i];
+    }
+    $ENV{'*'} = join(' ', @ARGV);
+    $ENV{'#'} = $#ARGV + 1;
+
     init_job_control() if $Options{monitor};
 
     if ($Options{interactive}) {
