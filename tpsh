@@ -1023,42 +1023,44 @@ sub resolve_cmd {
     #
     # Note: >> must come before > in order for append mode to work.
     #
-  redirect:
-    if (defined $op and $op =~ /^(>>|>|<)$/) {
-        my ($ch, $op, $file) = (undef, $1, $argv[-1]);
-        $cmd                 = join ' ', @argv[0..$#argv-2];
-        if ($Options{noclobber}) {
-            if ( $op eq '>' and -e $file) {
-                warn "'$file' already exists",
-                     " and `set -o noclobber` is in effect";
-                return 1;
+    redirect: {
+        if (defined $op and $op =~ /^(>>|>|<)$/) {
+            my ($ch, $op, $file) = (undef, $1, $argv[-1]);
+            $cmd                 = join ' ', @argv[0..$#argv-2];
+            if ($Options{noclobber}) {
+                if ( $op eq '>' and -e $file) {
+                    warn "'$file' already exists",
+                    " and `set -o noclobber` is in effect";
+                    return 1;
+                }
             }
-        }
-        open my $fp, $op, $file or return binerr "Can't open $file: $!";
+            open my $fp, $op, $file or return binerr "Can't open $file: $!";
 
-        if ($op eq '<') {
-            open $ch, '|-', $cmd;
-            while (<$fp>) {
-                print $ch $_;
+            if ($op eq '<') {
+                open $ch, '|-', $cmd;
+                while (<$fp>) {
+                    print $ch $_;
+                }
+            } else { # > or >>
+                open $ch, '-|', $cmd;
+                while (<$ch>) {
+                    print $fp $_;
+                }
+                close $ch; close $fp;
             }
-        } else { # > or >>
-            open $ch, '-|', $cmd;
-            while (<$ch>) {
-                print $fp $_;
-            }
-            close $ch; close $fp;
+            return 1;
         }
-        return 1;
     }
 
 
     # built in command
     #
-  builtin:
-    my $rv = is_builtin($cmd) ?  $Builtins{$cmd}->(@argv[1..$#argv])
-                              :  exec_job(@argv);
-    update_env '?', $rv;
-    return $rv;
+    builtin: {
+        my $rv = is_builtin($cmd) ?  $Builtins{$cmd}->(@argv[1..$#argv])
+        :  exec_job(@argv);
+        update_env '?', $rv;
+        return $rv;
+    }
 }
 
 =pod
@@ -2591,9 +2593,10 @@ sub pwd_bin {
     } elsif ($arg eq '-L') {
         print Cwd::getcwd(), "\n";
     } else {
-      bad:
-        binerr "to many arguments";
-        return 1;
+        bad: {
+            binerr "to many arguments";
+            return 1;
+        }
     }
 
     return 0;
