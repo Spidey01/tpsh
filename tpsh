@@ -1080,7 +1080,7 @@ sub exec_job {
     my $pid  = fork();
 
     unless(defined $pid) {
-        warn "Unable to fork for exec_cmd(): $!";
+        warn "Unable to fork for pexec(): $!";
         return 2;
     }
 
