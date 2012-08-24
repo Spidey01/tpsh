@@ -795,6 +795,8 @@ sub handle_prompt {
             $HistoryNumber ++;
             add_history($ln);
         }
+    } elsif (!$Options{interactive} and $Options{cmdstr}) {
+        $ln = $Options{cmdstr};
     } else {
         $ln = <>;
     }
@@ -806,8 +808,7 @@ sub handle_prompt {
         if ($Options{xtrace}) {
             # temporary side-step for killin' error messages when PS4 is bad
             my $ps4 = $ENV{PS4} || '';
-            print STDERR "${ps4}$ln";
-            $Options{interactive} ? print "\n" : 0;
+            print STDERR "${ps4}$ln\n";
         }
     }
 
@@ -2906,7 +2907,8 @@ unless (caller) {
     }
     init_sh();
     if ($Options{cmdstr}) {
-        exit resolve_cmd scalar sh_eval $Options{cmdstr};
+        execute  handle_prompt $Options{cmdstr};
+        exit $ENV{'?'};
     }
     exit main_loop();
 }
