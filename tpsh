@@ -185,7 +185,7 @@ my $Setopts = {
     'a|allexport'    =>  \$Options{allexport},
     'A|autohistory'  =>  \$Options{autohistory},
     'b|notify'       =>  \$Options{notify},
-    'c=s'            =>  \$Options{cmdstr},
+    'c|command=s'    =>  \$Options{cmdstr},
     'C|noclobber'    =>  \$Options{noclobber},
     'D|debug'        =>  \$Options{debug},
     'E|emacs'        =>  \$Options{emacs},
