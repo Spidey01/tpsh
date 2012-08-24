@@ -93,7 +93,8 @@ sub igrep;
 sub tempfile;
 sub make_job;
 sub print_job;
-sub dump_job_status;;
+sub dump_job_status;
+sub get_job;
 sub save_term_state;
 sub save_term_state_unix;
 sub save_term_state_windows;
@@ -2110,6 +2111,24 @@ sub dump_job_status {
     return %tests;
 }
 
+=pod
+
+get_job EXPR
+
+Gets the associated Job for EXPR. Which is the usual convention for unix
+shells. Namely %n where n is the job identification number (jid). If n is %
+(e.g. EXPR = '%%') then the $Last_Job is used.
+
+=cut
+
+sub get_job {
+    return undef  unless $Options{monitor};
+
+    my $spec = shift;
+    my $jid = substr($spec, 1, length($spec));
+    return $jid =~ /^%$/ ? $Last_Job : $Jobs{$jid};
+}
+
 sub save_term_state_unix {
     if ($Options{monitor}) {
         $TermState->getattr($Jobs{0}->fd);
@@ -2389,10 +2408,13 @@ sub fg_bin {
     return binerr "job control is disabled" unless $Options{monitor};
 
     my $spec = shift || '%%';
-    my $jid = substr($spec, 1, length($spec));
-    my $job = $jid =~ /^%$/ ? $Last_Job : $Jobs{$jid};
+    my $job = get_job $spec;
 
-    goto badspec unless $job;
+    unless (defined $job) {
+        binerr(($spec ? "$spec: " : ''), 'no such job') unless defined $job;
+        return 127;
+    }
+    
 
     # give terminal to process 
     POSIX::tcsetpgrp(fileno(STDIN), $job->pgid);
@@ -2415,11 +2437,6 @@ sub fg_bin {
     POSIX::tcsetpgrp(fileno(STDIN), getpgrp());
 
     return 0;
-
-    badspec: {
-        binerr(($spec ? "$spec: " : ''), 'no such job');
-        return 127;
-    }
 }
 
 sub function_bin {

@@ -3,12 +3,11 @@
 !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
-!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+!_TAG_PROGRAM_VERSION	5.8	//
 STDOUT	tpsh	/^                                 format = $/;"	f
 add_history	tpsh	/^sub add_history {$/;"	s
 alias_bin	tpsh	/^sub alias_bin {$/;"	s
 bad	tpsh	/^      bad:$/;"	l
-badspec	tpsh	/^    badspec: {$/;"	l
 bg_bin	tpsh	/^sub bg_bin {$/;"	s
 binerr	tpsh	/^sub binerr {$/;"	s
 builtin	tpsh	/^  builtin:$/;"	l
@@ -48,6 +47,7 @@ fc_bin	tpsh	/^sub fc_bin {$/;"	s
 fg_bin	tpsh	/^sub fg_bin {$/;"	s
 function_bin	tpsh	/^sub function_bin {$/;"	s
 get_history	tpsh	/^sub get_history {$/;"	s
+get_job	tpsh	/^sub get_job {$/;"	s
 give_term_unix	tpsh	/^sub give_term_unix {$/;"	s
 give_term_windows	tpsh	/^sub give_term_windows {$/;"	s
 handle_prompt	tpsh	/^sub handle_prompt {$/;"	s
