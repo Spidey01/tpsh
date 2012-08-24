@@ -1095,8 +1095,8 @@ sub exec_job {
 
         return $? >> 8;
     } else {
-        $SIG{$_} = "IGNORE" foreach qw(TSTP TTIN TTOU CHLD);
-        $SIG{$_} = "DEFAULT" foreach qw(TSTP );
+        $SIG{$_} = "IGNORE" foreach qw(TSTP TTIN TTOU);
+        $SIG{$_} = "DEFAULT" foreach qw(TSTP CHLD);
 
         give_term($$, $$);
         # print "child: \$\$=$$ pid=$pid pgrp=", getpgrp(), "\n";
