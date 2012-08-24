@@ -1,5 +1,10 @@
 This file lists notable changes between tagged releases.
 
+v.??? commit
+
+	$$ and $? special variables now work.
+	Bug fixes related to $$, $?, $@, $#, and $* special variables.
+
 v1.2 commit 37eef6c92e536c46c157257a7c500382af481e89
 
 	Minor bug fixes.
