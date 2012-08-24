@@ -1744,7 +1744,8 @@ sub expand_glob {
         warn "syntax error in \$TPSH_GLOB_FLAGS: $!";
         return undef;
     }
-    my $globch = qr/[\[\]\{\}?*]/;
+                    # ignore if \ escaped, ' quoted, or used as a var like $*.
+    my $globch = qr/(?<![\\'\$])[\[\]\{\}?*]/;
     my @argv;
 
     for (ifsplit @_) {
