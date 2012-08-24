@@ -1,7 +1,10 @@
 This file lists notable changes between tagged releases.
 
-v.??? commit
+v1.2 commit 37eef6c92e536c46c157257a7c500382af481e89
 
+	Minor bug fixes.
+	fg is not fg %% instead of an error.
+	Display job argv on continuation (fg).
 	Bug fixes for script handling.
 	Variable and `` expansion delayed until later, so loops really work!
 	Lines starting with a quote character are no longer syntax errors :).
