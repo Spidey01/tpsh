@@ -2388,7 +2388,7 @@ sub fc_bin {
 sub fg_bin {
     return binerr "job control is disabled" unless $Options{monitor};
 
-    my $spec = shift || goto badspec;
+    my $spec = shift || '%%';
     my $jid = substr($spec, 1, length($spec));
     my $job = $jid =~ /^%$/ ? $Last_Job : $Jobs{$jid};
 
