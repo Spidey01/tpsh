@@ -789,7 +789,7 @@ etc where appropriate. See also sh_eval() and source_bin().
 sub handle_prompt {
     my $ln;
 
-    if ($Options{interactive} && !$Options{stdin}) {
+    if ($Options{interactive} && $Options{stdin}) {
         $ln = $Term->readline($ENV{PS1});
         if (defined $ln and $ln =~ /\S/) {
             $HistoryNumber ++;
@@ -2900,7 +2900,7 @@ END {
 unless (caller) {
     do_getopt(\@ARGV, $Setopts);
     $Options{interactive} = $Options{monitor} = -t *STDIN && !@ARGV ? 1 : 0;
-    $Options{stdin}       = @ARGV               ? 1 : 0;
+    $Options{stdin} = @ARGV ? 0 : 1;
     if ($Options{cmdstr}) {
         $Options{interactive} = $Options{monitor} = 0;
     }
