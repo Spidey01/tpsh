@@ -385,6 +385,12 @@ my %Jobs = ();
 #
 my $Last_Job;
 
+#
+# File handle for the currently executing script.
+# TODO:
+#   replace this with the tpsh job's file handle, even when job control is off.
+my $ScriptHandle = undef;
+
 #----------------------------------------------------------
 #                Subroutine Implementations
 #----------------------------------------------------------
@@ -499,11 +505,15 @@ sub init_sh {
     $ENV{'$'} = $$;
 
     # other special variables
-    for (my $i=0; $i < $#ARGV; ++$i) {
+    for (my $i=0; $i <= $#ARGV; ++$i) {
         $ENV{$i} = $ARGV[$i];
     }
     $ENV{'*'} = join(' ', @ARGV);
     $ENV{'#'} = $#ARGV + 1;
+
+    if (defined $ENV{0}) {
+        open $ScriptHandle, $ENV{0} or die $!;
+    }
 
     init_job_control() if $Options{monitor};
 
@@ -798,9 +808,15 @@ sub handle_prompt {
     } elsif (!$Options{interactive} and $Options{cmdstr}) {
         $ln = $Options{cmdstr};
     } else {
-        $ln = <>;
+        $ln = <$ScriptHandle>;
     }
     if (defined $ln) {
+        if ((!$Options{cmdstr} and !$Options{stdin} and !$Options{interactive}))
+        {
+            # ^ reading from script.
+            chomp($ln);
+        }
+
         if ($Options{verbose}) {
             print $ln;
             $Options{interactive} ? print "\n" : 0;

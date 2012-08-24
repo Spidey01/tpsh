@@ -2,6 +2,10 @@ This file lists notable changes between tagged releases.
 
 v.??? commit
 
+	Fixed argv issues with running scripts.
+	-c fixed.
+	stdin option now set correctly.
+	Top level $#, $*, and positional paremters now work.
 	$$ and $? special variables now work.
 	Bug fixes related to $$, $?, $@, $#, and $* special variables.
 
