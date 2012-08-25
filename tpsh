@@ -776,7 +776,7 @@ sub execute {
     #
     my $exe = tpsh_cgen(sh_eval @_);
     unless ($@) {
-        $exe->();
+        $exe->() unless $Options{noexec};
         #$Dumper->dumpValues($exe);
     } else {
         warn("syntax error in the above program: code generator angry!");
