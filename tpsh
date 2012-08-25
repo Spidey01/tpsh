@@ -378,6 +378,11 @@ use Class::Struct Job => {
     state => '$',
     fd => '$',
 };
+
+#
+# Hash of jobs by Job->jid. Note that jobs are used internally whether or not
+# $Options{monitor} (and there for control over) jobs is enabled.
+#
 my %Jobs = ();
 
 #
@@ -516,6 +521,12 @@ sub init_sh {
     }
 
     init_job_control() if $Options{monitor};
+
+    # Create a job for ourself: this is done whether or not 'control' is allowed.
+    my $me = make_job($$, getpgrp(0), fileno(STDIN), 'tpsh', @ARGV);
+    warn "Thou shalt have no jobs before me: \$me->jid = ", $me->jid, " but must be 0!"
+         if $me->jid > 0;
+    $Last_Job = $me;
 
     if ($Options{interactive}) {
         # change to the users home directory by default.
@@ -668,15 +679,8 @@ sub init_job_control_unix {
         goto disable;
     }
 
-    # Create a job for ourself:
-    my $me = make_job($$, $pgid, $fd, 'tpsh', @ARGV);
-    warn "Thou shalt have no jobs before me: \$me->jid = ", $me->jid, " but must be 0!"
-         if $me->jid > 0;
-    $Last_Job = $me;
-
-    give_term_unix($me) == $me->pgid
+    give_term_unix($$, $pgid, $fd) == $pgid
         or warn "Problem taking control of terminal for job control";
-
 
     return;
 
