@@ -18,26 +18,25 @@ How tpsh behaves is dependent on how it was started, or "invoked" by the user.
 When first starting up, tpsh will process its command line arguments for
 options as explained below under L</Argument List Processing>. Any non option
 arguments remaining in the on the command line after this processing has been
-completed, are assumed to be filenames. Filenames given this way will be executed as a shell script, non interactively.
+completed, specify a script and parameters.
 
 If tpsh is executing a shell script through a command line argument, it is
 assumed to be a I<non-interactive> shell; otherwise if tpsh's standard input
 is connected to a terminal or the B<-i> option was given: tpsh assumes it is
 to behave as an I<interactive> shell should. A non-interactive shell reads
-commands from the named files or standard input until receiving the end of
+commands from the named file or standard input until receiving the end of
 file marker.  An interactive shell initializes your systems L<Term::ReadLine>
 module and displays a command prompt. Commands are read from standard input
-until the shell is exited.
+until the shell is exited or end of file is received.
 
 tpsh will always inspect the initial environment, and modify it accordingly
 (see L</ENVIORNMENT>). tpsh then attempts to change to the users personal
-directory, if running as an interactive shell, tpsh inspects the ENV
-environment variable for shell initialization files. Interactive sessions then
-process ENV if set, reading in each file as a script, before issuing the
-prompt.
+directory, if running as an interactive shell; scripts are run from the current
+working directory. Interactive sessions then inspects the ENV environment
+variable for shell initialization files before issuing the prompt.
  
-=head2 Argument List Processing
 
+=head2 Argument List Processing
 
 Since most of these options may be set either at invocation or at run time:
 both the short and long names have been listed here for each option. The short
@@ -52,9 +51,13 @@ command (described later in L</Built-in Commands>.)
 Automatically export variables to the environment; i.e. C<FOO=BAR> has the same
 effect as C<FOO=BAR; export FOO>.
 
+XXX not implemented yet
+
 =item B<-A> autohistory
 
 Causes tpsh to load saved history from HISTFILE after processing the users ENV, and to save the shells history to HISTFILE before terminating.
+
+XXX not implemented yet
 
 =item B<-b> notify
 
@@ -71,8 +74,6 @@ becomes an error under noclobber.
 
 Commands are read from the following argument (string) instead of from standard
 input. Keep in mind that multi-word strings must be quoted in most shells.
-
-XXX not implemented yet
 
 =item B<-D> debug
 
@@ -120,8 +121,6 @@ Enables built-in commands used for job control; e.g. fg, bg, jobs, etc.
 if not interactive, read commands but do not execute them. Normally this is
 used for checking a script for syntax errors without running it.
 
-XXX not implemented yet
-
 =item pathext
 
 When executing commands, perform file extension checks before giving up.
@@ -129,6 +128,8 @@ When executing commands, perform file extension checks before giving up.
 =item reportpipe
 
 Print an additional error message whenever SIGPIPE is received; default off.
+
+XXX not implemented yet
 
 =item B<-s> stdin
 
@@ -171,9 +172,9 @@ impossible to nest single quotes.
 
 =item Double Quotes
 
-Enclosing characters within double quotes restricts the evaluation to
-parameter expansion and backslash escapes. The backslash inside double quotes
-is historically weird: and the shell does not yet understand them.
+Enclosing characters within double quotes restricts the evaluation to parameter
+expansion and backslash escapes. The backslash inside double quotes is
+historically weird: and the shell may not quite understand them correctly.
 
 =item Backquotes (or backticks)
 
@@ -192,19 +193,21 @@ is equivalent to
 
 and both expand to 'echo first line of ls output'.
 
+XXX this should be changed to use tpsh instead of perls default.
+
 =back
 
 =head2 Commands
 
 tpsh interprets the words it reads as commands for execution through a queue.
-Complex commands are broken down enqueued (into) simple commands. The first
+Complex commands are broken down into simple commands and enqueued. The first
 word of each simple command is checked for expansion in accordance with the
-shells quoting rules, and then executed by the shell. To illustrate a point,
-if the following simple command was given to tpsh:
+shells quoting rules, and then executed by the shell. To illustrate a point, if
+the following simple command was given to tpsh:
 
 	$ vi -c "set ai" file.c
 
-the argument vector (argv) or vi will be as follows:
+the argument vector (argv) of vi will be as follows:
 
 	argv[0] = '/path/to/vi'
 	argv[1] = '-c'
@@ -237,6 +240,8 @@ be:
 
 Unless otherwise stated, the exit status of a complex command is always that
 of the last simple command executed by the command.
+
+XXX not implemented yet.
 
 =head3 Control Flow Keywords
 
@@ -344,7 +349,7 @@ If step 4 failed, repeat step 3 in the same manor, or give up.
 
 =head4 Path Extensions
 
-in order to reduce typing, and make certain antique operating systems easier
+In order to reduce typing, and make certain antique operating systems easier
 to use: tpsh allows the user to specify command suffixes or "Path extensions"
 to try befor egiving up. The PATHEXT environment variable if set, will be used
 to generate a list of possible filename extensions. By default tpsh enables
@@ -1033,10 +1038,6 @@ funny, but not quite in the same way as tpsh.
 Anonymous macros/command grouping syntax and positional parameters are not
 implemented yet.
 
-while/until loops are implemented but they are pretty limited because variables
-will get expanded BEFORE any code generation occurs. Thus exit coniditons are
-limited to a very simple break, continue, next, or last keyword.
-
 Pipes were disabled ages ago.
 
 I/O redirection probably only works with simple commands. Been to long since I
@@ -1044,10 +1045,10 @@ tested it that much.
 
 The parse/lex/eval/cgen needs to do less split/join wrangling.
 
-Running commands via C<tpsh -c 'cmd'> is broken. The option parser shallows
-I<'cmd'> :/.
-
 Job control is still pretty raw (and unix only) but seems functional.
+
+Single quotes work like in programming, e.g. echo C<'foo \' bar'> is fine: it
+is an error in Bourne shell.
 
 =head1 LICENSE
 
