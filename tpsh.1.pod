@@ -705,6 +705,110 @@ The I<timespec> is assumed to be an integer number of seconds to sleep. An
 optional suffix of C<s>, C<m>, or C<h> can be used to denote seconds, minutes,
 or hours.
 
+=item B<source> I<FILE>
+
+Write me.
+
+=item B<test> I<EXPRESSION>
+
+Returns true or false based on the evaluation of I<EXPRESSION>. If
+I<EXPRESSION> is ommitted, it behaves exactly like the B<false> built in
+command.
+
+The B<test> built in command has it's own conditonal language. See `man test`
+or Google for an overview but not that your systems test I<program> may differ
+from tpsh's built in version. The operators are listed below:
+
+	! EXPR
+		Negate EXPR.
+
+	EXPR1 -a EXPR2
+		both EXPR1 and EXPR2 are true.
+
+	EXPR1 -o EXPR2
+		either of EXPR1 or EXPR2 are true.
+
+	-n STR
+		STR is a non-zero length string.
+
+	-z STR
+		STR is a zero length string.
+
+	STR1 = STR2
+		STR1 is equal to STR2.
+
+	STR1 != STR2
+		STR1 is not equal to STR2.
+
+	NUM1 -eq NUM2
+		the numeric value NUM1 is equal to the numeric value NUM2.
+
+	NUM1 -ge NUM2
+		the numeric value NUM1 is greater than or equal to the numeric value NUM2.
+
+	NUM1 -gt NUM2
+		the numeric value NUM1 is greater than the numeric value NUM2.
+
+	NUM1 -le NUM2
+		the numeric value NUM1 is less than or equal to the numeric value NUM2.
+
+	NUM1 -lt NUM2
+		the numeric value NUM1 is less than the numeric value NUM2.
+
+	NUM1 -ne NUM2
+		the numeric value NUM1 is not equal to the numeric value NUM2.
+
+	-b FILE
+		FILE exists and is a block special.
+
+	-c FILE
+		FILE exists and is a character special.
+
+	-d FILE
+		FILE is a directory.
+
+	-e FILE
+		FILE exists.
+
+	-f FILE
+		FILE is a regular file.
+
+	-g FILE
+		FILE has the setgid bit set.
+
+	-h FILE
+		FILE is a symbolic link.
+
+	-k FILE
+		FILE has the stickly bit set.
+
+	-L FILE
+		Compatability alias for -h.
+
+	-O FILE
+		FILE is owned by the effective user ID.
+
+	-p FILE
+		FILE is a named pipe (FIFO).
+
+	-r FILE
+		FILE is readable.
+
+	-s FILE
+		FILE has a size greater than zero.
+
+	-S FILE
+		FILE is a socket.
+
+	-t FILE
+		FILE is opened to a TTY.
+
+	-w FILE
+		FILE is writable.
+
+	-x FILE
+		FILE is executable.
+
 =item B<true>
 
 Always returns exit status of 0.

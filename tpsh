@@ -2811,6 +2811,55 @@ sub source_bin {
 }
 
 sub test_bin {
+    return false_bin if $#_ == -1;
+
+    my $strb = '';
+
+    print "test argv: ", $#_+1, "\n" if $Options{debug};
+    for (my $i=0; $i <= $#_; ++$i) {
+        print "\targv[$i] = '$_[$i]'\n" if $Options{debug};
+        my ($prev, $arg, $next) = ($_[$i-1], $_[$i], $_[$i+1]);
+
+        $strb .= ' not ' if $arg eq '!';
+        $strb .= ' and ' if $arg eq '-a';
+        $strb .= ' or ' if $arg eq '-o';
+        $strb .= " ('$next' ne '') ", $i++ if $arg eq '-n';
+        $strb .= " ('$next' eq '') ", $i++ if $arg eq '-z';
+        $strb .= " ('$prev' eq '$next') ",$i++ if $arg eq '=';
+        $strb .= " ('$prev' ne '$next') ",$i++ if $arg eq '!=';
+        $strb .= " ($prev == $next) ",$i++ if $arg eq '-eq';
+        $strb .= " ($prev >= $next) ",$i++ if $arg eq '-ge';
+        $strb .= " ($prev > $next) ",$i++ if $arg eq '-gt';
+        $strb .= " ($prev <= $next) ",$i++ if $arg eq '-le';
+        $strb .= " ($prev < $next) ",$i++ if $arg eq '-lt';
+        $strb .= " ($prev != $next) ",$i++ if $arg eq '-ne';
+        $strb .= " (-b '$next') ",$i++ if $arg eq '-b';
+        $strb .= " (-c '$next') ",$i++ if $arg eq '-c';
+        $strb .= " (-d '$next') ",$i++ if $arg eq '-d';
+        $strb .= " (-e '$next') ",$i++ if $arg eq '-e';
+        $strb .= " (-f '$next') ",$i++ if $arg eq '-f';
+        $strb .= " (-g '$next') ",$i++ if $arg eq '-g';
+        $strb .= " (-l '$next') ",$i++ if $arg eq '-h' or uc($arg) eq '-L';
+        $strb .= " (-k '$next') ",$i++ if $arg eq '-k';
+        $strb .= " (-o '$next') ",$i++ if $arg eq '-O';
+        $strb .= " (-p '$next') ",$i++ if $arg eq '-p';
+        $strb .= " (-r '$next') ",$i++ if $arg eq '-r';
+        $strb .= " (-s '$next') ",$i++ if $arg eq '-s';
+        $strb .= " (-S '$next') ",$i++ if $arg eq '-S';
+        $strb .= " (-t '$next') ",$i++ if $arg eq '-t';
+        $strb .= " (-u '$next') ",$i++ if $arg eq '-u';
+        $strb .= " (-w '$next') ",$i++ if $arg eq '-w';
+        $strb .= " (-x '$next') ",$i++ if $arg eq '-x';
+    }
+
+    print "strb = |$strb|\n" if $Options{debug};
+
+    my $result = eval '('.$strb.') ? 0 : 1';
+    if ($@) {
+        warn "\$@ = $@";
+    }
+
+    return $result;
 
     return 1;
 }

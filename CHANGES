@@ -2,6 +2,8 @@ This file lists notable changes between tagged releases.
 
 v.??? commit
 
+	test command implemented (but not [ ])
+	ignoreeof works, sorta.
 	Fixed argv issues with running scripts.
 	-c fixed.
 	stdin option now set correctly.
