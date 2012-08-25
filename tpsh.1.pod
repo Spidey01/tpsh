@@ -106,8 +106,6 @@ files matching the pattern.
 
 Ignore end of file indicators from input when running in interactive mode. 
 
-XXX not implemented yet
-
 =item B<-i> interactive
 
 Force th shell to execute in interactive mode.

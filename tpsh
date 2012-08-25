@@ -808,6 +808,9 @@ sub handle_prompt {
         if (defined $ln and $ln =~ /\S/) {
             $HistoryNumber ++;
             add_history($ln);
+        } elsif ($Options{ignoreeof}) {
+            # make sure prompt is gets reissued on a new line
+            print "\n";
         }
     } elsif (!$Options{interactive} and $Options{cmdstr}) {
         $ln = $Options{cmdstr};
@@ -830,6 +833,8 @@ sub handle_prompt {
             my $ps4 = $ENV{PS4} || '';
             print STDERR "${ps4}$ln\n";
         }
+    } elsif ($Options{ignoreeof}) {
+        $ln = '# ignoreeof is enabled';
     }
 
     return $ln;
