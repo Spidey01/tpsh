@@ -1268,9 +1268,11 @@ sub pexec {
         return 127;
     }
     exec { $cmds[0] } @cmds;
-    # FIXME /file.ext not exec'able
-    warn "NOT REACHED -- CHILD ON ", __FILE__, ':', __LINE__, " error: ", $!;
-    return $!;
+    # /file.ext not exec'able, etc. Should usually be reported else where I
+    # think but I'm not sure if all conditions are. 
+    # warn "NOT REACHED -- CHILD ON ", __FILE__, ':', __LINE__, " error: ", $!;
+    # changed from return to exit, to make perl silence a warning.
+    exit $!;
 }
 
 =pod
