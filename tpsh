@@ -376,7 +376,10 @@ use Class::Struct Job => {
     pid => '$',
     argv => '@',
     state => '$',
-    fd => '$',
+    fdin => '$',
+    fdout => '$',
+    stdin => '$',
+    stdout => '$',
 };
 
 #
@@ -523,7 +526,7 @@ sub init_sh {
     init_job_control() if $Options{monitor};
 
     # Create a job for ourself: this is done whether or not 'control' is allowed.
-    my $me = make_job($$, getpgrp(0), fileno(STDIN), 'tpsh', @ARGV);
+    my $me = make_job($$, getpgrp(0), *STDIN, *STDOUT, 'tpsh', @ARGV);
     warn "Thou shalt have no jobs before me: \$me->jid = ", $me->jid, " but must be 0!"
          if $me->jid > 0;
     $Last_Job = $me;
@@ -1122,7 +1125,8 @@ sub exec_job {
 
     if ($pid) {
         my $fd = fileno(STDIN);
-        my $job = make_job $pid, $pid, $fd, @_;
+        my $job = make_job $pid, $pid, *STDIN, *STDOUT, @_;
+        $ENV{TPSH_PIPE_JOB}=$job->jid;
 
         wait_for_job $job;
         give_term($$, getpgrp());
@@ -1196,7 +1200,7 @@ Returns the controlling PGID.
 sub give_term_unix {
     return -1 unless $Options{monitor};
 
-    my ($pid, $pgid, $fd) = $#_ == 0 ? ($_[0]->pid, $_[0]->pgid,$_[0]->fd)
+    my ($pid, $pgid, $fd) = $#_ == 0 ? ($_[0]->pid, $_[0]->pgid,$_[0]->fdin)
                                      : @_;
     $fd = fileno(STDIN) unless $fd;
 
@@ -2122,7 +2126,10 @@ sub make_job {
     }
     $j->pid(shift);
     $j->pgid(shift);
-    $j->fd(shift || fileno(STDIN));
+    $j->stdin(shift || *STDIN);
+    $j->stdout(shift || *STDOUT);
+    $j->fdin(fileno($j->stdin));
+    $j->fdout(fileno($j->stdout));
     $j->argv(\@_);
     $j->state('created');
 
@@ -2180,7 +2187,7 @@ sub get_job {
 
 sub save_term_state_unix {
     if ($Options{monitor}) {
-        $TermState->getattr($Jobs{0}->fd);
+        $TermState->getattr($Jobs{0}->fdin);
     }
 }
 
@@ -2189,7 +2196,7 @@ sub save_term_state_windows {
 
 sub restore_term_state_unix {
     if ($Options{monitor}) {
-        $TermState->setattr($Jobs{0}->fd, &POSIX::TCSADRAIN);
+        $TermState->setattr($Jobs{0}->fdin, &POSIX::TCSADRAIN);
     }
 }
 
