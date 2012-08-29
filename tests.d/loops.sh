@@ -4,8 +4,8 @@
 while true; do echo "Very simple while+break"; break; done
 until false; do echo "Very simple until+break"; break; done
 
-# tpsh can't handle this without an external test app, because test is not
-# fully implemented yet. It's just a dummy that returns false.
+# tpsh can't handle this without an external test app. The test builtin and
+# code generated for the loop create an error.
 #
 setenv i 10
 while /usr/bin/test "$i" -gt 0 ; do echo "while-test: $i"; setenv i `expr $i - 1`; done

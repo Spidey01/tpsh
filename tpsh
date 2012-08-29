@@ -889,22 +889,25 @@ tpsh_cgen() understands.
 sub tpsh_lex {
     return () unless @_;
 
-    my $strbuf;
     my @words = @_;
-    my @queue;
+    my @queue = ();
     my $buf = [];
+
+    # Not sure what I wanna do about (/)/[/]/{/} handling yet.
+    my @seperators = (';', '|', '&');
 
     for (my $i=0; $i <= $#words; ++$i) {
         my $w = $words[$i];
-        my $last = $i == $#words;
 
-        if ($last or $w ne ';') {
-            push @$buf, $w;
+        foreach (@seperators) {
+            my $sep = quotemeta $_;
+            if ($w =~ /(?<![\\'])$sep/) {
+                push @queue, $buf;
+                $buf = [];
+            }
         }
-        if ($last or $w eq ';') {
-            push @queue, $buf;
-            $buf = [];
-        }
+        push @$buf, $w unless $w eq ';';
+        push @queue, $buf if $i == $#words;
     }
 
     return @queue;
