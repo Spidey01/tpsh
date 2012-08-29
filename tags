@@ -7,10 +7,9 @@
 STDOUT	tpsh	/^                                 format = $/;"	f
 add_history	tpsh	/^sub add_history {$/;"	s
 alias_bin	tpsh	/^sub alias_bin {$/;"	s
-bad	tpsh	/^      bad:$/;"	l
+bad	tpsh	/^        bad: {$/;"	l
 bg_bin	tpsh	/^sub bg_bin {$/;"	s
 binerr	tpsh	/^sub binerr {$/;"	s
-builtin	tpsh	/^  builtin:$/;"	l
 builtin_bin	tpsh	/^sub builtin_bin {$/;"	s
 cd_bin	tpsh	/^sub cd_bin {$/;"	s
 cls_bin	tpsh	/^sub cls_bin {$/;"	s
@@ -83,7 +82,6 @@ print_job	tpsh	/^sub print_job {$/;"	s
 pushd_bin	tpsh	/^sub pushd_bin {$/;"	s
 pwd_bin	tpsh	/^sub pwd_bin {$/;"	s
 read_bin	tpsh	/^sub read_bin {$/;"	s
-redirect	tpsh	/^  redirect:$/;"	l
 rehash	tpsh	/^sub rehash {$/;"	s
 rehash_bin	tpsh	/^sub rehash_bin {$/;"	s
 resolve_cmd	tpsh	/^sub resolve_cmd {$/;"	s

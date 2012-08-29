@@ -774,6 +774,13 @@ sub main_loop {
     }
 }
 
+=pod
+
+execute LINE
+execute ARGV
+
+=cut
+
 sub execute {
     
     $Last_Cmd = $#_ == 0 ? $_[0] : join(' ', @_);
@@ -951,7 +958,7 @@ sub tpsh_cgen {
     #
     my @data = @_;
     # just execute command for return value 
-    my $default = sub { 'resolve_cmd("'.join('", "', @_).'")'; };
+    my $default = sub { 'exec_cmd("'.join('", "', @_).'")'; };
     # name of env var if we're inside a for loops do/done.
     my $for_loop_var = undef;
     # for generating code to report syntax errors in our input.
@@ -1048,73 +1055,25 @@ sub resolve_cmd {
     local $!;
     my @argv  = $#_ ? @_ : ifsplit @_;
     my $cmd   = $argv[0];
-    my $cmdln = join ' ', @argv;
-    my $op    = $argv[-2];
 
-    # skip the I/O tricks when command is the macro built-in
-    goto builtin if $cmd =~ /^macro$/;
-
-    # I/O redirection
-    #
-    # command   >    write stdout to file
-    # command   >>   append stdout to file
-    # command   <    read stdout from file
-    #
-    # Note: >> must come before > in order for append mode to work.
-    #
-    redirect: {
-        if (defined $op and $op =~ /^(>>|>|<)$/) {
-            my ($ch, $op, $file) = (undef, $1, $argv[-1]);
-            $cmd                 = join ' ', @argv[0..$#argv-2];
-            if ($Options{noclobber}) {
-                if ( $op eq '>' and -e $file) {
-                    warn "'$file' already exists",
-                    " and `set -o noclobber` is in effect";
-                    return 1;
-                }
-            }
-            open my $fp, $op, $file or return binerr "Can't open $file: $!";
-
-            if ($op eq '<') {
-                open $ch, '|-', $cmd;
-                while (<$fp>) {
-                    print $ch $_;
-                }
-            } else { # > or >>
-                open $ch, '-|', $cmd;
-                while (<$ch>) {
-                    print $fp $_;
-                }
-                close $ch; close $fp;
-            }
-            return 1;
-        }
-    }
-
-
-    # built in command
-    #
-    builtin: {
-        my $rv = is_builtin($cmd) ?  $Builtins{$cmd}->(@argv[1..$#argv])
-        :  exec_job(@argv);
-        update_env '?', $rv;
-        return $rv;
-    }
+    my $rv = is_builtin($cmd) ?  $Builtins{$cmd}->(@argv[1..$#argv])
+                              :  exec_job(@argv);
+    update_env '?', $rv;
+    return $rv;
 }
 
 =pod
 
-exec_job LIST
+exec_job JOB
 
-Executes LIST with job control enabled.
-
-Never returns if successful (see perldoc -f exec).
-Returns a $? like value if failure, suitable for use with exit in a child process.
+Returns a value like the bourne shells $? variable.
 
 =cut
 
 sub exec_job {
-    
+
+    my $job = shift;
+
     save_term_state;
     my $pid  = fork();
 
@@ -1124,9 +1083,8 @@ sub exec_job {
     }
 
     if ($pid) {
-        my $fd = fileno(STDIN);
-        my $job = make_job $pid, $pid, *STDIN, *STDOUT, @_;
-        $ENV{TPSH_PIPE_JOB}=$job->jid;
+        $job->pid($pid);
+        $job->pgid($pid);
 
         wait_for_job $job;
         give_term($$, getpgrp());
@@ -1140,7 +1098,13 @@ sub exec_job {
 
         give_term($$, $$);
         # print "child: \$\$=$$ pid=$pid pgrp=", getpgrp(), "\n";
-        exit pexec @_;
+
+        my @argv = @{$job->argv};
+        if (is_builtin($argv[0])) {
+            exit $Builtins{$argv[0]}->(@argv[1..$#argv]);
+        } else {
+            exit pexec @argv;
+        }
     }
 }
 
@@ -1215,48 +1179,27 @@ sub give_term_windows {
 
 =pod
 
-exec_cmd LIST
+exec_cmd 
 
-Executes it's arguments in a child process and waits.
-
-exec_cmd() overrides Perl's PATH look up for exec(), by using a qualified path for
-the shells %Path. exec'ing stuff this way respects the users HASHSEP, and
-ensures that the operation will also respect the users pathext setting.
-
-If job control is supported on the current platform, the job may be
-suspended/continued as usual.
-
-returns $?>>8.
-returns undef if unable to fork a child process for exec().
+Runs on the portion of the syntax tree that represents a command.
 
 =cut
 
 sub exec_cmd {
-    my $erv = 512; # >> 8 == 2
 
-    if ($Options{monitor}) { # job control is on
-        #### UNIX SPECIFIC ####
-        if (POSIX::setpgid($$, $$) == -1) {
-            warn "child $$ can't change it's process group: $!";
-            return $erv;
-        }
-        if (POSIX::tcsetpgrp(fileno(STDIN), $$) == -1) {
-            warn "child $$ can't take control of terminal: $!";
-            warn "expect bad things to happen...";
-            return $erv;
-        }
-        # reset job control signals.
-        $SIG{$_} = "DEFAULT" foreach qw(INT QUIT TSTP TTIN TTOU CHLD);
-        #### UNIX SPECIFIC ####
-    }
-    return $erv;
+    my $cmd = shift;
+    my @args = @_;
 
-    if (!defined pexec @_) {
-        return 32512; # >> 8 == 127; command not found
-    } else {
-       warn "exec_job->pexec: $!";
-       return $! << 8;
-    }
+    # print "exec_cmd called with: cmd=$cmd args=\n";
+    # $Dumper->dumpValues(@args);
+
+
+    # make a job for the new command.
+    my $tpsh = $Jobs{0};
+    my $job = make_job $tpsh->pid, $tpsh->pgid, $tpsh->stdin, $tpsh->stdout, $cmd, @args;
+
+    # just for the hell of it, exec_job it:
+    exec_job $job;
 }
 
 =pod 
@@ -2027,6 +1970,13 @@ sub death_handler {
     die "$0: ${msg}, stopping tpsh\n";
 }
 
+=pod
+
+sh_eval EXPR
+
+Evaluate EXPR as a line of shell and return the appropriate syntax tree. See tpsh_lex.
+
+=cut
 
 sub sh_eval {
 
