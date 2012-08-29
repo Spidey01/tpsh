@@ -776,7 +776,7 @@ sub main_loop {
 
 sub execute {
     
-    $Last_Cmd = join(' ', @_);
+    $Last_Cmd = $#_ == 0 ? $_[0] : join(' ', @_);
 
     #
     # generate an executor subroutine for the command line
