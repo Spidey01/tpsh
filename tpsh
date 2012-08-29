@@ -894,6 +894,16 @@ And returns a list containing a command queue: like:
 I.e. it takes the output of tpsh_parse() and builds a data structure that
 tpsh_cgen() understands.
 
+When working with pipes like `cat a b c | sort | head -n 1, the structure is thus:
+
+    (
+        [ 'cat', 'a', 'b', 'c', '|' ],
+        [ '|', 'sort', '|' ],
+        [ '|', 'head', '-n', '1' ]
+    )
+
+tpsh_cgen relies on this to tell where commands fall within a pipe line.
+
 =cut
 
 sub tpsh_lex {
@@ -912,6 +922,10 @@ sub tpsh_lex {
         foreach (@seperators) {
             my $sep = quotemeta $_;
             if ($w =~ /(?<![\\'])$sep/) {
+                # print "w='$w' sep='$sep'; buf => [ ", join(', ', @$buf, ), " ]\n";
+                if ($w eq '|') {
+                    push @$buf, '|';
+                }
                 push @queue, $buf;
                 $buf = [];
             }
@@ -920,6 +934,9 @@ sub tpsh_lex {
         push @queue, $buf if $i == $#words;
     }
 
+    print "tpsh_lex: queue => \n";
+    $Dumper->dumpValues(@queue);
+    print "\n";
     return @queue;
 }
 
@@ -958,7 +975,18 @@ sub tpsh_cgen {
     #
     my @data = @_;
     # just execute command for return value 
-    my $default = sub { 'exec_cmd("'.join('", "', @_).'")'; };
+    # my $default = sub { 'exec_cmd("'.join('", "', @_).'")'; };
+    my @pipe_jobs = ();
+    my $default = sub {
+        if ($_[$#_] ne "|") {
+            return 'exec_cmd("'.join('", "', @_).'")';
+        }
+        print "command ", join('", "', @_), " ends in a pipe\n"
+        my $s = '';
+
+        return $s;
+        # 'exec_cmd("'.join('", "', @_).'")';
+    };
     # name of env var if we're inside a for loops do/done.
     my $for_loop_var = undef;
     # for generating code to report syntax errors in our input.
@@ -1012,6 +1040,11 @@ sub tpsh_cgen {
         next => sub { ' next;'; },
         break => sub { ' last;'; },
         last => sub { ' last;'; },
+        '|' => sub {
+            print "start of piped command: \n";
+            $Dumper->dumpValues(@_);
+            '';
+        },
     );
 
     my $strb;
