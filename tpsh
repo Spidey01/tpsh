@@ -1106,6 +1106,18 @@ Returns a value like the bourne shells $? variable.
 sub exec_job {
 
     my $job = shift;
+    my @argv = @{$job->argv};
+
+    # Quick hack so that stuff like cd and exit still work, while pipes are
+    # being integrated with the new job system.
+    #
+    if (is_builtin($argv[0])) {
+        $job->state('Running (builtin)');
+        delete $Jobs{$job->jid};
+        my $ev = $Builtins{$argv[0]}->(@argv[1..$#argv]);
+        $job->state('Exited (builtin)');
+        return $ev;
+    }
 
     save_term_state;
     my $pid  = fork();
@@ -1132,7 +1144,6 @@ sub exec_job {
         give_term($$, $$);
         # print "child: \$\$=$$ pid=$pid pgrp=", getpgrp(), "\n";
 
-        my @argv = @{$job->argv};
         if (is_builtin($argv[0])) {
             exit $Builtins{$argv[0]}->(@argv[1..$#argv]);
         } else {
