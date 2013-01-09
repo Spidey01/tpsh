@@ -981,7 +981,7 @@ sub tpsh_cgen {
         if ($_[$#_] ne "|") {
             return 'exec_cmd("'.join('", "', @_).'")';
         }
-        print "command ", join('", "', @_), " ends in a pipe\n"
+        print "command ", join('", "', @_), " ends in a pipe\n";
         my $s = '';
 
         return $s;
