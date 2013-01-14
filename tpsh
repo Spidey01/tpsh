@@ -981,9 +981,18 @@ sub tpsh_cgen {
         if ($_[$#_] ne "|") {
             return 'exec_cmd("'.join('", "', @_).'")';
         }
-        print "command ", join('", "', @_), " ends in a pipe\n";
-        my $s = '';
 
+        print "command ", join('", "', @_), " ends in a pipe\n";
+
+        # pop @_;
+        #return 'exec_pipe("'.join('", "', @_).'")';
+
+        my $s = 'my @pipe_commands = ();';
+        $s .= "\n";
+        $s .= 'push(@pipe_commands, ["'.join('", "', @_[0..$#_-1]).'"]);';
+        $s .= "\n";
+
+        # my $s = '';
         return $s;
         # 'exec_cmd("'.join('", "', @_).'")';
     };
@@ -1041,9 +1050,26 @@ sub tpsh_cgen {
         break => sub { ' last;'; },
         last => sub { ' last;'; },
         '|' => sub {
-            print "start of piped command: \n";
+            # print "start of piped command: \n";
+            # $Dumper->dumpValues(@_);
+            # '';
+
+            my $s = "\n";
+            if ($_[$#_] ne "|") {
+            print "\tSTART\n";
             $Dumper->dumpValues(@_);
-            '';
+            print "\tEND\n";
+            }
+            if ($_[$#_] ne "|") {
+                # end of the pipe line.
+                $s = 'push(@pipe_commands, ["'.join('", "', @_).'"]);';
+                $s .= "\n";
+                $s .= 'exec_pipe(@pipe_commands);';
+            } else {
+                $s = 'push(@pipe_commands, ["'.join('", "', @_[0..$#_-1]).'"]);';
+            }
+            $s .= "\n";
+            return $s;
         },
     );
 
@@ -1104,7 +1130,6 @@ Returns a value like the bourne shells $? variable.
 =cut
 
 sub exec_job {
-
     my $job = shift;
     my @argv = @{$job->argv};
 
@@ -1116,6 +1141,7 @@ sub exec_job {
         delete $Jobs{$job->jid};
         my $ev = $Builtins{$argv[0]}->(@argv[1..$#argv]);
         $job->state('Exited (builtin)');
+        update_env '?', $ev;
         return $ev;
     }
 
@@ -1147,6 +1173,14 @@ sub exec_job {
         if (is_builtin($argv[0])) {
             exit $Builtins{$argv[0]}->(@argv[1..$#argv]);
         } else {
+            # open my $proc, '-|', @argv;
+            # while (<$proc>) {
+                # my $o = $job->stdout;
+                # print $o $_;
+            # }
+            # exit $?;
+            # *STDIN = $job->stdin;
+            # *STDOUT = $job->stdout;
             exit pexec @argv;
         }
     }
@@ -1182,6 +1216,8 @@ sub wait_for_job_unix {
         } elsif (POSIX::WIFEXITED($s)) {
             $job->state('Exited');
             delete $Jobs{$job->jid};
+            # should we update $? here or somewhere else? How do jobs interact with $??
+            # I assume set a flag in job-> for $?.
         } elsif (POSIX::WIFSIGNALED($s)) {
             $job->state('Exited with signal '.POSIX::WTERMSIG($s));
         }
@@ -1237,13 +1273,55 @@ sub exec_cmd {
     # print "exec_cmd called with: cmd=$cmd args=\n";
     # $Dumper->dumpValues(@args);
 
-
     # make a job for the new command.
     my $tpsh = $Jobs{0};
     my $job = make_job $tpsh->pid, $tpsh->pgid, $tpsh->stdin, $tpsh->stdout, $cmd, @args;
 
     # just for the hell of it, exec_job it:
     exec_job $job;
+}
+
+=pod
+
+exec_pipe ARRAYREF, ...
+
+Takes a sequence of references to array, where each arrayref is a sequence of commands to execute with .... 
+
+=cut
+
+sub exec_pipe {
+    print "\texec_pipe args: \n";
+    $Dumper->dumpValues(@_);
+
+    my $tpsh = $Jobs{0};
+    my @pipe_commands = @_;
+    my $last_job = $tpsh;
+    my @jobs = ();
+
+
+    # skip last: for (my $i=0; $i < $#pipe_commands; ++$i)
+    for (my $i=0; $i < scalar(@pipe_commands); ++$i)
+    {
+        my @commands = @{$pipe_commands[$i]};
+        my $job = make_job $last_job->pid, $last_job->pgid, $last_job->stdin, $last_job->stdout, @commands;
+        # print "\texec pipe segmant: '".join("', '", @commands)."'\n";
+
+        # my $job = make_job $last_job->pid, $last_job->pgid, $last_job->stdin, $last_job->stdout, @commands;
+        push @jobs, $job;
+    }
+
+    foreach (@jobs) {
+        print "\texec pipe segment: '", join("', '", @{$_->argv}), "'\n";
+        exec_job $_;
+    }
+
+    print "exec_pipe finished\n";
+    return;
+    fail: {
+        print "exec_pipe has gone to fail\n";
+        die $!;
+        exit;
+    }
 }
 
 =pod 
@@ -1793,7 +1871,7 @@ sub expand_glob {
     return @argv
 }
 
-sub exec_pipe {
+sub exec_pipe_old {
     # e.g.   ls     |    head 
     my     ($lhs    ,   $rhs)     = @_;
     my     ($lcmd   ,   $rcmd,    $cmd);
