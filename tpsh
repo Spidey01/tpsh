@@ -2810,7 +2810,7 @@ sub source_bin {
             while (defined(my $ln = <$fh>)) {
                 next if $ln =~ /^\s*#/;
                 foreach (sh_eval $ln) {
-                    resolve_cmd @$_ if defined @$_;
+                    resolve_cmd @$_ if defined $_;
                 }
             }
         }
