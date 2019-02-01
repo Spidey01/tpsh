@@ -47,6 +47,7 @@ sub tpsh_lex;
 sub tpsh_cgen;
 sub resolve_cmd;
 sub exec_cmd;
+sub get_process_group;
 sub wait_for_job;
 sub wait_for_job_unix;
 sub wait_for_job_windows;
@@ -526,7 +527,7 @@ sub init_sh {
     init_job_control() if $Options{monitor};
 
     # Create a job for ourself: this is done whether or not 'control' is allowed.
-    my $me = make_job($$, getpgrp(0), *STDIN, *STDOUT, 'tpsh', @ARGV);
+    my $me = make_job($$, get_process_group(0), *STDIN, *STDOUT, 'tpsh', @ARGV);
     warn "Thou shalt have no jobs before me: \$me->jid = ", $me->jid, " but must be 0!"
          if $me->jid > 0;
     $Last_Job = $me;
@@ -669,7 +670,7 @@ sub init_job_control_unix {
     my $pgid;
 
     # spin until we reach the foreground
-    while (POSIX::tcgetpgrp($fd) != ($pgid = getpgrp(0))) {
+    while (POSIX::tcgetpgrp($fd) != ($pgid = get_process_group(0))) {
         kill TTIN => -$pgid;
     }
 
@@ -1129,19 +1130,39 @@ sub exec_job {
         $ENV{TPSH_PIPE_JOB}=$job->jid;
 
         wait_for_job $job;
-        give_term($$, getpgrp());
+        give_term($$, get_process_group());
 
         restore_term_state;
 
         return $? >> 8;
     } else {
-        $SIG{$_} = "IGNORE" foreach qw(TSTP TTIN TTOU);
-        $SIG{$_} = "DEFAULT" foreach qw(TSTP CHLD);
+        if ($Options{monitor} != 0) {
+            $SIG{$_} = "IGNORE" foreach qw(TSTP TTIN TTOU);
+            $SIG{$_} = "DEFAULT" foreach qw(TSTP CHLD);
+        }
 
         give_term($$, $$);
-        # print "child: \$\$=$$ pid=$pid pgrp=", getpgrp(), "\n";
+        # print "child: \$\$=$$ pid=$pid pgrp=", get_process_group(), "\n";
         exit pexec @_;
     }
+}
+
+
+=pod
+
+get_process_group
+
+Wrapper around getpgrp() that returns 0 on Windows.
+
+=cut
+
+sub get_process_group()
+{
+    if ($^O eq 'MSWin32') {
+        return 0;
+    }
+
+    return getpgrp(shift);
 }
 
 sub wait_for_job_unix {
@@ -2490,7 +2511,7 @@ sub fg_bin {
     wait_for_job $job;
 
     # retake terminal for tpsh
-    POSIX::tcsetpgrp(fileno(STDIN), getpgrp());
+    POSIX::tcsetpgrp(fileno(STDIN), get_process_group());
 
     return 0;
 }
