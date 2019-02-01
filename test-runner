@@ -8,6 +8,8 @@
 use warnings;
 use strict;
 
+push @INC, '.';
+
 do 'tpsh';
 # TODO make tpsh handle this for us correctly.
 init_sh();
