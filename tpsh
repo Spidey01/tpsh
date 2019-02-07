@@ -1162,7 +1162,7 @@ sub get_process_group()
         return 0;
     }
 
-    return getpgrp(shift);
+    return getpgrp(shift or 0);
 }
 
 sub wait_for_job_unix {
