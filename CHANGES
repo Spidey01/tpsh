@@ -1,6 +1,14 @@
 This file lists notable changes between tagged releases.
 
-v.??? commit
+v1.3.2: 2022-10-02
+	Update CHANGES
+	Retroactively tagging v1.3 and v1.3.1.
+
+v1.3.1: 2019-02-07
+	Fix syntax issue with modern perls.
+	Deal with lack of getpgrp off unix.
+
+v1.3: 2012-08-29
 
 	test command implemented (but not [ ])
 	ignoreeof works, sorta.
@@ -11,7 +19,7 @@ v.??? commit
 	$$ and $? special variables now work.
 	Bug fixes related to $$, $?, $@, $#, and $* special variables.
 
-v1.2 commit 37eef6c92e536c46c157257a7c500382af481e89
+v1.2: 2012-08-24
 
 	Minor bug fixes.
 	fg is not fg %% instead of an error.
@@ -20,11 +28,11 @@ v1.2 commit 37eef6c92e536c46c157257a7c500382af481e89
 	Variable and `` expansion delayed until later, so loops really work!
 	Lines starting with a quote character are no longer syntax errors :).
 
-v1.1.1 commit cb43053c8c23fec9d625b07a7b155f8c8b9222d3
+v1.1.1: 2012-06-28
 
 	bug fixes.
 
-v1.1: commit decc74f4a0e4e22246d83e34af9e84851d2e941d
+v1.1: 2012-06-27
 
 	basic job control
 	clean up of unix/win32 specific code handling.
@@ -33,6 +41,6 @@ v1.1: commit decc74f4a0e4e22246d83e34af9e84851d2e941d
 	echo ' x y ' => echo '' bug fixed.
 	BUGS and CHANGES files added.
 
-v1.0: commit 71adb0f878eb354f3a5258a9fc9e7a3fb67ab7d4 on 2012-06-22 
+v1.0: 2012-06-22
 
 	first version considered stable enough for daily usage.
